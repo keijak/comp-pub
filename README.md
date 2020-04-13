@@ -1,2 +1,2 @@
-# comp-priv
-competitive
+# comp-pub
+competitive programming
