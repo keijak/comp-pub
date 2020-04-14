@@ -1,8 +1,5 @@
-import sys
-N = int(sys.stdin.readline())
-ss = []
-for i in range(N):
-    ss.append(sys.stdin.readline().rstrip())
+N = int(input())
+ss = [input() for _ in range(N)]
 
 incount = 0
 has_ba = 0
