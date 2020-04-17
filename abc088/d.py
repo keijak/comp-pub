@@ -1,4 +1,4 @@
-import heapq
+import collections
 
 H,W = map(int,input().split())
 maze = []
@@ -35,15 +35,15 @@ dist = [INF] * len(nodes)
 def solve():
     dist[0] = 0
     n0 = nodedict[(0, 0)]
-    pq = [(0, n0)]
+    q = collections.deque([(0, n0)])
     determined = {n0}
-    while pq:
-        d, nid = heapq.heappop(pq)
+    while q:
+        d, nid = q.popleft()
         for i, linked in enumerate(edges[nid]):
             if linked and i not in determined:
                 dist[i] = min(dist[i], d+1)
                 determined.add(i)
-                heapq.heappush(pq, (d+1, i))
+                q.append((d+1, i))
     goal = nodedict[(H-1, W-1)]
     if dist[goal] == INF:
         return -1
