@@ -2,17 +2,16 @@ H,W = map(int, input().split())
 grid = []
 for i in range(H):
     grid.append(input())
-horiz = [[None]*W for _ in range(H)]
-horiv = [[] for _ in range(H)]
+horiz = [[0]*W for _ in range(H)]
 for i in range(H):
     cur = 0
     for j in range(W):
-        if grid[i][j] == '.':
-            horiz[i][j] = len(horiv[i])
-        else:
-            horiv[i].append(j - cur)
-            cur = j + 1
-    horiv[i].append(W-cur)
+        if grid[i][j] == '#':
+            for k in range(cur, j):
+                horiz[i][k] = j-cur
+            cur = j+1
+    for k in range(cur, W):
+        horiz[i][k] = W-cur
 
 maxv = 0
 for c in range(W):
@@ -20,7 +19,7 @@ for c in range(W):
     besth = 0
     for r in range(H):
         if grid[r][c] == '.':
-            besth = max(besth, horiv[r][horiz[r][c]])
+            besth = max(besth, horiz[r][c])
         else:
             maxv = max(maxv, r-cur + besth - 1)
             cur = r+1
