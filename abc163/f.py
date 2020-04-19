@@ -54,4 +54,5 @@ def count_paths(n):
 
 total_paths = count_paths(subtree_sizes[0])
 for c in range(N):
-    print(total_paths - sum(count_paths(size) for size in components[c].values()))
+    uncolored = sum(count_paths(size) for size in components[c].values())
+    print(total_paths - uncolored)
