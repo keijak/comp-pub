@@ -33,8 +33,8 @@ color_stack[colors[0]] = []
 def calc_components(node, parent):
     color_stack_pushed = False
     if parent >= 0 and colors[parent] != colors[node]:
-        color_parent = color_stack[colors[node]][-1]
-        components[colors[node]][color_parent] -= subtree_sizes[node]
+        color_root = color_stack[colors[node]][-1]
+        components[colors[node]][color_root] -= subtree_sizes[node]
         components[colors[parent]][node] = subtree_sizes[node]
         color_stack[colors[parent]].append(node)
         color_stack_pushed = True
