@@ -1,2 +1,3 @@
-N = int(input())
-A = list(map(int, input().split()))
+import numpy as np
+r = float(input())
+print('%.5f' % (2.0*np.pi*r))
