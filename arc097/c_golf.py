@@ -1,0 +1,1 @@
+s=input();k=int(input());print(sorted({s[i:i+j+1]for i in range(len(s))for j in range(k)})[k-1])
