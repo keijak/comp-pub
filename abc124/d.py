@@ -14,12 +14,10 @@ for i, x in enumerate(S):
     if x == "0":
         if i == 0 or S[i - 1] == "1":
             zh = i
+        zerocnt[zh] += x == "0"
     else:
         if i == 0 or S[i - 1] == "0":
             oh = i
-    if zh is not None:
-        zerocnt[zh] += x == "0"
-    if oh is not None:
         oneindex[i] = oh
 
 zerolist = sorted(zerocnt.keys()) + [N]
