@@ -9,10 +9,10 @@ input = sys.stdin.readline
 M = 1000000007
 N = int(input())
 left = list(map(int, input().split()))
+assert len(left) == N
+assert left[0] == 0
 
-indices = Counter()
-for i, x in enumerate(left):
-    indices[x] += 1
+counter = Counter(left)
 
 
 def dp(t, ns):
@@ -41,7 +41,7 @@ def dp(t, ns):
 def solve():
     h = [0, 0, 0]
     for i in range(N):
-        k = indices[i]
+        k = counter[i]
         if k == 3:
             h[0] = h[1] = h[2] = i + 1
         elif k == 2:
@@ -53,7 +53,7 @@ def solve():
     assert sum(h) == N
     t = dict()
     t[0, 0, 0] = 1
-    res = dp(t, tuple(sorted(h))
+    res = dp(t, tuple(sorted(h)))
     return res * len(set(itertools.permutations(h))) % M
 
 
