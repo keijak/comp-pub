@@ -10,8 +10,8 @@ def cum_xor(x):
     p = 1
     while (p << 1) <= x:
         p <<= 1
-    mask = p * ((x - p + 1) & 1)
-    return mask | cum_xor(x - p)
+    msb = p * ((x - p + 1) & 1)
+    return msb | cum_xor(x - p)
 
 
 print(cum_xor(b) ^ cum_xor(a - 1))
