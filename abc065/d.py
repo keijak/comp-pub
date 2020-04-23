@@ -1,3 +1,4 @@
+"""Minimum spanning tree with Kruskal's algorithm"""
 import sys
 
 
