@@ -1,9 +1,11 @@
 import sys
 
+input = sys.stdin.readline
+
 n, k = map(int, input().split())
 bins = []
 for _ in range(n):
-    bins.append(input())
+    bins.append(input().rstrip())
 
 segs = [
     "1110111",
@@ -18,6 +20,8 @@ segs = [
     "1111011",
 ]
 
+INF = 5000
+
 
 def diff(s1, s2):
     cnt = 0
@@ -27,31 +31,48 @@ def diff(s1, s2):
         if s1[i] == "1" and s2[i] == "0":
             cnt += 1
         else:
-            return 3000
+            return INF
     return cnt
 
 
-minrequired = [0] * n
+maxdiff = [INF] * n
+mindiff = [0] * n
 for i in range(n):
-    minrequired[i] = min(diff(segs[j], bins[i]) for j in range(10))
-acum = [0] * n
+    for j in range(10):
+        d = diff(segs[j], bins[i])
+        mindiff[i] = min(mindiff[i], d)
+        maxdiff[i] = max(maxdiff[i], d)
+acummin = [0] * n
+acummax = [0] * n
 for i in range(n - 2, -1, -1):
-    acum[i] = acum[i + 1] + minrequired[i + 1]
+    acummin[i] = acummin[i + 1] + mindiff[i + 1]
+    acummax[i] = acummax[i + 1] + maxdiff[i + 1]
 
-stack = [(0, k, 0)]
+
+def finish(ans):
+    out = []
+    while ans:
+        d, ans = ans
+        out.append(d)
+    out.reverse()
+    print(*out, sep="")
+    sys.exit()
+
+
+stack = [(0, k, None)]
 while stack:
     i, sticks, ans = stack.pop()
     if i == n:
         if sticks == 0:
-            print(ans)
-            sys.exit()
+            finish(ans)
         continue
     digit = bins[i]
+    amin, amax = acummin[i], acummax[i]
     for j in range(10):
         sd = diff(segs[j], digit)
-        if sticks - sd < acum[i]:
-            continue
-        stack.append((i + 1, sticks - sd, 10 * ans + j))
+        rem = sticks - sd
+        if amin <= rem <= amax:
+            stack.append((i + 1, rem, (j, ans)))
 
 
 print(-1)
