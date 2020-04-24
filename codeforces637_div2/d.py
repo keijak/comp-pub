@@ -1,5 +1,6 @@
 import sys
 
+sys.setrecursionlimit(10 ** 9)
 input = sys.stdin.readline
 
 n, k = map(int, input().split())
@@ -56,23 +57,32 @@ def finish(ans):
         out.append(d)
     out.reverse()
     print(*out, sep="")
-    sys.exit()
 
 
-stack = [(0, k, None)]
-while stack:
-    i, sticks, ans = stack.pop()
+dp = [[True] * (k + 1) for _ in range(n + 1)]
+ans = [0] * n
+
+
+def solve(i, sticks):
+    if not dp[i][sticks]:
+        return False
     if i == n:
         if sticks == 0:
-            finish(ans)
-        continue
+            print(*ans, sep="")
+            return True
+        return False
     digit = bins[i]
     amin, amax = acummin[i], acummax[i]
-    for j in range(10):
+    for j in range(9, -1, -1):
         sd = diff(segs[j], digit)
         rem = sticks - sd
         if amin <= rem <= amax:
-            stack.append((i + 1, rem, (j, ans)))
+            ans[i] = j
+            if solve(i + 1, rem):
+                return True
+    dp[i][sticks] = False
+    return False
 
 
-print(-1)
+if not solve(0, k):
+    print(-1)

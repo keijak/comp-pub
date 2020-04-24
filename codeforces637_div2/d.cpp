@@ -52,7 +52,9 @@ int main() {
     acummax[i] = acummax[i + 1] + maxdiff[i + 1];
   }
   vector<int> ans(n, 0);
+  vector<vector<bool>> dp(n + 1, vector<bool>(k + 1, true));
   function<bool(int, int)> solve = [&](int i, int sticks) {
+    if (!dp[i][sticks]) return false;
     if (i == n) {
       if (sticks == 0) {
         for (auto v : ans) {
@@ -74,6 +76,7 @@ int main() {
         }
       }
     }
+    dp[i][sticks] = false;
     return false;
   };
   if (!solve(0, k)) {
