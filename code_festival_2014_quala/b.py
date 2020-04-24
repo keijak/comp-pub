@@ -1,0 +1,1 @@
+a=input();print(a[int(input())%len(a)-1])
