@@ -1,29 +1,27 @@
+from collections import Counter
+
+M = 10 ** 9 + 7
 N = int(input())
 A = list(map(int, input().split()))
-A.sort()
-M = 10 ** 9 + 7
+acnt = Counter(A)
 
 
 def solve():
-    if A[0] != 0:
+    if A[0] != 0 or acnt[0] != 1:
         return 0
-    if N > 1 and A[1] != 1:
-        return 0
-    sp = [0] * N  # number of nodes with distance k from 0.
-    sp[0] = 1
+    prevcnt = 1
     res = 1
-    i = 1
-    while i < N:
-        k = A[i]
-        if k != A[i - 1] + 1:
+    rest = N - 1
+    for k in range(1, N):
+        if rest == 0:
+            break
+        c = acnt[k]
+        if c == 0:
             return 0
-        c = 0
-        while i < N and A[i] == k:
-            i += 1
-            c += 1
-            res = res * ((pow(2, sp[k - 1], M) - 1) % M) % M
+        rest -= c
+        res = res * pow(pow(2, prevcnt, M) - 1, c, M) % M
         res = res * pow(2, c * (c - 1) // 2, M) % M
-        sp[k] = c
+        prevcnt = c
     return res
 
 
