@@ -8,9 +8,6 @@ TIME_MAX = 10 ** 15
 
 N, M, S = map(int, input().split())
 adj = [[] for _ in range(N * NCOSTS)]
-fare_adj = [[NCOSTS] * N for _ in range(N)]
-time_adj = [[TIME_MAX] * N for _ in range(N)]
-fare_max = 0
 
 
 def nodeid(city, silvers):
