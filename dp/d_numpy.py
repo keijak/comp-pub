@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 
 sys.setrecursionlimit(10 ** 8)
 read = sys.stdin.buffer.read
@@ -13,16 +14,12 @@ for i in range(N):
 
 
 def solve():
-    dp = [0] * (W + 1)
+    dp = np.zeros(W + 1, dtype=int)
     w0, v0 = things[0]
-    for i in range(w0, W + 1):
-        dp[i] = v0
+    dp[w0:] = v0
     for i in range(1, N):
-        dn = list(dp)
         weight, value = things[i]
-        for j in range(weight, W + 1):
-            dn[j] = max(dn[j], dp[j - weight] + value)
-        dp = dn
+        np.maximum(dp[weight:], dp[:-weight] + value, out=dp[weight:])
     return dp[W]
 
 
