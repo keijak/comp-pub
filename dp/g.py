@@ -6,11 +6,9 @@ readline = sys.stdin.buffer.readline
 readlines = sys.stdin.buffer.readlines
 
 N, M = map(int, readline().split())
-dst = [[] for _ in range(N)]
 src = [[] for _ in range(N)]
 for i in range(M):
     x, y = [int(z) - 1 for z in readline().split()]
-    dst[x].append(y)
     src[y].append(x)
 
 
@@ -19,7 +17,6 @@ def solve():
     nindex = [-1] * N
 
     def topsort(i):
-        res = []
         if nindex[i] != -1:
             return
         for j in src[i]:
