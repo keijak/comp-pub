@@ -14,7 +14,7 @@ for i in range(H):
     grid[i, :] = [c == "." for c in s]
 
 
-@numba.njit(numba.i8(numba.i4, numba.i4, numba.typeof(grid)), cache=True)
+@numba.njit(numba.i8(numba.i4, numba.i4, numba.typeof(grid)), cache=False)
 def solve(H, W, grid):
     M = 10 ** 9 + 7
     t = grid[0, :].copy()
