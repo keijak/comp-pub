@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 import sys
 
+import numpy as np
+import numba
+
 sys.setrecursionlimit(10 ** 8)
 read = sys.stdin.buffer.read
 readline = sys.stdin.buffer.readline
 readlines = sys.stdin.buffer.readlines
 
 
-def solve(N: int, a: "List[int]"):
+@numba.njit("i8(i8, i8[:])", cache=False)
+def solve(N: int, a: "Sequence[int]"):
     N1 = N + 1
     dpmin = [-1] * N1 ** 2
     dpmax = [-1] * N1 ** 2
@@ -22,7 +26,6 @@ def solve(N: int, a: "List[int]"):
                 -a[i] + dpmax[(k - 1) * N1 + i + 1],
                 -a[i + k - 1] + dpmax[(k - 1) * N1 + i],
             )
-            r = -1
             dpmax[k * N1 + i] = max(
                 a[i] + dpmin[(k - 1) * N1 + i + 1],
                 a[i + k - 1] + dpmin[(k - 1) * N1 + i],
@@ -33,7 +36,8 @@ def solve(N: int, a: "List[int]"):
 def main():
     N = int(readline())  # type: int
     a = [int(x) for x in readline().split()]  # type: "List[int]"
-    print(solve(N, a))
+    na = np.array(a, dtype=np.int64)
+    print(solve(N, na))
 
 
 if __name__ == "__main__":
