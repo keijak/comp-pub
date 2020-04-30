@@ -1,3 +1,5 @@
 /.python-version
 /poetry.lock
 /in.txt
+
+*/__pycache__/
