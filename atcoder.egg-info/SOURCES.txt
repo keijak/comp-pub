@@ -1,0 +1,12 @@
+README.md
+setup.py
+atcoder/README.rst
+atcoder/pyproject.toml
+atcoder.egg-info/PKG-INFO
+atcoder.egg-info/SOURCES.txt
+atcoder.egg-info/dependency_links.txt
+atcoder.egg-info/requires.txt
+atcoder.egg-info/top_level.txt
+atcoder/atcoder/__init__.py
+atcoder/tests/__init__.py
+atcoder/tests/test_atcoder.py
