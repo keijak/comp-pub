@@ -7,6 +7,7 @@ def iterate_tokens():
     for line in sys.stdin.buffer:
         for word in line.split():
             yield word
+
 tokens = iterate_tokens()
 ${input_part}
 
