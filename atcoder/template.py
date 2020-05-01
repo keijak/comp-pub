@@ -13,7 +13,7 @@ ${input_part}
 
 
 def solve(${formal_arguments}):
-    pass
+    return
 
 
 def main():
