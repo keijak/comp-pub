@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
+import copy
 import sys
 
 MOD = 1000000007  # type: int
 
 
 def solve(N: int, K: int, a: "List[int]"):
-    return
+    dp = [[0] * (K + 1) for _ in range(N + 1)]
+    dp[0][0] = 1
+    for k in range(min(a[0], K) + 1):
+        dp[1][k] = 1
+    for i in range(1, N + 1):
+        acc = dp[i + 1][0] = 1
+        for k in range(1, min(ai, K) + 1):
+            dp[i + 1][k] = (dp[i + 1][k - 1] + dp[i][k]) % MOD
+    return dp[N][K]
 
 
 def main():
@@ -18,7 +27,7 @@ def main():
     N = int(next(tokens))  # type: int
     K = int(next(tokens))  # type: int
     a = [int(next(tokens)) for _ in range(N)]  # type: "List[int]"
-    solve(N, K, a)
+    print(solve(N, K, a))
 
 
 if __name__ == "__main__":
