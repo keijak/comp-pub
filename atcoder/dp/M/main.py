@@ -1,27 +1,20 @@
 #!/usr/bin/env python3
 import copy
 import sys
+import numpy as np
 
-MOD = 1000000007  # type: int
-
-
-def debug(s):
-    print(s)
+M = 1000000007
 
 
-def solve(N: int, K: int, a: "List[int]"):
-    dp = [[0] * (K + 1) for _ in range(N + 1)]
-    dp[0][0] = 1
-    for i in range(1, N + 1):
-        ai = a[i - 1]
-        dp[i][0] = 1
-        for k in range(1, K + 1):
-            c = dp[i - 1][k] + dp[i][k - 1]
-            if k - ai - 1 >= 0:
-                c -= dp[i - 1][k - ai - 1]
-            dp[i][k] = c % MOD
-            # debug(f"{i} kids share {k} candies: => {dp[i][k]}")
-    return dp[N][K]
+def solve(N: int, K: int, a):
+    dp = np.zeros(K + 1, dtype=np.int64)
+    dp[0] = 1
+    for x in a:
+        cm = np.cumsum(dp)
+        dp = cm.copy()
+        dp[x + 1 :] -= cm[: -x - 1]
+        dp %= M
+    return dp[K]
 
 
 def main():
@@ -33,7 +26,7 @@ def main():
     tokens = iterate_tokens()
     N = int(next(tokens))  # type: int
     K = int(next(tokens))  # type: int
-    a = [int(next(tokens)) for _ in range(N)]  # type: "List[int]"
+    a = np.array([int(next(tokens)) for _ in range(N)], dtype=np.int64)
     print(solve(N, K, a))
 
 
