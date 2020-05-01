@@ -5,15 +5,22 @@ import sys
 MOD = 1000000007  # type: int
 
 
+def debug(s):
+    print(s)
+
+
 def solve(N: int, K: int, a: "List[int]"):
     dp = [[0] * (K + 1) for _ in range(N + 1)]
     dp[0][0] = 1
-    for k in range(min(a[0], K) + 1):
-        dp[1][k] = 1
     for i in range(1, N + 1):
-        acc = dp[i + 1][0] = 1
-        for k in range(1, min(ai, K) + 1):
-            dp[i + 1][k] = (dp[i + 1][k - 1] + dp[i][k]) % MOD
+        ai = a[i - 1]
+        dp[i][0] = 1
+        for k in range(1, K + 1):
+            c = dp[i - 1][k] + dp[i][k - 1]
+            if k - ai - 1 >= 0:
+                c -= dp[i - 1][k - ai - 1]
+            dp[i][k] = c % MOD
+            # debug(f"{i} kids share {k} candies: => {dp[i][k]}")
     return dp[N][K]
 
 
