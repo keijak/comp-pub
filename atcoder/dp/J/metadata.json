@@ -1,11 +1,11 @@
 {
- "code_filename": "main.py",
+ "code_filename": "main.cpp",
  "judge": {
   "diff": 1e-09,
   "error_type": "relative",
   "judge_type": "decimal"
  },
- "lang": "python",
+ "lang": "cpp",
  "problem": {
   "alphabet": "J",
   "contest": {
