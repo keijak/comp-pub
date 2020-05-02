@@ -1,0 +1,31 @@
+15
+4 2
+baba
+5 2
+baacb
+5 3
+baacb
+5 3
+aaaaa
+6 4
+aaxxzz
+7 1
+phoenix
+6 2
+aabbcc
+6 2
+aabbbb
+7 2
+aabbbbb
+9 3
+aaabbbbbb
+10 3
+aaabbbbbbb
+11 3
+aaabbbbbbbc
+8 3
+aaaaaaaa
+1 1
+d
+6 3
+abcdef
