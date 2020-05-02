@@ -1,0 +1,41 @@
+#include <bits/stdc++.h>
+#define REP(i, n) for (decltype(n) i = 0; i < (n); ++i)
+using namespace std;
+using int64 = long long;
+
+void solve(int N, int M) {
+  vector<int> vacant(N, -1);
+  function<void(int, int)> search = [&](int m, int w) {
+    if (m == 0) {
+      vector<optional<pair<int, int>>> match(M);
+      REP(i, vacant.size()) {
+        int v = vacant[i];
+        if (v < 0) continue;
+        if (match[v] && match[v]->second < 0) {
+          match[v]->second = i + 1;
+        } else {
+          match[v] = make_pair(i + 1, -1);
+        }
+      }
+      REP(i, M) { cout << match[i]->first << ' ' << match[i]->second << '\n'; }
+      exit(0);
+    }
+    for (int i = 0; i < N; ++i) {
+      int j = (i + w) % N;
+      assert(i != j);
+      if (vacant[i] < 0 && vacant[j] < 0) {
+        vacant[i] = vacant[j] = m - 1;
+        search(m - 1, w - 1);
+        vacant[i] = vacant[j] = -1;
+      }
+    }
+  };
+  int w0 = N / 2 - (N % 2 == 0);
+  search(M, w0);
+}
+
+int main() {
+  int N, M;
+  cin >> N >> M;
+  solve(N, M);
+}
