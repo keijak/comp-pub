@@ -14,22 +14,14 @@ int main() {
   s = vector<string>(N);
   for (int i = 0; i < N; i++) {
     std::cin >> s[i];
-    sort(s[i].begin(), s[i].end());
   }
   vector<char> ans;
-  auto dfs = [&](auto f, int idx) -> bool {
-    while (idx < N - 1 && s[idx] == s[idx + 1]) {
-      ans.push_back(s[idx][0]);
-      ans.push_back(s[idx][1]);
-      idx += 2;
-    }
-
+  auto dfs = [&](auto rec, int idx) -> bool {
     if (idx == N) {
       cout << YES << "\n";
       REP(i, N) { cout << ans[i] << "\n"; }
       return true;
     }
-
     int x = s[idx][0] - 'A';
     int y = s[idx][1] - 'A';
     REP(_, 2) {
@@ -37,7 +29,7 @@ int main() {
         buf[x]--;
         buf[y]++;
         ans.push_back(y + 'A');
-        if (f(f, idx + 1)) {
+        if (rec(rec, idx + 1)) {
           return true;
         };
         ans.pop_back();
