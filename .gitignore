@@ -1,6 +1,7 @@
-/.python-version
-/poetry.lock
-/in.txt
+# Ignore everywhere
+__pycache__
+a.out
+poetry.lock
 
-*/__pycache__/
-*/a.out
+# Ignore at the toplevel.
+/.python-version
