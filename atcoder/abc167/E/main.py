@@ -9,12 +9,12 @@ N, M, K = map(int, readline().split())
 MOD = 998244353
 
 # Combination under a prime modulo: nCk % p
-def combmod(n, k, p):
+def combmod(n, k, p=MOD):
     if k > n:
         return 0
     if k > n - k:
         k = n - k
-    num, den = 1, 1
+    num = den = 1
     for i in range(k):
         num = num * (n - i) % p
         den = den * (i + 1) % p
@@ -35,7 +35,8 @@ def solve():
     for i in range(K + 1):
         ans += cs * m1pows[K - i]
         ans %= MOD
-        cs *= (N - 1 - i) % MOD * pow(i + 1, MOD - 2, MOD) % MOD
+        cs *= (N - 1 - i) * pow(i + 1, MOD - 2, MOD)
+        cs %= MOD
     return ans
 
 
