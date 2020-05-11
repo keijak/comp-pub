@@ -35,8 +35,7 @@ def combmod(n, k, p=MOD, numden=[(1, 1)]):
 def solve():
     ans = 0
     for i in range(K + 1):
-        cs = combmod(N - 1, i)
-        ans += cs * M % MOD * pow(M - 1, N - 1 - i, MOD) % MOD
+        ans += combmod(N - 1, i) * M * pow(M - 1, N - 1 - i, MOD) % MOD
         ans %= MOD
     return ans
 
