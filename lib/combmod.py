@@ -1,14 +1,19 @@
+import collections
+
 # MOD = 998244353
 
 # Combination under a modulo: nCk % p
 # Modulo must be a prime number.
-# Intermediate numerators and denominators are cached and reused.
-def combmod(n, k, p=MOD, numden=[(1, 1)]):
+# Intermediate numerators and denominators are cached and reused for
+# the same `n`.
+# TODO: Share cached denominators among different `n`s.
+def combmod(n, k, p=MOD, cache=collections.defaultdict(lambda: [(1, 1)])):
     if k > n:
         return 0
     if k > n - k:
         k = n - k
     # Reuse precalculated numerators and denominators.
+    numden = cache[n]
     if k < len(numden):
         num, den = numden[k]
     else:
