@@ -4,6 +4,7 @@ import collections
 
 # Combination under a modulo: nCk % p
 # Modulo must be a prime number.
+# Time complexity: O(n + log(p))
 # Intermediate numerators and denominators are cached and reused for
 # the same `n`.
 # TODO: Share cached denominators among different `n`s.
@@ -17,7 +18,7 @@ def combmod(n, k, p=MOD, cache=collections.defaultdict(lambda: [(1, 1)])):
     if k < len(numden):
         num, den = numden[k]
     else:
-        # Resume from len(numden).
+        # Resume from len(numden)-1.
         num, den = numden[-1]
         for i in range(len(numden) - 1, k):
             num = num * (n - i) % p
