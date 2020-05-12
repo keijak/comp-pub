@@ -15,10 +15,6 @@ for i in range(N):
     width, value = map(int, readline().split())
     items.append((width, value))
     valuesum += value
-# items.sort()
-
-
-INF = 10 ** 6
 
 
 def solve():
