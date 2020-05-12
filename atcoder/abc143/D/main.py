@@ -19,8 +19,6 @@ def solve():
         for j in range(i):
             a = L[j]
             k = bisect.bisect_left(L, a + b, i + 1) - 1
-            if k == i:
-                continue
             ans += k - i
     return ans
 
