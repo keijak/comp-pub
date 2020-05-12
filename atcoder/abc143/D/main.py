@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
 import sys
+import bisect
 
 sys.setrecursionlimit(10 ** 8)
+read = sys.stdin.buffer.read
+readline = sys.stdin.buffer.readline
+readlines = sys.stdin.buffer.readlines
 
-def iterate_tokens():
-    for line in sys.stdin.buffer:
-        for word in line.split():
-            yield word
-
-tokens = iterate_tokens()
-N = int(next(tokens))  # type: int
-    L = [int(next(tokens)) for _ in range(N)]  # type: "List[int]"
+N = int(readline())
+L = list(map(int, readline().split()))
+L.sort()
 
 
-def solve(N: int, L: "List[int]"):
-    return
+def solve():
+    ans = 0
+    for i in range(N):
+        b = L[i]
+        for j in range(i):
+            a = L[j]
+            k = bisect.bisect_left(L, a + b, i + 1) - 1
+            if k == i:
+                continue
+            ans += k - i
+    return ans
 
 
-def main():
-    print(solve(N, L))
-
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    print(solve())
