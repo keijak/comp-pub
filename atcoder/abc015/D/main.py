@@ -24,8 +24,7 @@ INF = 10 ** 6
 def solve():
     dp = [[W + 1] * (valuesum + 1) for _ in range(K + 1)]
     w0, v0 = items[0]
-    for i in range(N):
-        dp[0][0] = 0
+    dp[0][0] = 0
     dp[1][v0] = w0
     for i in range(1, N):
         wi, vi = items[i]
