@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import collections
+import fractions
 
 sys.setrecursionlimit(10 ** 8)
 ni = lambda: int(sys.stdin.readline())
@@ -8,32 +9,48 @@ nm = lambda: map(int, sys.stdin.readline().split())
 nl = lambda: list(nm())
 ns = lambda: sys.stdin.readline().rstrip()
 
-N = ni()
-A, B = [], []
+
 MOD = 1000000007
+N = ni()
+cnt_ab0 = cnt_a0 = cnt_b0 = 0
+cnt_r = collections.Counter()
 
 for i in range(N):
     a, b = nm()
-    A.append(a)
-    B.append(b)
+    if a == 0 and b == 0:
+        cnt_ab0 += 1
+    elif a == 0:
+        cnt_a0 += 1
+    elif b == 0:
+        cnt_b0 += 1
+    else:
+        r = fractions.Fraction(a, b)
+        cnt_r[r] += 1
 
 
 def solve():
-    dis = [0] * N
-    ctr = collections.Counter()
-    for i in range(N):
-        a, b = A[i], B[i]
-        cnt = ctr[b, -a] + ctr[-b, a]
-        dis[i] = cnt
-        ctr[a, b] += 1
+    rpairs = set()
+    for r in cnt_r.keys():
+        if r > 0:
+            rpairs.add(r)
+        else:
+            rpairs.add(-1 / r)
 
-    dp = [[0] * 2 for _ in range(N)]
-    dp[0][0] = 1
-    dp[0][1] = 1
-    for i in range(1, N):
-        dp[i][0] = (dp[i - 1][0] + dp[i - 1][1]) % MOD
-        dp[i][1] = pow(2, i - dis[i], MOD)
-    return (dp[N - 1][0] + dp[N - 1][1] - 1) % MOD
+    pow2 = [1] * (N + 1)
+    for i in range(1, N + 1):
+        pow2[i] = (pow2[i - 1] << 1) % MOD
+
+    ans = 1
+    for r1 in rpairs:
+        r2 = -1 / r1
+        p = pow2[cnt_r[r1]] + pow2[cnt_r[r2]] - 1
+        ans *= p % MOD
+        ans %= MOD
+    p = pow(2, cnt_a0, MOD) + pow(2, cnt_b0, MOD) - 1
+    ans *= p % MOD
+    ans %= MOD
+    ans += cnt_ab0 - 1
+    return ans % MOD
 
 
 if __name__ == "__main__":
