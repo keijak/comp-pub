@@ -19,22 +19,18 @@ for i in range(M):
 
 
 def solve():
-    INF = 1 << 62
     q = collections.deque([(0, 0, -1)])
-    dist = [INF] * N
+    visited = [False] * N
     prev = [None] * N
     while q:
         l, node, pnode = q.popleft()
-        if dist[node] < l:
+        if visited[node]:
             continue
-        dist[node] = l
+        visited[node] = True
         prev[node] = pnode
         for nxt in adj[node]:
-            if nxt != pnode and dist[nxt] > l + 1:
+            if not visited[nxt]:
                 q.append((l + 1, nxt, node))
-    # if any(x is None for x in prev):
-    #     print("No")
-    #     return
     print("Yes")
     for i in range(1, N):
         print(prev[i] + 1)
