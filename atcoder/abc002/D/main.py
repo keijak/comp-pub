@@ -23,14 +23,14 @@ def solve():
         ok = True
         for j in range(N):
             if (s >> j) & 1:
-                if any(not adj[z][j] for z in group):
+                aj = adj[j]
+                if any(not aj[z] for z in group):
                     ok = False
                     break
                 group.append(j)
-        if ok:
-            if maxsize < len(group):
-                maxsize = len(group)
-                # print(f">> maxsize={maxsize}, group={group}")
+        if ok and maxsize < len(group):
+            maxsize = len(group)
+            # print(f">> maxsize={maxsize}, group={group}")
     return maxsize
 
 
