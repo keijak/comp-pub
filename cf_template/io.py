@@ -6,9 +6,9 @@ nm = lambda: map(int, sys.stdin.readline().split())
 nl = lambda: list(nm())
 ns = lambda: sys.stdin.readline().rstrip()
 
+
 def solve():
-    pass
+    return
 
 
-if __name__ == "__main__":
-    print(solve())
+print(solve())
