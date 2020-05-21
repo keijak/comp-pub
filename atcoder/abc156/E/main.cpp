@@ -53,16 +53,14 @@ int main() {
   ans += N * (N - 1);  // 1 zero
 
   int L = min(N, K + 1);
-  vector<mint> c1(L), c2(L);
-  c1[1] = N;
-  c2[1] = N - 1;
+  mint c1 = N, c2 = N - 1;
   // nCi * (n-1)Ci
   // i is the number of zeros.
   for (int i = 2; i < L; ++i) {
     mint mi = mint(i).inv();
-    c1[i] = c1[i - 1] * (N + 1 - i) * mi;
-    c2[i] = c2[i - 1] * (N - i) * mi;
-    ans += c1[i] * c2[i];
+    c1 *= mi * (N + 1 - i);
+    c2 *= mi * (N - i);
+    ans += c1 * c2;
   }
   cout << ans << endl;
 }
