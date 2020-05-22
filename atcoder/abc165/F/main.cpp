@@ -1,29 +1,20 @@
-#include <bits/stdc++.h>
-#define REP(i, n) for (decltype(n) i = 0; i < (n); ++i)
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <vector>
 using namespace std;
-using int64 = long long;
-
-void solve(long long N, std::vector<long long> a, std::vector<long long> u,
-           std::vector<long long> v) {
-  vector<int64> dp(N, 0);
-  dp[0] = 1;
-  deque<tuple<int, int>> q;
-  q.emplace_back(0, -1);
-  while (!q.empty()) {
-    auto [node, parent] = q.front();
-    q.pop_front();
-  }
-}
+using i64 = long long;
+using u64 = unsigned long long;
+#define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+const i64 INF = 100000000000LL;
 
 int main() {
   int N;
   cin >> N;
-  std::vector<long long> a(N);
-  for (int i = 0; i < N; i++) {
-    scanf("%lld", &a[i]);
-  }
-  std::vector<vector<int>> adj(N);
-  for (int i = 0; i < N - 1; i++) {
+  vector<i64> a(N);
+  REP(i, N) { cin >> a[i]; }
+  vector<vector<int>> adj(N);
+  REP(i, N - 1) {
     int u, v;
     cin >> u >> v;
     u--;
@@ -31,5 +22,29 @@ int main() {
     adj[u].push_back(v);
     adj[v].push_back(u);
   }
-  solve(N, std::move(a), std::move(u), std::move(v));
+
+  vector<int> answer(N);
+  vector<i64> lis(N + 1, INF);
+  auto solve = [&](auto rec, int node, int pnode) -> void {
+    assert(answer[node] == 0);
+    auto it = lower_bound(lis.begin(), lis.end(), a[node]);
+    assert(it != lis.end());
+    const int j = distance(lis.begin(), it);
+    answer[node] = 1 + j;
+    i64 bak = lis[j];
+    lis[j] = a[node];
+    for (int c : adj[node]) {
+      if (c != pnode) {
+        rec(rec, c, node);
+      }
+    }
+    lis[j] = bak;
+  };
+  solve(solve, 0, -1);
+
+  for (int x : answer) {
+    assert(x > 0);
+    assert(x <= N);
+    cout << x << endl;
+  }
 }
