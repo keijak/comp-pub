@@ -13,46 +13,39 @@ int N, M;
 i64 INF = 1LL << 60;
 
 optional<u64> bfs(const vector<i64>& xv, const vector<i64>& yv,
-                  const vector<deque<bool>>& adj) {
-  u64 area = 0;
-  int num_nodes = xv.size() * yv.size();
-  int width = yv.size();
+                  vector<vector<char>>& grid) {
   vector<tuple<int, int>> steps{{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
   deque<tuple<int, int>> que;
   int c0 = lower_bound(xv.begin(), xv.end(), 0) - xv.begin();
   int r0 = lower_bound(yv.begin(), yv.end(), 0) - yv.begin();
-  que.emplace_back(c0, r0);
-  vector<bool> visited(num_nodes, false);
-  visited[c0 * width + r0] = true;
+  que.emplace_back(2 * r0 + 1, 2 * c0 + 1);
 
   while (que.size()) {
-    const auto& [c, r] = que.front();
-    int cur_node = c * width + r;
+    const auto& [r, c] = que.front();
     que.pop_front();
-    if (c < 0 || c + 1 >= int(xv.size()) || r < 0 || r + 1 >= int(yv.size())) {
-      return nullopt;
-    }
-    if (xv[c + 1] == INF || xv[c] == -INF || yv[r + 1] == INF ||
-        yv[r] == -INF) {
-      return nullopt;
-    }
-    area += (xv[c + 1] - xv[c]) * (yv[r + 1] - yv[r]);
-    for (const auto& [dc, dr] : steps) {
-      int nxt = (c + dc) * width + (r + dr);
-      if (nxt < 0 || nxt >= num_nodes) {
+    for (const auto& [dr, dc] : steps) {
+      int rn = r + dr, cn = c + dc;
+      if (rn < 0 || rn >= int(grid.size()) || cn < 0 ||
+          cn >= int(grid[0].size())) {
+        return nullopt;
+      }
+      if (grid[rn][cn] != 0) {
         continue;
       }
-      if (adj[cur_node][nxt] && !visited[nxt]) {
-        visited[nxt] = true;
-        // cerr << ">> pos [" << (r + dr) << ", " << (c + dc) << "] = ("
-        //      << yv[r + dr] << ", " << xv[c + dc] << ")  <-  (" << yv[r] << ",
-        //      "
-        //      << xv[c] << ")" << endl;
-        que.emplace_back(c + dc, r + dr);
-      }
+      grid[rn][cn] = 1;
+      que.emplace_back(rn, cn);
     }
   }
 
+  u64 area = 0;
+  REP(r, yv.size()) {
+    REP(c, xv.size()) {
+      char s = grid[2 * r + 1][2 * c + 1];
+      if (s == 1) {
+        area += (xv[c + 1] - xv[c]) * (yv[r + 1] - yv[r]);
+      }
+    }
+  }
   return area;
 }
 
@@ -67,8 +60,6 @@ int main() {
   xv.reserve(N + 2 * M + 10);
   yv.reserve(2 * N + M + 10);
   xv.push_back(0);
-  xv.push_back(INF);
-  xv.push_back(-INF);
   yv.push_back(0);
   yv.push_back(INF);
   yv.push_back(-INF);
@@ -92,17 +83,14 @@ int main() {
   xv.erase(unique(xv.begin(), xv.end()), xv.end());
   sort(yv.begin(), yv.end());
   yv.erase(unique(yv.begin(), yv.end()), yv.end());
-  int num_nodes = xv.size() * yv.size();
-  int width = yv.size();
-  vector<deque<bool>> adj(num_nodes, deque<bool>(num_nodes, true));
+  vector<vector<char>> grid(yv.size() * 2, vector<char>(xv.size() * 2, 0));
   REP(i, N) {
     auto [a, b, c] = verticals[i];
     int r1 = lower_bound(yv.begin(), yv.end(), a) - yv.begin();
     int r2 = lower_bound(yv.begin(), yv.end(), b) - yv.begin();
     int ci = lower_bound(xv.begin(), xv.end(), c) - xv.begin();
-    for (int rd = r1; rd < r2; ++rd) {
-      adj[(ci - 1) * width + rd][ci * width + rd] = false;
-      adj[ci * width + rd][(ci - 1) * width + rd] = false;
+    for (int rd = 2 * r1; rd < 2 * r2; ++rd) {
+      grid[rd][2 * ci] = 2;
     }
   }
   REP(i, M) {
@@ -110,12 +98,12 @@ int main() {
     int ri = lower_bound(yv.begin(), yv.end(), d) - yv.begin();
     int c1 = lower_bound(xv.begin(), xv.end(), e) - xv.begin();
     int c2 = lower_bound(xv.begin(), xv.end(), f) - xv.begin();
-    for (int cd = c1; cd < c2; ++cd) {
-      adj[cd * width + (ri - 1)][cd * width + ri] = false;
-      adj[cd * width + ri][cd * width + (ri - 1)] = false;
+    for (int cd = 2 * c1; cd < 2 * c2; ++cd) {
+      grid[2 * ri][cd] = 2;
     }
   }
-  auto result = bfs(xv, yv, adj);
+
+  auto result = bfs(xv, yv, grid);
   if (!result) {
     cout << "INF" << endl;
   } else {
