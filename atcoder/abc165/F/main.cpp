@@ -6,13 +6,15 @@ using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
-const i64 INF = 100000000000LL;
+const i64 INF = 1LL << 60;
 
 int main() {
   int N;
   cin >> N;
-  vector<i64> a(N);
-  REP(i, N) { cin >> a[i]; }
+  vector<i64> A(N);
+  for (auto& x : A) {
+    cin >> x;
+  }
   vector<vector<int>> adj(N);
   REP(i, N - 1) {
     int u, v;
@@ -25,26 +27,27 @@ int main() {
 
   vector<int> answer(N);
   vector<i64> lis(N + 1, INF);
-  auto solve = [&](auto rec, int node, int pnode) -> void {
+  auto solve = [&](auto rec, int node, int pnode = -1) -> void {
     assert(answer[node] == 0);
-    auto it = lower_bound(lis.begin(), lis.end(), a[node]);
+    auto it = lower_bound(lis.begin(), lis.end(), A[node]);
     assert(it != lis.end());
     const int j = distance(lis.begin(), it);
     answer[node] = 1 + j;
-    i64 bak = lis[j];
-    lis[j] = a[node];
-    for (int c : adj[node]) {
-      if (c != pnode) {
-        rec(rec, c, node);
+    if (pnode != -1) {
+      answer[node] = max(answer[node], answer[pnode]);
+    }
+    i64 backup = lis[j];
+    lis[j] = A[node];
+    for (int cnode : adj[node]) {
+      if (cnode != pnode) {
+        rec(rec, cnode, node);
       }
     }
-    lis[j] = bak;
+    lis[j] = backup;
   };
-  solve(solve, 0, -1);
+  solve(solve, 0);
 
   for (int x : answer) {
-    assert(x > 0);
-    assert(x <= N);
-    cout << x << endl;
+    cout << x << "\n";
   }
 }
