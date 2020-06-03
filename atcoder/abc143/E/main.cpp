@@ -35,45 +35,29 @@ int main() {
   int N, M;
   i64 L;
   cin >> N >> M >> L;
-  vector<vector<pair<int, i64>>> adj(N);
+  vector<vector<i64>> mincost(N, vector<i64>(N, 1LL << 50));
   REP(i, M) {
     int a, b, c;
     cin >> a >> b >> c;
     a--;
     b--;
-    adj[a].emplace_back(b, c);
-    adj[b].emplace_back(a, c);
+    mincost[a][b] = mincost[b][a] = c;
+  }
+  REP(k, N) REP(i, N) REP(j, N) {
+    i64 c = mincost[i][k] + mincost[k][j];
+    if (mincost[i][j] > c) mincost[i][j] = c;
   }
 
-  vector<vector<pair<int, i64>>> ans(N, vector<pair<int, i64>>(N, {-INF, 0}));
-  vector<bool> cached(N);
-  auto search = [&](int start, vector<pair<int, i64>>& refills) -> void {
-    if (cached[start]) return;
-    cached[start] = true;
-    priority_queue<tuple<int, i64, int>> pq;
-    pq.emplace(0, L, start);
-    while (!pq.empty()) {
-      int refill = -get<0>(pq.top());
-      i64 gas = get<1>(pq.top());
-      int city = get<2>(pq.top());
-      pq.pop();
-      auto state = make_pair(-refill, gas);
-      if (state <= refills[city]) continue;
-      refills[city] = state;
-      for (auto edge : adj[city]) {
-        int ncity = edge.first;
-        i64 cost = edge.second;
-        auto state = make_pair(-refill, gas - cost);
-        if (cost <= gas && state > refills[ncity]) {
-          pq.emplace(-refill, gas - cost, ncity);
-        }
-        auto state2 = make_pair(-refill - 1, L - cost);
-        if (cost <= L && state2 > refills[ncity]) {
-          pq.emplace(-refill - 1, L - cost, ncity);
-        }
-      }
+  vector<vector<i64>> mincost2(N, vector<i64>(N, INF));
+  REP(i, N) REP(j, N) {
+    if (mincost[i][j] <= L) {
+      mincost2[i][j] = 1;
     }
-  };
+  }
+  REP(k, N) REP(i, N) REP(j, N) {
+    i64 c = mincost2[i][k] + mincost2[k][j];
+    if (mincost2[i][j] > c) mincost2[i][j] = c;
+  }
 
   int Q;
   cin >> Q;
@@ -82,8 +66,7 @@ int main() {
     cin >> s >> t;
     s--;
     t--;
-    search(s, ans[s]);
-    int refill = -ans[s][t].first;
-    cout << (refill == INF ? -1 : refill) << '\n';
+    i64 refill = mincost2[s][t];
+    cout << (refill == INF ? -1 : refill - 1) << '\n';
   }
 }
