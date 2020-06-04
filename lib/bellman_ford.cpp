@@ -1,4 +1,7 @@
+#include <utility>
+#include <vector>
 
+using i64 = long long;
 const i64 INF = 1LL << 40;
 
 // Find shortest path from a start node.
@@ -25,14 +28,14 @@ pair<vector<i64>, bool> bellman_ford(
       }
     }
     if (!update) {
-      return {dist, false};
+      return {std::move(dist), false};
     }
     // Negative cycle detection.
     // When there's no negative cycle, at least one node gets the shortest
     // distance determined for each iteration. If we have gone through N+1
     // iterations and still have an update, there must be a negative cycle.
     if (k == N) {
-      return {dist, true};
+      return {std::move(dist), true};
     }
   }
   // Never reach here.
