@@ -36,43 +36,29 @@ int main() {
   cin >> N >> M;
   vector<int> A(M);
   for (auto& x : A) cin >> x;
-  sort(A.begin(), A.end());
+  sort(A.rbegin(), A.rend());
 
-  vector<vector<int>> dp(N / 2 + 1, vector<int>(N + 1, -1));
-  REP(k, M) {
-    int m = matches[A[k]];
-    if (m <= N) {
-      dp[0][m] = max(dp[0][m], A[k]);
+  vector<int> dp(N + 1, -1);
+  dp[0] = 0;
+  REP(i, N) {
+    if (dp[i] == -1) continue;
+    REP(k, M) {
+      int m = matches[A[k]];
+      if (i + m > N) continue;
+      dp[i + m] = max(dp[i + m], dp[i] + 1);
     }
   }
-  REP(i, N / 2) {
-    bool placed = false;
-    REP(j, N + 1) {
-      if (dp[i][j] < 0) continue;
-      REP(k, M) {
-        int m = matches[A[k]];
-        if (j + m > N) continue;
-        dp[i + 1][j + m] = max(dp[i + 1][j + m], A[k]);
-        placed = true;
+  assert(dp[N] >= 1);
+  int s = N;
+  REP(i, dp[N]) {
+    REP(k, M) {
+      int m = matches[A[k]];
+      if (s - m >= 0 && dp[s - m] == dp[s] - 1) {
+        cout << A[k];
+        s -= m;
+        break;
       }
     }
-    if (!placed) {
-      break;
-    }
-  }
-  int mi = -1;
-  for (int i = N / 2; i >= 0; --i) {
-    if (dp[i][N] >= 0) {
-      mi = i;
-      break;
-    }
-  }
-  assert(mi >= 0);
-  int s = N;
-  for (int i = mi; i >= 0; --i) {
-    int d = dp[i][s];
-    cout << d;
-    s -= matches[d];
   }
   cout << '\n';
 }
