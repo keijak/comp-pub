@@ -39,8 +39,13 @@ int main() {
   sort(A.begin(), A.end());
 
   vector<vector<int>> dp(N / 2 + 1, vector<int>(N + 1, -1));
-  dp[0][0] = 0;
-  REP(i, N / 2 + 2) {
+  REP(k, M) {
+    int m = matches[A[k]];
+    if (m <= N) {
+      dp[0][m] = max(dp[0][m], A[k]);
+    }
+  }
+  REP(i, N / 2) {
     bool placed = false;
     REP(j, N + 1) {
       if (dp[i][j] < 0) continue;
@@ -64,7 +69,7 @@ int main() {
   }
   assert(mi >= 0);
   int s = N;
-  for (int i = mi; i > 0; --i) {
+  for (int i = mi; i >= 0; --i) {
     int d = dp[i][s];
     cout << d;
     s -= matches[d];
