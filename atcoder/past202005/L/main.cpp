@@ -31,7 +31,7 @@ int main() {
   cin.tie(nullptr);
   int N;
   cin >> N;
-  vector<deque<i64>> times(N);
+  vector<vector<i64>> times(N);
   REP(i, N) {
     int K;
     cin >> K;
@@ -41,12 +41,13 @@ int main() {
   int M;
   cin >> M;
 
+  vector<int> head1(N), head2(N, 1);
   priority_queue<tuple<i64, int, int>> pq1, pq2;
   REP(i, N) {
     pq1.emplace(times[i][0], 0, i);
     pq2.emplace(times[i][0], 0, i);
     if (times[i].size() >= 2) {
-      pq2.empalce(times[i][1], 1, i);
+      pq2.emplace(times[i][1], 1, i);
     }
   }
   REP(customer, M) {
@@ -63,14 +64,14 @@ int main() {
         pq1.pop();
       } while (times[i][j] < 0);
       cout << t << '\n';
-      time[i][j] = -1;
-      if (j == 0) {
-        times[i].pop_front();
-
-        pq1.emplace(times[i][j + 1], j + 1, i);
+      times[i][j] = -1;
+      head1[i] = head2[i];
+      head2[i]++;
+      if (size_t k = head1[i]; k < times[i].size()) {
+        pq1.emplace(times[i][k], k, i);
       }
-      if (j + 2 < times[i].size()) {
-        pq2.emplace(times[i][j + 2], j + 2, i);
+      if (size_t k = head2[i]; k < times[i].size()) {
+        pq2.emplace(times[i][k], k, i);
       }
     } else {
       assert(ncheck == 2);
@@ -84,12 +85,18 @@ int main() {
         pq2.pop();
       } while (times[i][j] < 0);
       cout << t << '\n';
-      time[i][j] = -1;
-      if (j + 1 < times[i].size()) {
-        pq1.emplace(times[i][j + 1], j + 1, i);
+      times[i][j] = -1;
+      if (j == head1[i]) {
+        head1[i] = head2[i];
+        if (size_t k = head1[i]; k < times[i].size()) {
+          pq1.emplace(times[i][k], k, i);
+        }
+      } else {
+        assert(j == head2[i]);
       }
-      if (j + 2 < times[i].size()) {
-        pq2.emplace(times[i][j + 2], j + 2, i);
+      head2[i]++;
+      if (size_t k = head2[i]; k < times[i].size()) {
+        pq2.emplace(times[i][k], k, i);
       }
     }
   }
