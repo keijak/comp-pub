@@ -50,10 +50,6 @@ int main() {
       A[j] = 0;
       lowi++;
     }
-    // cerr << "########" << endl;
-    // DEBUG(lowi, low);
-    // REP(i, N) cerr << " " << A[i];
-    // cerr << endl;
     if (lowi == N) break;
     low = p[lowi].first;
     taken.clear();
@@ -89,11 +85,6 @@ int main() {
     if (taken.size() < (size_t)Q) continue;
     sort(taken.begin(), taken.end());
     if (taken.front() != low) continue;
-    // cerr << "----" << endl;
-    // for (auto x : taken) {
-    //   cerr << " " << x;
-    // }
-    // cerr << endl;
 
     ans = min(ans, taken[Q - 1] - low);
     DEBUG(low, taken[Q - 1], ans);
