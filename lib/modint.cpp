@@ -1,6 +1,6 @@
 // auto mod int
 
-const i64 MOD = 1000000007;
+const i64 MOD = 1'000'000'007;
 
 struct mint {
   long long x;
