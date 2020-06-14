@@ -35,48 +35,23 @@ int main() {
   vector<i64> A(N);
   for (auto& x : A) cin >> x;
   sort(A.begin(), A.end());
-  set<vector<pair<i64, int>>> s;
-
-  auto factorize = [&](i64 x, vector<pair<i64, int>>& fs) -> void {
-    for (i64 p = 2; p * p <= x; ++p) {
-      int cnt = 0;
-      while (x % p == 0) {
-        x /= p;
-        cnt++;
-      }
-      if (cnt) {
-        fs.emplace_back(p, cnt);
-      }
+  i64 amax = A[N - 1];
+  vector<bool> non_divisible(amax + 1, true);
+  REP(i, N - 1) {
+    i64 x = A[i];
+    if (!non_divisible[x]) continue;
+    for (i64 y = 2 * x; y <= amax; y += x) {
+      non_divisible[y] = false;
     }
-    if (x > 1) fs.emplace_back(x, 1);
-  };
-
-  auto divi = [&](auto rec, vector<pair<i64, int>>& fs) -> bool {
-    if (s.find(fs) != s.end()) return true;
-    vector<pair<i64, int>> tmp(fs.begin(), fs.end());
-    REP(i, fs.size()) {
-      auto it = tmp.begin() + (tmp.size() - 1 - i);
-      if (it->second == 1) {
-        tmp.erase(it);
-      } else {
-        it->second--;
-      }
-      if (rec(rec, tmp)) {
-        s.insert(fs);
-        return true;
-      }
+  }
+  REP(i, N - 1) {
+    if (A[i] == A[i + 1]) {
+      non_divisible[A[i]] = false;
     }
-    return false;
-  };
-
+  }
   int ans = 0;
   REP(i, N) {
-    vector<pair<i64, int>> fs;
-    factorize(A[i], fs);
-    if (!divi(divi, fs)) {
-      DEBUG(i);
-      ++ans;
-    }
+    if (non_divisible[A[i]]) ++ans;
   }
   cout << ans << endl;
 }
