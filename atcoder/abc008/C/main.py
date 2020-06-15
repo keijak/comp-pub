@@ -32,7 +32,6 @@ def solve():
             den *= j
         num *= 1 + nfactors[i] // 2
         prob[i] = num / den
-
     return sum(prob)
 
 
