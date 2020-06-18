@@ -1,0 +1,52 @@
+#define DEBUGGING  // Enables DEBUG macro.
+#include <bits/stdc++.h>
+using namespace std;
+using i64 = long long;
+using u64 = unsigned long long;
+#define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+
+#ifndef DEBUGGING
+#define debug(...)
+#define DEBUG(...)
+#else
+template <typename T>
+void debug(T value) {
+  std::cerr << value;
+}
+template <typename T, typename... Ts>
+void debug(T value, Ts... args) {
+  std::cerr << value << ", ";
+  debug(args...);
+}
+#define DEBUG(...)                     \
+  do {                                 \
+    cerr << " (L" << __LINE__ << ") "; \
+    cerr << #__VA_ARGS__ << ": ";      \
+    debug(__VA_ARGS__);                \
+    cerr << endl;                      \
+  } while (0)
+#endif
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  int N;
+  cin >> N;
+  vector<int> P(N), Q(N);
+  for (auto& x : P) cin >> x;
+  for (auto& x : Q) cin >> x;
+  vector<int> v(N);
+  REP(i, N) v[i] = i + 1;
+  int k = 1;
+  int a = -1, b = -1;
+  do {
+    if (v == P) {
+      a = k;
+    }
+    if (v == Q) {
+      b = k;
+    }
+    ++k;
+  } while (next_permutation(v.begin(), v.end()));
+  cout << abs(a - b) << endl;
+}
