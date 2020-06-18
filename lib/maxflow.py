@@ -9,9 +9,11 @@ class MaxFlowGraph:
         self.adj = [[0] * n for _ in range(n)]  # directed edges with capacity
 
     def add_edge(self, node_from, node_to, capacity):
+        """Adds a directed edge."""
         self.adj[node_from][node_to] = capacity
 
     def max_flow(self, source_node, sink_node):
+        """Computes the max flow."""
         total_flow = 0
         while True:
             flow, backtrack = self._dfs(source_node, sink_node)
