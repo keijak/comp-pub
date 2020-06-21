@@ -66,6 +66,21 @@ struct mint {
 istream& operator>>(istream& is, mint& a) { return is >> a.x; }
 ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
 
+struct combination {
+  vector<mint> fact, ifact;
+  combination(int n) : fact(n + 1), ifact(n + 1) {
+    assert(n < MOD);
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
+    ifact[n] = fact[n].inv();
+    for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
+  }
+  mint operator()(int n, int k) {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * ifact[k] * ifact[n - k];
+  }
+};
+
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
@@ -73,22 +88,12 @@ int main() {
   cin >> K;
   string S;
   cin >> S;
-  i64 N = S.size();
-  vector<mint> pow25(N + K + 1);
-  vector<mint> pow26(N + K + 1);
-  pow25[0] = pow26[0] = 1;
-  REP(i, N + K) {
-    pow25[i + 1] = pow25[i] * 25;
-    pow26[i + 1] = pow26[i] * 26;
-  }
-
+  int N = S.size();
   mint ans = 0;
-  mint comb = 1;
+  combination comb(N + K);
   for (int r = N - 1; r <= N + K - 1; ++r) {
-    if (N + K - 1 - r < 0) break;
-    ans += comb * pow25[r + 1 - N] * pow26[N + K - 1 - r];
-    comb *= (r + 1);
-    comb *= mint(r - N + 2).inv();
+    ans +=
+        comb(r, N - 1) * mint(25).pow(r + 1 - N) * mint(26).pow(N + K - 1 - r);
   }
   cout << ans << endl;
 }
