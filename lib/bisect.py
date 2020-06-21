@@ -1,7 +1,7 @@
 from typing import Callable
 
 
-def binary_search(pred: Callable[[int], bool], ok: int, ng: int) -> int:
+def bisect(ok: int, ng: int, pred: Callable[[int], bool]) -> int:
     """Finds the boundary that satisfies pred(x).
 
     Precondition: ok < ng
