@@ -1,11 +1,11 @@
-#define DEBUGGING 0
+#define ENABLE_DEBUG 1
 #include <bits/stdc++.h>
 using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
 
-#if DEBUGGING
+#if ENABLE_DEBUG
 template <typename T>
 void debug(T value) {
   std::cerr << value;
