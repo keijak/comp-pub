@@ -91,7 +91,7 @@ int main() {
   vector<i64> A(N);
   for (auto& x : A) cin >> x;
   map<i64, int> fs;
-  auto merge_factors = [&](const vector<pair<i64, int>>& fx) -> void {
+  auto merge_factors = [&](vector<pair<i64, int>> fx) -> void {
     for (auto [p, c] : fx) {
       fs[p] = max(fs[p], c);
     }
