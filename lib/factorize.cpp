@@ -14,5 +14,5 @@ vector<pair<i64, int>> factorize(i64 n) {
   if (n > 1) {
     res.emplace_back(n, 1);
   }
-  return move(res);
+  return res;
 }
