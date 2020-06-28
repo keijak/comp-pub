@@ -107,6 +107,6 @@ int main() {
   }
 
   mint all = facts.P(M, N);
-  mint ans = all * (all - z);
+  mint ans = all * (all - z);  // A * B
   cout << ans << endl;
 }
