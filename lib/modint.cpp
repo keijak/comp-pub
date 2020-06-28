@@ -37,12 +37,12 @@ struct mint {
 istream& operator>>(istream& is, mint& a) { return is >> a.x; }
 ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
 
-// Combination nCk with MOD.
-struct factorials {
+// Factorials over ModInts.
+struct Factorials {
   // factorials and inverse factorials.
   vector<mint> fact, ifact;
 
-  factorials(int n) : fact(n + 1), ifact(n + 1) {
+  Factorials(int n) : fact(n + 1), ifact(n + 1) {
     assert(n < MOD);
     fact[0] = 1;
     for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
@@ -50,8 +50,15 @@ struct factorials {
     for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
   }
 
-  mint comb()(int n, int k) {
+  // Combination (nCk)
+  mint C(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[k] * ifact[n - k];
+  }
+
+  // Permutation (nPk)
+  mint P(int n, int k) {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * ifact[n - k];
   }
 };
