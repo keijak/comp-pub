@@ -28,29 +28,46 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-const i64 INF = 1LL << 61;
+const u64 INF = numeric_limits<u64>::max();
 
-i64 s1(int n, int d) {
-  if (n < d) return INF;
-  i64 ans = d;
-  n -= d;
-  i64 base = 10;
-  while (n >= 9) {
-    ans += base * 9;
+u64 solve(int n, int k, int d) {
+  u64 x = d;
+  int dsum = 0;
+  bool carry = false;
+  REP(i, k + 1) {
+    int dd = d + i;
+    if (dd >= 10) {
+      dd -= 9;
+      carry = true;
+    }
+    dsum += dd;
+  }
+  if (dsum > n) return INF;
+  if (dsum == n) return x;
+  if (carry) {
+    x += 80;
+    dsum += 8 * (k + 1);
+  } else {
+    x += 90;
+    dsum += 9 * (k + 1);
+  }
+  if (dsum > n) return INF;
+  if (dsum == n) return x;
+  if ((n - dsum) % (k + 1) != 0) return INF;
+  int t = (n - dsum) / (k + 1);
+  int r = t / 9;
+  u64 base = 100;
+  REP(i, r) {
+    t -= 9;
+    x += 9 * base;
     base *= 10;
-    n -= 9;
   }
-  if (n > 0) {
-    ans += base * n;
+  assert(t >= 0);
+  assert(t < 9);
+  if (t > 0) {
+    x += t * base;
   }
-  return ans;
-}
-
-i64 solve(int n, int k, int d) {
-  if (k == 0) {
-    return s1(n, d);
-  }
-  //
+  return x;
 }
 
 int main() {
@@ -61,12 +78,15 @@ int main() {
   while (T--) {
     int n, k;
     cin >> n >> k;
-    i64 ans = INF;
+    u64 ans = INF;
     REP(d, 10) {
-      i64 x = 3;  // solve(n, k, d);
-      DEBUG(d, x);
+      u64 x = solve(n, k, d);
       ans = min(ans, x);
     }
-    cout << (ans == INF) ? -1LL : ans << '\n';
+    if (ans == INF) {
+      cout << -1 << '\n';
+    } else {
+      cout << ans << '\n';
+    }
   }
 }
