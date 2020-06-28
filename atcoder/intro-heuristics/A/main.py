@@ -27,24 +27,18 @@ def optimize(D, C, S):
                 score -= C[i] * (d - last[i, d + 1])
         return score, last
 
-    # Initial solution
-    sol = -np.ones(D, dtype=np.int16)
+    sol = np.zeros(D, dtype=np.int16)
     last_tmp = -np.ones(26, dtype=np.int16)
-    for _ in range(D):
-        score = -(10 ** 12)
-        md = -1
+    for d in range(D):
+        score = 0
         mi = -1
-        for d in range(D):
-            if sol[d] != -1:
-                continue
-            for i in range(26):
-                s = S[d, i] - C[i] * (d - last_tmp[i])
-                if score < s:
-                    score = s
-                    md = d
-                    mi = i
-        sol[md] = mi
-        last_tmp[mi] = md
+        for i in range(26):
+            s = S[d, i] - C[i] * (d - last_tmp[i])
+            if score < s:
+                score = s
+                mi = i
+        sol[d] = mi
+        last_tmp[mi] = d
 
     sol_bak = sol.copy()
     max_score, last = calc_score(sol)
