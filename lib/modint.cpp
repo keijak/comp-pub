@@ -42,6 +42,7 @@ struct Factorials {
   // factorials and inverse factorials.
   vector<mint> fact, ifact;
 
+  // n: max cached value.
   Factorials(int n) : fact(n + 1), ifact(n + 1) {
     assert(n < MOD);
     fact[0] = 1;
