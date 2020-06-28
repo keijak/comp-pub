@@ -63,12 +63,12 @@ struct mint {
 istream& operator>>(istream& is, mint& a) { return is >> a.x; }
 ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
 
-// Combination nCk with MOD.
-struct factorials {
+// Factorials over ModInts.
+struct Factorials {
   // factorials and inverse factorials.
   vector<mint> fact, ifact;
 
-  factorials(int n) : fact(n + 1), ifact(n + 1) {
+  Factorials(int n) : fact(n + 1), ifact(n + 1) {
     assert(n < MOD);
     fact[0] = 1;
     for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
@@ -76,9 +76,16 @@ struct factorials {
     for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
   }
 
-  mint comb(int n, int k) {
+  // Combination (nCk)
+  mint C(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[k] * ifact[n - k];
+  }
+
+  // Permutation (nPk)
+  mint P(int n, int k) {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * ifact[n - k];
   }
 };
 
@@ -87,27 +94,19 @@ int main() {
   cin.tie(nullptr);
   int N, M;
   cin >> N >> M;
-  factorials facts(M + 1);
+  Factorials facts(M + 1);
 
-  mint ans = 0;
-  REP(k, N + 1) {
-    if (k + 2 * (N - k) > M) continue;
-    mint c = facts.comb(M, k);
-    DEBUG(1, k, c);
-    mint m = facts.comb(M - k, N - k);
-    DEBUG(2, k, m);
-    c *= m;
-    m = facts.comb(M - N, N - k);
-    DEBUG(3, k, m);
-    c *= m;
-    m = facts.fact[N];
-    c *= m;
-    DEBUG(4, k, m);
-    m = facts.fact[N - 1];
-    m *= N - k;
-    c *= m;
-    DEBUG(5, k, m);
-    ans += c;
+  mint z = 0;
+  for (int k = 1; k <= N; ++k) {
+    mint x = facts.C(N, k) * facts.P(M - k, N - k);
+    if (k % 2 == 1) {
+      z += x;
+    } else {
+      z -= x;
+    }
   }
+
+  mint all = facts.P(M, N);
+  mint ans = all * (all - z);
   cout << ans << endl;
 }
