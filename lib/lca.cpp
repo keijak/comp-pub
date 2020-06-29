@@ -1,4 +1,4 @@
-
+// Lowest Common Ancestor
 class LCA {
  public:
   LCA(int n) : n(n), adj(n), parent(K, vector<int>(n, -1)), depth(n, -1) {}
@@ -48,8 +48,8 @@ class LCA {
     }
   }
 
-  static const int K = 30;
-  int n;
+  static const int K = 30;  // max parent lookup (2^K)
+  int n;                    // number of nodes
   vector<vector<int>> adj;
   vector<vector<int>> parent;
   vector<int> depth;
