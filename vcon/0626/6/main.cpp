@@ -1,4 +1,4 @@
-#define ENABLE_DEBUG 1
+#define ENABLE_DEBUG 0
 #include <bits/stdc++.h>
 using namespace std;
 using i64 = long long;
@@ -38,24 +38,31 @@ int main() {
   cin >> S;
   int Q;
   cin >> Q;
-  vector<int> K(Q);
-  for (auto& x : K) cin >> x;
-
   REP(i, Q) {
-    const i64 k = K[i];
-    int head = 0, tail = 0;
-    i64 nd = 0, nm = 0, nc = 0;
-    while (head < N && S[head] != 'D') ++head;
-    tail = head;
-    i64 ans = 0;
-    while (true) {
-      for (; tail < head + k; tail++) {
-        if (tail == N) break;
-        if (S[tail] == 'D') nd++;
-        if (S[tail] == 'M') nm++;
-        if (S[tail] == 'C') nc++;
+    i64 k;
+    cin >> k;
+
+    i64 nd = 0, nm = 0, ndm = 0, ans = 0;
+    for (int i = 0; i < N; ++i) {
+      if (i >= k) {
+        int j = i - k;
+        if (S[j] == 'D') {
+          nd--;
+          ndm -= nm;
+        } else if (S[j] == 'M') {
+          nm--;
+        }
       }
-      ans += nd * nm * nc;
+
+      if (S[i] == 'D') {
+        nd++;
+      } else if (S[i] == 'M') {
+        nm++;
+        ndm += nd;
+      } else if (S[i] == 'C') {
+        ans += ndm;
+      }
     }
+    cout << ans << '\n';
   }
 }
