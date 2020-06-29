@@ -35,14 +35,14 @@ int main() {
   for (auto& x : A) cin >> x;
 
   const i64 M = 1LL << 42;
-  vector<i64> lower_sum(45), eq_sum(45);
+  vector<i64> lower_sum(45, -1), eq_sum(45);
   int k = 1;
   for (i64 d = M; d > 0; d >>= 1, ++k) {
     i64 cnt = 0;
     REP(i, N) {
       if (A[i] & d) cnt++;
     }
-    if (lower_sum[k - 1] != 0) {
+    if (lower_sum[k - 1] >= 0) {
       lower_sum[k] = lower_sum[k - 1] + max(cnt, N - cnt) * d;
     }
     if (K & d) {
