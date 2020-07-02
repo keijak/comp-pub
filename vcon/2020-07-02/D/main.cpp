@@ -31,18 +31,18 @@ int main() {
   cin.tie(nullptr);
   int N, Q;
   cin >> N >> Q;
-  vector<tuple<i64, i64, i64>> corns(N);
+  vector<tuple<i64, i64, i64>> cones(N);
   REP(i, N) {
     i64 x, r, h;
     cin >> x >> r >> h;
-    corns[i] = {x, r, h};
+    cones[i] = {x, r, h};
   }
   REP(q, Q) {
     i64 a, b;
     cin >> a >> b;
     double total = 0.0;
     REP(i, N) {
-      auto [x, r, h] = corns[i];
+      auto [x, r, h] = cones[i];
       if (b <= x) continue;
       if (a >= x + h) continue;
       double ha = min<double>(h, x + h - a);
