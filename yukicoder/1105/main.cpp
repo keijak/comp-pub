@@ -63,44 +63,36 @@ struct mint {
 istream& operator>>(istream& is, mint& a) { return is >> a.x; }
 ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
 
-void matmul(vector<vector<mint>>& a, vector<vector<mint>>& b,
-            vector<vector<mint>>& out) {
+vector<vector<mint>> matmul(const vector<vector<mint>>& a,
+                            const vector<vector<mint>>& b) {
   int l = a[0].size();
-
+  vector<vector<mint>> ret(l, vector<mint>(l, 0));
   for (int i = 0; i < l; ++i) {
     for (int j = 0; j < l; ++j) {
       for (int k = 0; k < l; ++k) {
-        out[i][j] += a[i][k] * b[k][j];
+        ret[i][j] += a[i][k] * b[k][j];
       }
     }
   }
+  return ret;
 }
 
-void matpow(vector<vector<mint>>& m, i64 n, vector<vector<mint>>& out) {
+vector<vector<mint>> matpow(const vector<vector<mint>>& m, i64 n) {
   int l = m[0].size();
-
   if (n == 0) {
+    vector<vector<mint>> ret(m);
     for (int i = 0; i < l; ++i) {
       for (int j = 0; j < l; ++j) {
-        out[i][j] = (i == j);
+        ret[i][j] = (i == j);
       }
     }
-    return;
+    return ret;
   }
-
-  if (n == 1) {
-    out = m;
-    return;
-  }
-
-  vector<vector<mint>> tmp(3, vector<mint>(3));
+  if (n == 1) return m;
   if (n % 2) {
-    matpow(m, n - 1, tmp);
-    matmul(tmp, m, out);
-    return;
+    return matmul(matpow(m, n - 1), m);
   } else {
-    matmul(m, m, tmp);
-    matpow(tmp, n / 2, out);
+    return matpow(matmul(m, m), n / 2);
   }
 }
 
@@ -110,8 +102,7 @@ int main() {
   i64 N, a0, b0, c0;
   cin >> N >> a0 >> b0 >> c0;
   vector<vector<mint>> A = {{1, -1, 0}, {0, 1, -1}, {-1, 0, 1}};
-  vector<vector<mint>> X(3, vector<mint>(3));
-  matpow(A, N - 1, X);
+  auto X = matpow(A, N - 1);
   mint an = X[0][0] * a0 + X[0][1] * b0 + X[0][2] * c0;
   mint bn = X[1][0] * a0 + X[1][1] * b0 + X[1][2] * c0;
   mint cn = X[2][0] * a0 + X[2][1] * b0 + X[2][2] * c0;
