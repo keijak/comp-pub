@@ -1,5 +1,5 @@
 // n * n Matrix
-using MatrixRow = vector<long long>;
+using MatrixRow = vector<long long>;  // vector<mint>
 using Matrix = vector<MatrixRow>;
 
 Matrix matmul(const Matrix& a, const Matrix& b) {
