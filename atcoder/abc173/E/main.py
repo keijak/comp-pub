@@ -23,7 +23,7 @@ def solve():
     for i in range(N):
         v, neg = B[i]
         if len(fs) < K:
-            fs.append(v * (-1 if neg else 1))
+            fs.append(v)
             if neg:
                 negcnt += 1
                 negmin = v
@@ -42,28 +42,31 @@ def solve():
     a1 = a2 = None
     if negmin is not None and posrep is not None:
         a1 = 1
+        replaced = False
         for x in fs:
-            if x == -1 * negmin:
+            if x == negmin and not replaced:
                 a1 = (a1 * posrep) % MOD
+                replaced = True
             else:
                 a1 = (a1 * x) % MOD
     if posmin is not None and negrep is not None:
         a2 = 1
+        replaced = False
         for x in fs:
-            if x == posmin:
-                a2 = (a2 * -1 * negrep) % MOD
+            if x == posmin and not replaced:
+                a2 = (a2 * negrep) % MOD
+                replaced = True
             else:
                 a2 = (a2 * x) % MOD
 
     if a1 is None and a2 is None:
         a3 = 1
-        for (x, neg) in list(reversed(B))[:K]:
+        sign = 1
+        for x, neg in B[N - K :]:
+            a3 = (a3 * x) % MOD
             if neg:
-                a3 *= -x
-            else:
-                a3 *= x
-            a3 %= MOD
-        return a3
+                sign *= -1
+        return (MOD + sign * a3) % MOD
 
     if a1 is None:
         return a2
