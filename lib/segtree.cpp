@@ -3,48 +3,51 @@ struct SegTree {
   using Func = function<Monoid(Monoid, Monoid)>;
   const Func F;
   const Monoid UNITY;
-  int SIZE_R;
+  int size;
   vector<Monoid> dat;
 
-  SegTree(int n, const Func f, const Monoid &unity) : F(f), UNITY(unity) {
-    init(n);
-  }
-  void init(int n) {
-    SIZE_R = 1;
-    while (SIZE_R < n) SIZE_R *= 2;
-    dat.assign(SIZE_R * 2, UNITY);
-  }
+  SegTree(int n, const Func f, const Monoid &unity)
+      : F(f), UNITY(unity), size(n), dat(2 * n, unity) {}
 
-  /* set, a is 0-indexed */
-  void set(int a, const Monoid &v) { dat[a + SIZE_R] = v; }
+  // Sets i-th value (0-indexed) to x for initial setup.
+  // build() must be called after set() calls.
+  void set(int i, const Monoid &x) { dat[size + i] = x; }
   void build() {
-    for (int k = SIZE_R - 1; k > 0; --k) dat[k] = F(dat[k * 2], dat[k * 2 + 1]);
+    for (int k = size - 1; k > 0; --k) {
+      dat[k] = F(dat[k * 2], dat[k * 2 + 1]);
+    }
   }
 
-  /* update a, a is 0-indexed */
-  void update(int a, const Monoid &v) {
-    int k = a + SIZE_R;
-    dat[k] = v;
-    while (k >>= 1) dat[k] = F(dat[k * 2], dat[k * 2 + 1]);
+  // Sets i-th value (0-indexed) to x.
+  void update(int i, const Monoid &x) {
+    int k = size + i;
+    dat[k] = x;
+    while (k > 1) {
+      k >>= 1;
+      dat[k] = F(dat[k * 2], dat[k * 2 + 1]);
+    }
   }
 
-  /* get [a, b), a and b are 0-indexed */
-  Monoid get(int a, int b) {
+  // Queries by [l,r) range (0-indexed, open interval).
+  Monoid fold(int l, int r) {
+    l += size;
+    r += size;
     Monoid vleft = UNITY, vright = UNITY;
-    for (int left = a + SIZE_R, right = b + SIZE_R; left < right;
-         left >>= 1, right >>= 1) {
-      if (left & 1) vleft = F(vleft, dat[left++]);
-      if (right & 1) vright = F(dat[--right], vright);
+    for (; l < r; l >>= 1, r >>= 1) {
+      if (l & 1) vleft = F(vleft, dat[l++]);
+      if (r & 1) vright = F(dat[--r], vright);
     }
     return F(vleft, vright);
   }
-  inline Monoid operator[](int a) { return dat[a + SIZE_R]; }
+
+  // Queries by a single index (0-indexed).
+  Monoid operator[](int i) { return dat[size + i]; }
 
   /* debug */
   void print() {
-    for (int i = 0; i < SIZE_R; ++i) {
+    for (int i = 0; i < size; ++i) {
       cout << (*this)[i];
-      if (i != SIZE_R - 1) cout << ",";
+      if (i != size - 1) cout << ",";
     }
     cout << endl;
   }
