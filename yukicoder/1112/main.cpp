@@ -131,21 +131,10 @@ int main() {
     if (p == 0) init[to] += 1;
     if (r == 0) out.insert(to);
   }
-  //   REP(i, kk) {
-  //     REP(j, kk) { cerr << "  " << mat[i][j]; }
-  //     cerr << endl;
-  //   }
-  //   cerr << "----" << endl;
 
   Matrix mn = matpow(mat, N - 3);
-  //   REP(i, kk) {
-  //     REP(j, kk) { cerr << "  " << mn[i][j]; }
-  //     cerr << endl;
-  //   }
-  //   cerr << "----" << endl;
 
   mint ans = 0;
-  // REP(i, kk) {
   for (auto x : out) {
     REP(j, kk) { ans += mn[x][j] * init[j]; }
   }
