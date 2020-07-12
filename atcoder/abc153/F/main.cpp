@@ -49,15 +49,15 @@ int main() {
     DEBUG(h, acum[i]);
     h -= acum[i];
     if (h > 0) {
-      i64 bom = (h + A - 1) / A;
-      cnt += bom;
-      acum[i] += bom * A;
+      i64 c = (h + A - 1) / A;
+      cnt += c;
+      acum[i] += c * A;
       i64 xend = x + 2 * D;
       int j = upper_bound(X.begin(), X.end(), xend) - X.begin();
       if (j < N) {
-        acum[j] -= bom * A;
+        acum[j] -= c * A;
       }
-      DEBUG(bom, cnt, xend, j);
+      DEBUG(c, cnt, xend, j);
     }
   }
   cout << cnt << endl;
