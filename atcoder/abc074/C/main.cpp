@@ -33,25 +33,33 @@ int main() {
   cin >> a >> b >> c >> d >> e >> f;
   double max_density = -1.0;
   int ans_water = -1, ans_sugar = -1;
+  set<int> waters;
   for (int ta = 0; ta <= f; ta += 100 * a) {
     for (int tb = 0; ta + tb <= f; tb += 100 * b) {
-      int water = ta + tb;
-      int max_sugar = e * water / 100;
-      for (int sc = 0; sc <= max_sugar && water + sc <= f; sc += c) {
-        int weight = water + sc;
-        for (int sd = 0; sc + sd <= max_sugar && weight + sd <= f; sd += d) {
-          int sugar = sc + sd;
-          if (water + sugar == 0) continue;
-          double density = 100.0 * sugar / double(water + sugar);
-          if (max_density < density) {
-            max_density = density;
-            ans_water = water;
-            ans_sugar = sugar;
-          }
-        }
+      waters.insert(ta + tb);
+    }
+  }
+  set<int> sugars;
+  for (int sc = 0; sc <= f; sc += c) {
+    for (int sd = 0; sc + sd <= f; sd += d) {
+      sugars.insert(sc + sd);
+    }
+  }
+  for (int water : waters) {
+    int max_sugar = e * water / 100;
+    for (int sugar : sugars) {
+      if (sugar > max_sugar) break;
+      if (water + sugar > f) break;
+      if (water + sugar == 0) continue;
+      double density = 100.0 * sugar / double(water + sugar);
+      if (max_density < density) {
+        max_density = density;
+        ans_water = water;
+        ans_sugar = sugar;
       }
     }
   }
+
   cout << (ans_water + ans_sugar) << " " << ans_sugar << endl;
   DEBUG(max_density);
 }
