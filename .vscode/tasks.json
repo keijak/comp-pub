@@ -3,7 +3,7 @@
         {
             "type": "shell",
             "label": "C/C++: build before debug",
-            "command": "/usr/bin/clang++",
+            "command": "/usr/local/bin/g++-10",
             "args": [
                 "-g",
                 "${file}",
