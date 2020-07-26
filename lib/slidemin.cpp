@@ -2,13 +2,13 @@
 template <class T, class Container = std::vector<T>,
           class Compare = std::less<typename Container::value_type>>
 struct SlideMinQueue {
-  const Container& values;
+  Container& values;
   int left;
   int right;
   std::deque<int> que;
   const Compare compare;
 
-  explicit SlideMinQueue(const Container& values)
+  explicit SlideMinQueue(Container& values)
       : values(values), left(0), right(0) {}
 
   void slide(int l, int r) {
