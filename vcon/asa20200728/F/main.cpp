@@ -26,6 +26,23 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
+int cost(int head, int tail, int num, int center) {
+  if (head >= center) {
+    int k = head - center;
+    return num * (2 * k + num - 1) / 2;
+  }
+  if (tail <= center) {
+    int k = center - tail;
+    return num * (2 * k + num - 1) / 2;
+  }
+  int r = tail - center;
+  int l = center - head;
+  assert(r >= 0);
+  assert(l >= 0);
+  assert(l + r + 1 == num);
+  return l * (l + 1) / 2 + r * (r + 1) / 2;
+}
+
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
@@ -34,56 +51,19 @@ int main() {
   int ans = 1e8;
   for (int gh = 500; gh >= -500; --gh) {
     int gt = gh + G - 1;
-    int cost2;
-    if (gh >= 0) {
-      cost2 = G * (2 * gh + G - 1) / 2;
-    } else if (gt <= 0) {
-      cost2 = G * (2 * -gt + G - 1) / 2;
-    } else {
-      int r = gt;
-      int l = G - r - 1;
-      assert(r >= 0);
-      assert(l >= 0);
-      cost2 = l * (l + 1) / 2 + r * (r + 1) / 2;
-    }
+    int cost1 = cost(gh, gt, G, 0);
 
     int bh_min = 100 - (B - 1) / 2;
     int bh = max(gt + 1, bh_min);
     int bt = bh + B - 1;
-    if (bt < 100) continue;
-    int cost1;
-    if (bh >= 100) {
-      int k = bh - 100;
-      cost1 = B * (2 * k + B - 1) / 2;
-    } else {
-      int l = 100 - bh;
-      int r = B - l - 1;
-      assert(l >= 0);
-      assert(r >= 0);
-      cost1 = l * (l + 1) / 2 + r * (r + 1) / 2;
-    }
+    int cost2 = cost(bh, bt, B, 100);
 
     int rt_max = -100 + (R - 1) / 2;
     int rt = min(gh - 1, rt_max);
     int rh = rt - R + 1;
-    if (rh > -100) continue;
-    int cost3;
-    if (rt <= -100) {
-      int k = -100 - rt;
-      cost3 = R * (2 * k + R - 1) / 2;
-    } else {
-      int r = rt + 100;
-      int l = R - r - 1;
-      assert(r >= 0);
-      assert(l >= 0);
-      cost3 = r * (r + 1) / 2 + l * (l + 1) / 2;
-    }
+    int cost3 = cost(rh, rt, R, -100);
 
-    int v = cost1 + cost2 + cost3;
-    if (ans > v) {
-      ans = v;
-      DEBUG(v, rh, rt, cost3, gh, gt, cost2, bh, bt, cost1);
-    }
+    ans = min(ans, cost1 + cost2 + cost3);
   }
   cout << ans << endl;
 }
