@@ -26,17 +26,17 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-int cost(int head, int tail, int num, int center) {
-  if (head >= center) {
-    int k = head - center;
+int cost(int head, int tail, int num, int init) {
+  if (head >= init) {
+    int k = head - init;
     return num * (2 * k + num - 1) / 2;
   }
-  if (tail <= center) {
-    int k = center - tail;
+  if (tail <= init) {
+    int k = init - tail;
     return num * (2 * k + num - 1) / 2;
   }
-  int r = tail - center;
-  int l = center - head;
+  int r = tail - init;
+  int l = init - head;
   assert(r >= 0);
   assert(l >= 0);
   assert(l + r + 1 == num);
@@ -49,7 +49,7 @@ int main() {
   int R, G, B;
   cin >> R >> G >> B;
   int ans = 1e8;
-  for (int gh = 500; gh >= -500; --gh) {
+  for (int gh = -500; gh <= 200; ++gh) {
     int gt = gh + G - 1;
     int cost1 = cost(gh, gt, G, 0);
 
