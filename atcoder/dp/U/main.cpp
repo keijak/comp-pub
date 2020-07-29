@@ -58,7 +58,7 @@ int main() {
     if (done[state]) return dp[state];
     int b = leftmost_bit(state);
     i64 res = 0;
-    for (int s = b; s < (b << 1); ++s) {
+    for (int s = b, ub = (b << 1); s < ub; ++s) {
       if ((s & state) == s) {
         i64 r = rec(rec, state & ~s) + scores[s];
         res = max(res, r);
