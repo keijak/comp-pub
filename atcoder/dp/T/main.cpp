@@ -63,71 +63,29 @@ struct mint {
 istream& operator>>(istream& is, mint& a) { return is >> a.x; }
 ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
 
-// Factorials over ModInts.
-struct Factorials {
-  // factorials and inverse factorials.
-  vector<mint> fact, ifact;
-
-  // n: max cached value.
-  Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n < MOD);
-    fact[0] = 1;
-    for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
-    ifact[n] = fact[n].inv();
-    for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
-  }
-
-  // Combination (nCk)
-  mint C(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
-  }
-
-  // Permutation (nPk)
-  mint P(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[n - k];
-  }
-};
-
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-  int H, W, N;
-  cin >> H >> W >> N;
-  vector<pair<int, int>> walls(N);
-  REP(i, N) {
-    int r, c;
-    cin >> r >> c;
-    r--;
-    c--;
-    walls[i] = {r, c};
-  }
-  sort(walls.begin(), walls.end());
-  Factorials fs(H + W - 2);
-  multimap<int, int> cs;
-  vector<vector<mint>> dp(N, vector<mint>(2));
-  REP(i, N) {
-    auto [r, c] = walls[i];
-    dp[i][1] += fs.C(r + c, r) * fs.C(H - 1 - r + W - 1 - c, H - 1 - r);
-    auto it = cs.upper_bound(c);
-    while (it != cs.begin()) {
-      --it;
-      int p = it->second;
-      auto [pr, pc] = walls[p];
-      mint x = fs.C(r - pr + c - pc, r - pr) *
-               fs.C(H - 1 - r + W - 1 - c, H - 1 - r) *
-               fs.C(H - 1 - pr + W - 1 - pc, H - 1 - pr).inv();
-      dp[i][0] += dp[p][1] * x;
-      dp[i][1] += dp[p][0] * x;
+  int N;
+  cin >> N;
+  string S;
+  cin >> S;
+  vector<mint> dp(N);
+  dp[0] = 1;
+  for (int i = 1; i < N; ++i) {
+    vector<mint> t(N + 1);
+    swap(t, dp);
+    if (S[i - 1] == '<') {
+      dp[0] = 0;
+      REP(k, i) { dp[k + 1] = dp[k] + t[k]; }
+    } else {
+      dp[i] = 0;
+      for (int k = i - 1; k >= 0; --k) {
+        dp[k] = dp[k + 1] + t[k];
+      }
     }
-    cs.emplace(c, i);
   }
-  mint a0, a1;
-  a0 = fs.C((H - 1) + (W - 1), H - 1);
-  REP(i, N) {
-    a0 += dp[i][0];
-    a1 += dp[i][1];
-  }
-  cout << (a0 - a1) << endl;
+  mint ans;
+  REP(i, N) { ans += dp[i]; }
+  cout << ans << endl;
 }

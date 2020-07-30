@@ -30,39 +30,21 @@ int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
   int N;
-  cin >> N;
-  vector<tuple<int, int, i64>> blocks(N);
-  REP(i, N) {
-    int w, s, v;
-    cin >> w >> s >> v;
-    blocks[i] = {w, s, v};
-  }
-  sort(blocks.begin(), blocks.end());
-
-  map<i64, i64> dp;
-  dp[0] = 0;
-  i64 ans = 0;
-  REP(i, N) {
-    auto [w, s, v] = blocks[i];
-    auto it = dp.upper_bound(s);
-    assert(it != dp.begin());
-    --it;
-    i64 new_value = it->second + v;
-    int new_weight = it->first + w;
-
-    auto it2 = dp.upper_bound(new_weight);
-    assert(it2 != dp.begin());
-    --it2;
-
-    int prev_weight = it->first;
-    int prev_value = it->second;
-    DEBUG(prev_weight, prev_value, new_weight, new_value);
-
-    if (it->second < new_value) {
-      dp[new_weight] = new_value;
+  i64 C;
+  cin >> N >> C;
+  vector<int> H(N);
+  REP(i, N) cin >> H[i];
+  int start = H[0];
+  REP(i, N) H[i] -= start;
+  start = 0;
+  int goal = H[N - 1];
+  if (goal < 0) {
+    goal *= -1;
+    REP(i, N) {
+      H[i] *= -1;
+      if (H[i] <= start || H[i] >= goal) {
+        H[i] = 0;
+      }
     }
-
-    ans = max(ans, new_value);
   }
-  cout << ans << endl;
 }
