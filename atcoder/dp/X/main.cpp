@@ -26,43 +26,33 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
+#define chmax(x, y) x = max(x, y)
+
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
   int N;
   cin >> N;
-  vector<tuple<int, int, i64>> blocks(N);
+  vector<tuple<int, int, int, i64>> blocks(N);
   REP(i, N) {
     int w, s, v;
     cin >> w >> s >> v;
-    blocks[i] = {w, s, v};
+    blocks[i] = {s + w, s, w, v};
   }
-  sort(blocks.begin(), blocks.end());
+  sort(blocks.rbegin(), blocks.rend());
 
-  map<i64, i64> dp;
-  dp[0] = 0;
-  i64 ans = 0;
+  const int SMAX = 1e4 + 5;
+  vector<i64> dp(SMAX, -1);
   REP(i, N) {
-    auto [w, s, v] = blocks[i];
-    auto it = dp.upper_bound(s);
-    assert(it != dp.begin());
-    --it;
-    i64 new_value = it->second + v;
-    int new_weight = it->first + w;
-
-    auto it2 = dp.upper_bound(new_weight);
-    assert(it2 != dp.begin());
-    --it2;
-
-    int prev_weight = it->first;
-    int prev_value = it->second;
-    DEBUG(prev_weight, prev_value, new_weight, new_value);
-
-    if (it->second < new_value) {
-      dp[new_weight] = new_value;
+    auto [_, s, w, v] = blocks[i];
+    for (int s2 = w; s2 < SMAX; ++s2) {
+      if (dp[s2] >= 0) {
+        chmax(dp[min(s2 - w, s)], dp[s2] + v);
+      }
     }
-
-    ans = max(ans, new_value);
+    chmax(dp[s], v);
   }
+  i64 ans = 0;
+  REP(s, SMAX) { chmax(ans, dp[s]); }
   cout << ans << endl;
 }
