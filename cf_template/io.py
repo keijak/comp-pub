@@ -2,8 +2,7 @@ import sys
 
 sys.setrecursionlimit(10 ** 8)
 ini = lambda: int(sys.stdin.readline())
-inm = lambda: map(int, sys.stdin.readline().split())
-inl = lambda: list(inm())
+inl = lambda: [int(x) for x in sys.stdin.readline().split()]
 ins = lambda: sys.stdin.readline().rstrip()
 
 
