@@ -72,7 +72,7 @@ class LazySegTree:
             R >>= 1
         return self.X_f(vL, vR)
 
-    def operate_range(self, L, R, x):
+    def update(self, L, R, x):
         L += self.N
         R += self.N
         L0 = L // (L & -L)
