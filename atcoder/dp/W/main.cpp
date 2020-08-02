@@ -26,51 +26,169 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-template <class T>
-using MinHeap = priority_queue<T, vector<T>, greater<T>>;
+template <typename Monoid, typename OperatorMonoid = Monoid>
+struct LazySegmentTree {
+  using F = function<Monoid(Monoid, Monoid)>;
+  using G = function<Monoid(Monoid, OperatorMonoid)>;
+  using H = function<OperatorMonoid(OperatorMonoid, OperatorMonoid)>;
+
+  int sz, height;
+  vector<Monoid> data;
+  vector<OperatorMonoid> lazy;
+  const F f;
+  const G g;
+  const H h;
+  const Monoid M1;
+  const OperatorMonoid OM0;
+
+  LazySegmentTree(int n, const F f, const G g, const H h, const Monoid &M1,
+                  const OperatorMonoid OM0)
+      : f(f), g(g), h(h), M1(M1), OM0(OM0) {
+    sz = 1;
+    height = 0;
+    while (sz < n) sz <<= 1, height++;
+    data.assign(2 * sz, M1);
+    lazy.assign(2 * sz, OM0);
+  }
+
+  void set(int k, const Monoid &x) { data[k + sz] = x; }
+
+  void build() {
+    for (int k = sz - 1; k > 0; k--) {
+      data[k] = f(data[2 * k + 0], data[2 * k + 1]);
+    }
+  }
+
+  inline void propagate(int k) {
+    if (lazy[k] != OM0) {
+      lazy[2 * k + 0] = h(lazy[2 * k + 0], lazy[k]);
+      lazy[2 * k + 1] = h(lazy[2 * k + 1], lazy[k]);
+      data[k] = apply(k);
+      lazy[k] = OM0;
+    }
+  }
+
+  inline Monoid apply(int k) {
+    return lazy[k] == OM0 ? data[k] : g(data[k], lazy[k]);
+  }
+
+  inline void recalc(int k) {
+    while (k >>= 1) data[k] = f(apply(2 * k + 0), apply(2 * k + 1));
+  }
+
+  inline void thrust(int k) {
+    for (int i = height; i > 0; i--) propagate(k >> i);
+  }
+
+  void update(int a, int b, const OperatorMonoid &x) {
+    if (a >= b) return;
+    thrust(a += sz);
+    thrust(b += sz - 1);
+    for (int l = a, r = b + 1; l < r; l >>= 1, r >>= 1) {
+      if (l & 1) lazy[l] = h(lazy[l], x), ++l;
+      if (r & 1) --r, lazy[r] = h(lazy[r], x);
+    }
+    recalc(a);
+    recalc(b);
+  }
+
+  Monoid fold(int a, int b) {
+    if (a >= b) return M1;
+    thrust(a += sz);
+    thrust(b += sz - 1);
+    Monoid L = M1, R = M1;
+    for (int l = a, r = b + 1; l < r; l >>= 1, r >>= 1) {
+      if (l & 1) L = f(L, apply(l++));
+      if (r & 1) R = f(apply(--r), R);
+    }
+    return f(L, R);
+  }
+
+  Monoid operator[](const int &k) { return fold(k, k + 1); }
+
+  template <typename C>
+  int find_subtree(int a, const C &check, Monoid &M, bool type) {
+    while (a < sz) {
+      propagate(a);
+      Monoid nxt = type ? f(apply(2 * a + type), M) : f(M, apply(2 * a + type));
+      if (check(nxt))
+        a = 2 * a + type;
+      else
+        M = nxt, a = 2 * a + 1 - type;
+    }
+    return a - sz;
+  }
+
+  template <typename C>
+  int find_first(int a, const C &check) {
+    Monoid L = M1;
+    if (a <= 0) {
+      if (check(f(L, apply(1)))) return find_subtree(1, check, L, false);
+      return -1;
+    }
+    thrust(a + sz);
+    int b = sz;
+    for (a += sz, b += sz; a < b; a >>= 1, b >>= 1) {
+      if (a & 1) {
+        Monoid nxt = f(L, apply(a));
+        if (check(nxt)) return find_subtree(a, check, L, false);
+        L = nxt;
+        ++a;
+      }
+    }
+    return -1;
+  }
+
+  template <typename C>
+  int find_last(int b, const C &check) {
+    Monoid R = M1;
+    if (b >= sz) {
+      if (check(f(apply(1), R))) return find_subtree(1, check, R, true);
+      return -1;
+    }
+    thrust(b + sz - 1);
+    int a = sz;
+    for (b += sz; a < b; a >>= 1, b >>= 1) {
+      if (b & 1) {
+        Monoid nxt = f(apply(--b), R);
+        if (check(nxt)) return find_subtree(b, check, R, true);
+        R = nxt;
+      }
+    }
+    return -1;
+  }
+};
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
   int n, m;
   cin >> n >> m;
-  vector<tuple<int, int, i64>> vt(m);
-  i64 total_score = 0;
+  vector<tuple<int, int, i64>> intervals(m);
   REP(i, m) {
     i64 l, r, a;
     cin >> l >> r >> a;
     --l;
-    vt[i] = {l, r, a};
-    total_score += a;
+    --r;
+    intervals[i] = {r, l, a};
   }
-  sort(vt.begin(), vt.end());
-  MinHeap<tuple<int, int, i64>> heap;
-  i64 heap_score = 0;
-  int cur = 0;
-  vector<vector<i64>> dp(2, vector<i64>(n + 1));
-  dp[0][0] = dp[1][0] = 0;
-  for (int i = 0; i < n; ++i) {
-    for (; !heap.empty();) {
-      auto [r, l, a] = heap.top();
-      if (r > i) break;
-      heap.pop();
-      heap_score -= a;
-    }
-    i64 this_score = 0;
-    for (;; ++cur) {
-      if (cur >= m) break;
-      auto [l, r, a] = vt[cur];
-      if (l > i) break;
-      heap.emplace(r, l, a);
-      this_score += a;
-      heap_score += a;
-    }
+  sort(intervals.begin(), intervals.end());
+  LazySegmentTree<i64> st(n, ([](i64 x, i64 y) { return max(x, y); }),
+                          ([](i64 x, i64 y) { return x + y; }),
+                          ([](i64 x, i64 y) { return x + y; }), 0LL, 0LL);
 
-    if (heap.empty()) {
-      dp[i + 1] = dp[i];
-    } else {
-      dp[i + 1] = max(dp[i], dp[l] + heap_score);
+  int j = 0;
+  for (int i = 0; i < n; ++i) {
+    i64 pmax = st.fold(0, i);
+    i64 asum = 0;
+    for (; j < int(intervals.size()); ++j) {
+      auto [r, l, a] = intervals[j];
+      if (r > i) break;
+      assert(r == i);
+      asum += a;
+      st.update(l, i, a);
     }
+    st.update(i, i + 1, pmax + asum);
   }
-  cout << dp[n] << endl;
+  cout << st.fold(0, n) << endl;
 }
