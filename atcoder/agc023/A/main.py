@@ -18,10 +18,8 @@ def solve():
     count = Counter()
     ans = 0
     for i in range(N):
-        if A[i] == 0:
-            ans += 1
-        ans += count[cum[i] - A[i]]
         count[cum[i]] += 1
+        ans += count[cum[i + 1]]
     return ans
 
 
