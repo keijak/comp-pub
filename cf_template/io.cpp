@@ -3,6 +3,8 @@
 using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
+template <typename T>
+using V = std::vector<T>;
 #define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
 
 #ifndef DEBUGGING
