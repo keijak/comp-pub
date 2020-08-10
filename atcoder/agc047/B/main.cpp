@@ -1,4 +1,9 @@
 #include <bits/stdc++.h>
+
+#include <ext/pb_ds/assoc_container.hpp>
+template <class Key, class T>
+using gp_hash_table = __gnu_pbds::gp_hash_table<Key, T>;
+
 using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
@@ -42,7 +47,7 @@ int main() {
     S[i] = {s.size(), s};
   }
   sort(S.begin(), S.end());
-  map<pair<int, u64>, int> mp;
+  gp_hash_table<u64, V<int>> mp;
   i64 ans = 0;
   REP(i, N) {
     int len = S[i].first;
@@ -58,9 +63,9 @@ int main() {
       for (int j = len - 1; j >= 1; --j) {
         REP(c, 26) {
           if (char_cnt[c] > 0) {
-            auto it = mp.find({c, shash});
+            auto it = mp.find(shash);
             if (it == mp.end()) continue;
-            ans += it->second;
+            if (c < it->second.size()) ans += it->second[c];
           }
         }
         shash += base * ss[j];
@@ -69,7 +74,9 @@ int main() {
       }
     }
     int prefix = ss[0] - 'a';
-    ++mp[{prefix, shash}];
+    auto& v = mp[shash];
+    if (v.empty()) v.resize(26);
+    v[prefix]++;
   }
   cout << ans << endl;
 }
