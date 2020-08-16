@@ -45,7 +45,7 @@ struct IntervalSet {
   }
 
   // Returns true if the point is included in an interval in the set.
-  bool find(i64 point) const {
+  bool contains(i64 point) const {
     auto it = _set.upper_bound({point, 0});
     if (it == _set.end()) return false;
     return (it->second <= point);
