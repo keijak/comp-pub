@@ -14,6 +14,9 @@ class MinHeap(object):
     def __bool__(self):
         return bool(self.h)
 
+    def peek(self):
+        return self.h[0]
+
     def push(self, x):
         heapq.heappush(self.h, x)
 
@@ -46,6 +49,9 @@ class MaxHeap(object):
 
     def __bool__(self):
         return bool(self.h)
+
+    def peek(self):
+        return self.h[0]
 
     def push(self, x):
         heapq.heappush(self.h, self.Negator(x))
