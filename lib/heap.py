@@ -42,7 +42,7 @@ class MaxHeap(object):
         self.h = []
 
     def __getitem__(self, i):
-        return self.h[i]
+        return self.h[i].val
 
     def __len__(self):
         return len(self.h)
