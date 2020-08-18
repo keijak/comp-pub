@@ -1,3 +1,6 @@
+import heapq
+
+
 class MinHeap(object):
     def __init__(self):
         self.h = []
