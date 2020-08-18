@@ -51,7 +51,7 @@ class MaxHeap(object):
         return bool(self.h)
 
     def peek(self):
-        return self.h[0]
+        return self.h[0].val
 
     def push(self, x):
         heapq.heappush(self.h, self.Negator(x))
