@@ -28,105 +28,153 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-const i64 INF = 1LL << 50;
+#define chmin(x, y) x = min(x, y)
 
-struct Node {
-  bool terminal;
+template <class T>
+using MinHeap = priority_queue<T, vector<T>, greater<T>>;
+
+struct Edge {
+  int to;
   i64 cost;
-  array<shared_ptr<Node>, 26> child;
-
-  Node() : terminal(false), cost(INF) {}
-  explicit Node(i64 c) : terminal(true), cost(c) {}
 };
-
-void trie_insert(Node* trie, const string& s, i64 cost) {
-  Node* node = trie;
-  int n = s.size();
-  REP(i, n) {
-    int c = s[i] - 'a';
-    Node* nx = node->child[c].get();
-    if (nx == nullptr) {
-      nx = new Node();
-      node->child[c].reset(nx);
-    }
-    node = nx;
-  }
-  node->terminal = true;
-  node->cost = min(node->cost, cost);
-}
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-  int n;
-  cin >> n;
-  V<string> S(n);
-  V<i64> cost(n);
-  V<bool> singleton(n);
+  int N;
+  cin >> N;
+  V<string> S(N);
+  V<i64> C(N);
+  REP(i, N) { cin >> S[i] >> C[i]; }
 
-  shared_ptr<Node> prefix_trie(new Node());
-  shared_ptr<Node> suffix_trie(new Node());
-  i64 ans = INF;
-  REP(i, n) {
-    string r;
-    cin >> r >> cost[i];
-    S[i] = r;
-    reverse(r.begin(), r.end());
-    if (S[i] == r) {
-      singleton[i] = true;
-      ans = min(ans, cost[i]);
-      continue;
+  // num nodes.
+  int n = 0;
+
+  // (prefix,rev) -> ID
+  map<pair<string, bool>, int> node_ids;
+  node_ids[{"", false}] = n++;
+  node_ids[{"", true}] = n++;
+  REP(i, N) {
+    string rev(S[i].rbegin(), S[i].rend());
+    REP(j, S[i].size() + 1) {
+      auto p1 = make_pair(rev.substr(j), false);
+      auto it1 = node_ids.find(p1);
+      if (it1 == node_ids.end()) {
+        node_ids[p1] = n++;
+      }
+      auto p2 = make_pair(rev.substr(0, j), true);
+      auto it2 = node_ids.find(p2);
+      if (it2 == node_ids.end()) {
+        node_ids[p2] = n++;
+      }
     }
-    DEBUG(S[i], r);
-    trie_insert(prefix_trie.get(), S[i], cost[i]);
-    trie_insert(suffix_trie.get(), r, cost[i]);
   }
 
-  set<pair<string_view, bool>> seen;
-  auto rec = [&](auto self, string_view piece, i64 cur_cost, bool rev) -> void {
-    if (cur_cost >= ans) return;
-    if (piece.empty()) {
-      ans = min(ans, cur_cost);
-      return;
-    }
+  // ID -> (prefix,rev)
+  V<const pair<string, bool>*> prefixes(n);
+  V<bool> is_palindrome(n);
+  for (auto it = node_ids.begin(); it != node_ids.end(); ++it) {
+    int node_id = it->second;
+    prefixes[node_id] = &(it->first);
 
-    pair<string_view, bool> state = {piece, rev};
-    if (seen.count(state)) return;
-    seen.emplace(piece, rev);
-    Node* trie = rev ? suffix_trie.get() : prefix_trie.get();
-    if (trie == nullptr) return;
-    REP(i, piece.size()) {
-      int c = piece[i] - 'a';
-      Node* nx = trie->child[c].get();
-      if (nx == nullptr) {
-        return;
-      }
-      if (nx->terminal) {
-        string_view piece2 = piece.substr(i + 1);
-        self(self, piece2, cur_cost + nx->cost, rev);
-      }
-    }
+    const string& s = it->first.first;
+    string rev(s.rbegin(), s.rend());
+    is_palindrome[node_id] = (s == rev);
+  }
 
-    auto rec2 = [&](auto self2, Node* node, string prefix) -> void {
-      if (node == nullptr) return;
-      if (node->terminal) {
-        self(self, prefix, cur_cost + node->cost, !rev);
-      }
-      REP(c, 26) {
-        Node* p = node->child[c].get();
-        if (p != nullptr) {
-          self2(self2, p, prefix + (char)('a' + c));
+  //   for (auto& [p, k] : node_ids) {
+  //     auto& [prefix, rev] = p;
+  //     cout << rev << " [" << prefix << "] = " << k << '\n';
+  //   }
+
+  V<map<int, i64>> g(n);
+  REP(i, n) {
+    if (is_palindrome[i]) {
+      continue;  // no out edge from a palindrome.
+    }
+    string prefix1 = prefixes[i]->first;
+    // true: filling suffix, false: filling prefix
+    bool reversed1 = prefixes[i]->second;
+    if (reversed1) {
+      reverse(prefix1.begin(), prefix1.end());
+    }
+    int l1 = prefix1.size();
+    // DEBUG(prefix1, reversed1);
+    REP(j, N) {
+      string prefix2 = S[j];
+      int l2 = prefix2.size();
+      if (reversed1) reverse(prefix2.begin(), prefix2.end());
+      // DEBUG(prefix2);
+      if (l1 <= l2 && prefix2.substr(0, l1) == prefix1) {
+        string rem = prefix2.substr(l1);
+        if (!reversed1) reverse(rem.begin(), rem.end());
+        auto it = node_ids.find({rem, !reversed1});
+        if (it != node_ids.end()) {
+          if (g[i].count(it->second)) {
+            chmin(g[i][it->second], C[j]);
+          } else {
+            g[i][it->second] = C[j];
+          }
         }
       }
-    };
-    string prefix;
-    rec2(rec2, trie, prefix);
-  };
-
-  REP(i, n) {
-    if (singleton[i]) continue;
-    rec(rec, S[i], cost[i], true);
+      if (l1 > l2 && prefix1.substr(0, l2) == prefix2) {
+        string rem = prefix1.substr(l2);
+        if (reversed1) reverse(rem.begin(), rem.end());
+        auto it = node_ids.find({rem, reversed1});
+        if (it != node_ids.end()) {
+          if (g[i].count(it->second)) {
+            chmin(g[i][it->second], C[j]);
+          } else {
+            g[i][it->second] = C[j];
+          }
+        }
+      }
+    }
   }
 
-  cout << (ans == INF ? -1 : ans) << endl;
+  /*
+    REP(i, n) {
+      const string& prefix = prefixes[i]->first;
+      bool reversed = prefixes[i]->second;
+      if (reversed) {
+        for (const Edge& e : g[i]) {
+          const string& prefix2 = prefixes[e.to]->first;
+          bool reversed2 = prefixes[e.to]->second;
+          DEBUG(i, prefix, prefix2, reversed2, e.cost);
+        }
+      }
+    }
+    */
+
+  // Dijkstra
+  const i64 INF = 1e18;
+  V<i64> cost(n, INF);
+
+  MinHeap<tuple<i64, int, int>> heap;
+  REP(i, N) {
+    string r = S[i];
+    reverse(r.begin(), r.end());
+    int node_id = node_ids[{r, true}];
+    heap.emplace(C[i], node_id, -1);
+  }
+  while (!heap.empty()) {
+    auto [c, v, p] = heap.top();
+    // DEBUG(c, v, p);
+    heap.pop();
+    if (c >= cost[v]) continue;
+    cost[v] = c;
+    for (auto [to, co] : g[v]) {
+      i64 newcost = c + co;
+      if (newcost < cost[to]) {
+        heap.emplace(newcost, to, v);
+      }
+    }
+  }
+
+  i64 ans = INF;
+  REP(i, n) {
+    if (!is_palindrome[i]) continue;
+    ans = min(ans, cost[i]);
+  }
+  cout << (ans == INF ? -1LL : ans) << endl;
 }
