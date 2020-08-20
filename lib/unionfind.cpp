@@ -22,4 +22,13 @@ struct UnionFind {
   int size(int k) { return -data[find(k)]; }
 
   bool same(int x, int y) { return find(x) == find(y); }
+
+  vector<int> roots() {
+    vector<int> res;
+    res.reserve(data.size());
+    for (int i = 0; i < (int)data.size(); ++i) {
+      if (data[i] < 0) res.push_back(i);
+    }
+    return res;
+  }
 };
