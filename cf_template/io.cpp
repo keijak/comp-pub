@@ -3,9 +3,30 @@
 using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
+#define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+
 template <typename T>
 using V = std::vector<T>;
-#define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+template <typename T>
+vector<T> make_vec(size_t n, T a) {
+  return vector<T>(n, a);
+}
+template <typename... Ts>
+auto make_vec(size_t n, Ts... ts) {
+  return vector<decltype(make_vec(ts...))>(n, make_vec(ts...));
+}
+template <typename T>
+ostream &operator<<(ostream &os, const vector<T> &v) {
+  os << '[';
+  for (auto &&e : v) os << e << ' ';
+  return os << ']';
+}
+template <typename T>
+ostream &operator<<(ostream &os, const set<T> &v) {
+  os << '[';
+  for (auto &&e : v) os << e << ' ';
+  return os << ']';
+}
 
 #ifndef DEBUGGING
 #define DEBUG(...)
