@@ -97,12 +97,12 @@ mint operator+(const mint &a, const mint &b) { return mint(a) += b; }
 mint operator-(const mint &a, const mint &b) { return mint(a) -= b; }
 mint operator*(const mint &a, const mint &b) { return mint(a) *= b; }
 mint operator/(const mint &a, const mint &b) { return mint(a) /= b; }
-mint operator==(const mint &a, const mint &b) { return a.x == b.x; }
-mint operator!=(const mint &a, const mint &b) { return a.x != b.x; }
-mint operator<(const mint &a, const mint &b) { return a.x < b.x; }
-mint operator>(const mint &a, const mint &b) { return a.x > b.x; }
-mint operator<=(const mint &a, const mint &b) { return a.x <= b.x; }
-mint operator>=(const mint &a, const mint &b) { return a.x >= b.x; }
+bool operator==(const mint &a, const mint &b) { return a.x == b.x; }
+bool operator!=(const mint &a, const mint &b) { return a.x != b.x; }
+bool operator<(const mint &a, const mint &b) { return a.x < b.x; }
+bool operator>(const mint &a, const mint &b) { return a.x > b.x; }
+bool operator<=(const mint &a, const mint &b) { return a.x <= b.x; }
+bool operator>=(const mint &a, const mint &b) { return a.x >= b.x; }
 istream &operator>>(istream &is, mint &a) { return is >> a.x; }
 ostream &operator<<(ostream &os, const mint &a) { return os << a.x; }
 
