@@ -66,7 +66,7 @@ struct Factorials {
 
 // Cretates a combination matrix in O(n^2) using Pascal's triangle.
 // C[n][k] = nCk
-vector<vector<mint>> gen_comb(int n) {
+vector<vector<mint>> comb_table(int n) {
   vector<vector<mint>> C(n + 1, vector<mint>(n + 1, 0));
   for (int i = 0; i <= n; ++i) {
     C[i][0] = C[i][i] = 1;
