@@ -4,6 +4,16 @@ using namespace std;
 using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+#define SZ(a) int((a).size())
+
+template <class T>
+void chmax(T &a, T b) {
+  if (a < b) a = std::move(b);
+}
+template <class T>
+void chmin(T &a, T b) {
+  if (a > b) a = std::move(b);
+}
 
 template <typename T>
 using V = std::vector<T>;
