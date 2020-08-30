@@ -1,9 +1,8 @@
 struct UnionFind {
   vector<int> data;  // positive: parent, negative: size
+  int num_roots;
 
-  UnionFind() = default;
-
-  explicit UnionFind(size_t sz) : data(sz, -1) {}
+  explicit UnionFind(size_t sz) : data(sz, -1), num_roots(sz) {}
 
   bool unite(int x, int y) {
     x = find(x), y = find(y);
@@ -11,6 +10,7 @@ struct UnionFind {
     if (data[x] > data[y]) swap(x, y);
     data[x] += data[y];
     data[y] = x;
+    --num_roots;
     return true;
   }
 
