@@ -25,7 +25,7 @@ struct UnionFind {
 
   vector<int> roots() {
     vector<int> res;
-    res.reserve(data.size());
+    res.reserve(num_roots);
     for (int i = 0; i < (int)data.size(); ++i) {
       if (data[i] < 0) res.push_back(i);
     }
