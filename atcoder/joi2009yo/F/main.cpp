@@ -128,4 +128,22 @@ int main() {
 
   int N, M, S;
   cin >> N >> M >> S;
+  const int N2 = N * N;
+
+  auto dp = make_vec(N2 + 1, S + 1, mint(0));
+  mint ans;
+  for (int h = 1; h <= M; ++h) {
+    auto dp_next = make_vec(N2 + 1, S + 1, mint(0));
+    if (h <= S) {
+      dp_next[1][h] = 1;
+    }
+    for (int i = 2; i <= N2; ++i) {
+      for (int j = i; j <= S; ++j) {
+        dp_next[i][j] += dp[i][j - i] + dp[i - 1][j - i];
+      }
+    }
+    swap(dp, dp_next);
+    ans += dp[N2][S];
+  }
+  cout << ans << endl;
 }
