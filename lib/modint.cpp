@@ -1,8 +1,9 @@
-const i64 MOD = 1'000'000'007;
+const int MOD = 1'000'000'007;
 
 struct mint {
-  long long x;
-  mint(long long x = 0) : x((x % MOD + MOD) % MOD) {}
+  using value_type = long long;
+  value_type x;
+  mint(value_type x = 0) : x((x % MOD + MOD) % MOD) {}
   mint operator-() const { return mint(-x); }
   mint &operator+=(const mint &a) {
     if ((x += a.x) >= MOD) x -= MOD;
@@ -16,7 +17,7 @@ struct mint {
     (x *= a.x) %= MOD;
     return *this;
   }
-  mint pow(long long t) const {
+  mint pow(value_type t) const {
     if (!t) return 1;
     mint a = pow(t >> 1);
     a *= a;
