@@ -114,22 +114,34 @@ int main() {
       ys.push_back(y);
     }
   }
+  // Coordinate compression
   Compress xc(move(xs)), yc(move(ys));
+
+  // 2-d imos.
   auto grid = make_vec(xc.size(), yc.size(), 0);
+  for (const auto &[x1, y1, x2, y2] : ps) {
+    int i1 = xc.index(x1), j1 = yc.index(y1);
+    int i2 = xc.index(x2), j2 = yc.index(y2);
+    grid[i1][j1] -= 1;
+    grid[i2][j1] += 1;
+    grid[i1][j2] += 1;
+    grid[i2][j2] -= 1;
+  }
+  REP(r, yc.size()) {
+    for (int c = 1; c < xc.size(); ++c) {
+      grid[c][r] += grid[c - 1][r];
+    }
+  }
+  REP(c, xc.size()) {
+    for (int r = 1; r < yc.size(); ++r) {
+      grid[c][r] += grid[c][r - 1];
+    }
+  }
   {  // outlines
     int wi = xc.index(W);
     int hi = yc.index(H);
     REP(i, yc.size()) { grid[0][i] = grid[wi][i] = -1; }
     REP(i, xc.size()) { grid[i][0] = grid[i][hi] = -1; }
-  }
-  for (const auto &[x1, y1, x2, y2] : ps) {
-    int i1 = xc.index(x1), j1 = yc.index(y1);
-    int i2 = xc.index(x2), j2 = yc.index(y2);
-    for (int i = i1; i < i2; ++i) {
-      for (int j = j1; j < j2; ++j) {
-        grid[i][j] = -1;
-      }
-    }
   }
 
   array<int, 4> dx = {0, 0, 1, -1};
