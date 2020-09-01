@@ -1,8 +1,6 @@
 template <class T>
 using MinHeap = priority_queue<T, vector<T>, greater<T>>;
 
-using i64 = long long;
-
 struct Edge {
   i64 cost;
   int to;
