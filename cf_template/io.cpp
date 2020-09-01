@@ -7,12 +7,14 @@ using u64 = unsigned long long;
 #define SZ(a) int((a).size())
 
 template <class T>
-void chmax(T &a, T b) {
-  if (a < b) a = std::move(b);
+bool chmax(T &a, T b) {
+  if (a < b) return (a = move(b)), true;
+  return false;
 }
 template <class T>
-void chmin(T &a, T b) {
-  if (a > b) a = std::move(b);
+bool chmin(T &a, T b) {
+  if (a > b) return (a = move(b)), true;
+  return false;
 }
 
 template <typename T>
