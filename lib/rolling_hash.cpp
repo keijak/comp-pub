@@ -23,6 +23,12 @@ struct RollingHash {
     return rand(engine);
   }
 
+  // Returns the hash value for the [l,r) interval.
+  u64 get(int l, int r) {
+    return add(hashed[r], mod - mul(hashed[l], power[r - l]));
+  }
+
+ private:
   u64 add(u64 a, u64 b) {
     if ((a += b) >= mod) {
       a -= mod;
@@ -38,10 +44,5 @@ struct RollingHash {
       na -= mod;
     }
     return na;
-  }
-
-  // Returns the hash value for the [l,r) interval.
-  u64 get(int l, int r) {
-    return add(hashed[r], mod - mul(hashed[l], power[r - l]));
   }
 };
