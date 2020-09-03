@@ -28,32 +28,27 @@ auto make_vec(size_t n, Ts... ts) {
   return vector<decltype(make_vec(ts...))>(n, make_vec(ts...));
 }
 
-struct ZAlgorithm {
-  const int N;
-  vector<int> Z;
-  const string_view S;
-
-  explicit ZAlgorithm(string_view s) : N(s.size()), Z(s.size()), S(move(s)) {}
-
-  void calc() {
-    Z[0] = N;
-    int i = 1, j = 0;
-    while (i < N) {
-      while (i + j < N and S[j] == S[i + j]) ++j;
-      Z[i] = j;
-      if (j == 0) {
-        ++i;
-        continue;
-      }
-      int k = 1;
-      for (; k < j and k + Z[k] < j; ++k) {
-        Z[i + k] = Z[k];
-      }
-      i += k;
-      j -= k;
+vector<int> ZArray(string_view s) {
+  int n = s.size();
+  vector<int> Z(n);
+  Z[0] = n;
+  int i = 1, j = 0;
+  while (i < n) {
+    while (i + j < n and s[j] == s[i + j]) ++j;
+    Z[i] = j;
+    if (j == 0) {
+      ++i;
+      continue;
     }
+    int k = 1;
+    for (; k < j and k + Z[k] < j; ++k) {
+      Z[i + k] = Z[k];
+    }
+    i += k;
+    j -= k;
   }
-};
+  return Z;
+}
 
 int main() {
   ios::sync_with_stdio(false);
@@ -66,9 +61,8 @@ int main() {
 
   int ans = 0;
   REP(i, n) {
-    ZAlgorithm za(sv.substr(i));
-    za.calc();
-    REP(j, za.N) { chmax(ans, min(za.Z[j], j)); }
+    auto Z = ZArray(sv.substr(i));
+    REP(j, Z.size()) { chmax(ans, min(Z[j], j)); }
   }
   cout << ans << endl;
 }
