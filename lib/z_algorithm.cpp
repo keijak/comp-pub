@@ -1,4 +1,5 @@
-// Returns the Z array using Z-algorithm.
+// Z-algorithm
+// Returns the Z array of the given string.
 // Z[i] := the longest common prefix length between S[0:] and S[i:].
 vector<int> ZArray(string_view s) {
   int n = s.size();
