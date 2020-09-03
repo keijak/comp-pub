@@ -1,26 +1,23 @@
-struct ZAlgorithm {
-  const int N;
-  vector<int> Z;
-  const string_view S;
-
-  explicit ZAlgorithm(string_view s) : N(s.size()), Z(s.size()), S(move(s)) {}
-
-  void calc() {
-    Z[0] = N;
-    int i = 1, j = 0;
-    while (i < N) {
-      while (i + j < N and S[j] == S[i + j]) ++j;
-      Z[i] = j;
-      if (j == 0) {
-        ++i;
-        continue;
-      }
-      int k = 1;
-      for (; k < j and k + Z[k] < j; ++k) {
-        Z[i + k] = Z[k];
-      }
-      i += k;
-      j -= k;
+// Returns the Z array using Z-algorithm.
+// Z[i] := the longest common prefix length between S[0:] and S[i:].
+vector<int> ZArray(string_view s) {
+  int n = s.size();
+  vector<int> Z(n);
+  Z[0] = n;
+  int i = 1, j = 0;
+  while (i < n) {
+    while (i + j < n and s[j] == s[i + j]) ++j;
+    Z[i] = j;
+    if (j == 0) {
+      ++i;
+      continue;
     }
+    int k = 1;
+    for (; k < j and k + Z[k] < j; ++k) {
+      Z[i + k] = Z[k];
+    }
+    i += k;
+    j -= k;
   }
-};
+  return Z;
+}
