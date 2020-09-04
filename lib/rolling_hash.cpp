@@ -32,8 +32,7 @@ struct RollingHash {
 
   static inline u64 add(u64 a, u64 b) {
     a += b;
-    if (a >= mod) a -= mod;
-    return a;
+    return (a >= mod) ? (a - mod) : a;
   }
 
   static inline u64 mul(u64 a, u64 b) {
@@ -41,7 +40,6 @@ struct RollingHash {
     u64 na = t >> 61;
     u64 nb = t & mod;
     na += nb;
-    if (na >= mod) na -= mod;
-    return na;
+    return (na >= mod) ? (na - mod) : na;
   }
 };
