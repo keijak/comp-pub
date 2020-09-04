@@ -56,25 +56,27 @@ void debug(T value, Ts... args) {
 struct RollingHash {
   using u128 = __uint128_t;
   static const u64 mod = (1ULL << 61) - 1;
-  const u64 base;
   vector<u64> hashed, power;
 
-  RollingHash(const string &s, u64 base) : base(base) {
+  RollingHash(string_view s) {
     int n = s.size();
     hashed.assign(n + 1, 0);
     power.assign(n + 1, 0);
     power[0] = 1;
     for (int i = 0; i < n; i++) {
-      power[i + 1] = mul(power[i], base);
-      hashed[i + 1] = add(mul(hashed[i], base), s[i]);
+      power[i + 1] = mul(power[i], base());
+      hashed[i + 1] = add(mul(hashed[i], base()), s[i]);
     }
   }
 
-  static u64 gen_base() {
-    random_device seed_gen;
-    mt19937_64 engine(seed_gen());
-    uniform_int_distribution<u64> rand(1, mod - 1);
-    return rand(engine);
+  static u64 base() {
+    static u64 val = []() -> u64 {
+      random_device seed_gen;
+      mt19937_64 engine(seed_gen());
+      uniform_int_distribution<u64> rand(1, mod - 1);
+      return rand(engine);
+    }();
+    return val;
   }
 
   u64 add(u64 a, u64 b) {
@@ -103,13 +105,12 @@ struct RollingHash {
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-  u64 rh_base = RollingHash::gen_base();
 
   int n;
   cin >> n;
   string s;
   cin >> s;
-  RollingHash rh(s, rh_base);
+  RollingHash rh(s);
 
   auto check = [&](int k) -> bool {
     gp_hash_table<u64, int> end_index;
