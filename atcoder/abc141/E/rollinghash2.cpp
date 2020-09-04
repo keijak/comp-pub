@@ -85,13 +85,13 @@ struct RollingHash {
     return val;
   }
 
-  static u64 add(u64 a, u64 b) {
+  static inline u64 add(u64 a, u64 b) {
     a += b;
     if (a >= mod) a -= mod;
     return a;
   }
 
-  static u64 mul(u64 a, u64 b) {
+  static inline u64 mul(u64 a, u64 b) {
     u128 t = (u128)a * b;
     u64 na = t >> 61;
     u64 nb = t & mod;
