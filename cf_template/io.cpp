@@ -1,4 +1,3 @@
-#define DEBUGGING  // Enables DEBUG macro.
 #include <bits/stdc++.h>
 using namespace std;
 using i64 = long long;
@@ -61,7 +60,7 @@ ostream &operator<<(ostream &os, const pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
 
-#ifndef DEBUGGING
+#ifdef ENABLE_DEBUG
 #define DEBUG(...)
 #else
 template <typename T>
