@@ -2,20 +2,21 @@ struct RollingHash {
   using u64 = unsigned long long;
   using u128 = __uint128_t;
   static const u64 mod = (1ULL << 61) - 1;
-  vector<u64> hashed, power;
+  vector<u64> hashe_val, base_power;
 
-  RollingHash(string_view s) : hashed(s.size() + 1), power(s.size() + 1) {
-    int n = s.size();
-    power[0] = 1;
+  RollingHash(string_view s)
+      : hashe_val(s.size() + 1), base_power(s.size() + 1) {
+    const int n = s.size();
+    base_power[0] = 1;
     for (int i = 0; i < n; i++) {
-      power[i + 1] = mul(power[i], base());
-      hashed[i + 1] = add(mul(hashed[i], base()), s[i]);
+      base_power[i + 1] = mul(base_power[i], base());
+      hashe_val[i + 1] = add(mul(hashe_val[i], base()), s[i]);
     }
   }
 
   // Returns the hash value for the [l,r) interval.
   u64 get(int l, int r) {
-    return add(hashed[r], mod - mul(hashed[l], power[r - l]));
+    return add(hashe_val[r], mod - mul(hashe_val[l], base_power[r - l]));
   }
 
  private:
