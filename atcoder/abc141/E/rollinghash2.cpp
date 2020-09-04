@@ -54,14 +54,13 @@ void debug(T value, Ts... args) {
 #endif
 
 struct RollingHash {
+  using u64 = unsigned long long;
   using u128 = __uint128_t;
   static const u64 mod = (1ULL << 61) - 1;
   vector<u64> hashed, power;
 
-  RollingHash(string_view s) {
+  RollingHash(string_view s) : hashed(s.size() + 1), power(s.size() + 1) {
     int n = s.size();
-    hashed.assign(n + 1, 0);
-    power.assign(n + 1, 0);
     power[0] = 1;
     for (int i = 0; i < n; i++) {
       power[i + 1] = mul(power[i], base());
@@ -69,6 +68,12 @@ struct RollingHash {
     }
   }
 
+  // Returns the hash value for the [l,r) interval.
+  u64 get(int l, int r) {
+    return add(hashed[r], mod - mul(hashed[l], power[r - l]));
+  }
+
+ private:
   static u64 base() {
     static u64 val = []() -> u64 {
       random_device seed_gen;
@@ -79,26 +84,19 @@ struct RollingHash {
     return val;
   }
 
-  u64 add(u64 a, u64 b) {
-    if ((a += b) >= mod) {
-      a -= mod;
-    }
+  static u64 add(u64 a, u64 b) {
+    a += b;
+    if (a >= mod) a -= mod;
     return a;
   }
 
-  u64 mul(u64 a, u64 b) {
+  static u64 mul(u64 a, u64 b) {
     u128 t = (u128)a * b;
     u64 na = t >> 61;
     u64 nb = t & mod;
-    if ((na += nb) >= mod) {
-      na -= mod;
-    }
+    na += nb;
+    if (na >= mod) na -= mod;
     return na;
-  }
-
-  // Returns the hash value for the [l,r) interval.
-  u64 get(int l, int r) {
-    return add(hashed[r], mod - mul(hashed[l], power[r - l]));
   }
 };
 
