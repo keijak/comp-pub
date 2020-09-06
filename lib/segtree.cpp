@@ -41,14 +41,14 @@ struct SegTree {
   }
 
   // Queries by a single index (0-indexed).
-  Monoid operator[](int i) { return dat[size + i]; }
-
-  /* debug */
-  void print() {
-    for (int i = 0; i < size; ++i) {
-      cout << (*this)[i];
-      if (i != size - 1) cout << ",";
-    }
-    cout << endl;
-  }
+  Monoid operator[](int i) const { return dat[size + i]; }
 };
+template <typename T>
+ostream &operator<<(ostream &os, const SegTree<T> &st) {
+  os << "[";
+  for (int i = 0; i < st.size; ++i) {
+    if (i != 0) os << ", ";
+    os << st[i];
+  }
+  return os << "]";
+}
