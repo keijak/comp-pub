@@ -82,23 +82,42 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-// Lowest Common Ancestor
+struct Graph {
+  int n;
+  V<V<int>> adj;
+  explicit Graph(int n) : n(n), adj(n) {}
+  void input_undirected(int m) {
+    for (int i = 0; i < m; ++i) {
+      int u, v;
+      cin >> u >> v;
+      u--;
+      v--;
+      adj[u].push_back(v);
+      adj[v].push_back(u);
+    }
+  }
+
+  void input_directed(int m) {
+    for (int i = 0; i < m; ++i) {
+      int u, v;
+      cin >> u >> v;
+      u--;
+      v--;
+      adj[u].push_back(v);
+    }
+  }
+};
+
+// Lowest Common Ancestor of a tree.
 class LCA {
  public:
   const int n;  // number of nodes
-  vector<vector<int>> adj;
+  const vector<vector<int>> &adj;
   vector<vector<int>> parent;
   vector<int> depth;
 
-  explicit LCA(int n)
-      : n(n), adj(n), parent(K, vector<int>(n, -1)), depth(n, -1) {}
-
-  void add_edge(int x, int y) {
-    adj[x].push_back(y);
-    adj[y].push_back(x);
-  }
-
-  void build() {
+  explicit LCA(const Graph &g)
+      : n(g.n), adj(g.adj), parent(K, vector<int>(g.n, -1)), depth(g.n, -1) {
     dfs(0, -1, 0);
     for (int k = 0; k + 1 < K; k++) {
       REP(v, n) {
@@ -148,51 +167,41 @@ class LCA {
   static const int K = 30;  // max parent lookup (2^K)
 };
 
+// Tree diameter.
+// Returns the maximum diameter and two end point nodes with the diameter.
+int tree_diameter(const V<V<int>> &adj) {
+  auto dfs = [&](auto self, int v, int p, int d) -> pair<int, int> {
+    int res_d = d, res_v = v;
+    for (auto u : adj[v]) {
+      if (u != p) {
+        auto [child_d, child_v] = self(self, u, v, d + 1);
+        if (child_d > res_d) {
+          res_d = child_d;
+          res_v = child_v;
+        }
+      }
+    }
+    return {res_d, res_v};
+  };
+
+  auto [d1, u] = dfs(dfs, 0, -1, 0);
+  auto [d2, v] = dfs(dfs, u, -1, 0);
+  return d2;
+}
+
 bool solve(int t) {
   int n, a, b, da, db;
   cin >> n >> a >> b >> da >> db;
   a--;
   b--;
-  V<V<int>> g(n);
-  LCA lca(n);
-  REP(i, n - 1) {
-    int x, y;
-    cin >> x >> y;
-    x--;
-    y--;
-    g[x].push_back(y);
-    g[y].push_back(x);
-    lca.add_edge(x, y);
-  }
-  lca.build();
+  Graph g(n);
+  g.input_undirected(n - 1);
+  LCA lca(g);
 
   int inid = lca.distance(a, b);
   if (inid <= da) return true;
 
-  // if (db <= 2 * da) return true;
-
-  auto dfs = [&](auto self, int v, int p, int d) -> pair<int, int> {
-    int res = d;
-    int res_v = v;
-    for (auto u : g[v]) {
-      if (u != p) {
-        auto [rd, x] = self(self, u, v, d + 1);
-        if (rd > res) {
-          res = rd;
-          res_v = x;
-        }
-      }
-    }
-    return {res, res_v};
-  };
-
-  auto diameter = [&]() -> int {
-    auto [d1, u] = dfs(dfs, 0, -1, 0);
-    auto [d2, v] = dfs(dfs, u, -1, 0);
-    return d2;
-  };
-
-  int diam = diameter();
+  int diam = tree_diameter(g.adj);
   DEBUG(da, db, diam);
 
   return min(db, diam) <= 2 * da;
