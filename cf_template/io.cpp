@@ -2,8 +2,8 @@
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
 #define REP(i, n) for (int i = 0; i < (i64)(n); ++i)
-#define WHOLE(x) std::begin(x), std::end(x)
-#define LEN(a) int((a).size())
+#define ALL(x) std::begin(x), std::end(x)
+#define SIZE(a) (int)((a).size())
 
 template <class T>
 bool chmax(T &a, T b) {
