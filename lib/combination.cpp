@@ -1,9 +1,7 @@
-using mint = double;
-
-// Factorials over ModInts.
+template <class T = mint>  // Usually used over ModInt.
 struct Factorials {
   // factorials and inverse factorials.
-  vector<mint> fact, ifact;
+  vector<T> fact, ifact;
 
   // n: max cached value.
   Factorials(int n) : fact(n + 1), ifact(n + 1) {
@@ -15,22 +13,25 @@ struct Factorials {
   }
 
   // Combination (nCk)
-  mint C(int n, int k) {
+  T C(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[k] * ifact[n - k];
   }
 
   // Permutation (nPk)
-  mint P(int n, int k) {
+  T P(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[n - k];
   }
 };
 
-// Cretates a combination matrix in O(n^2) using Pascal's triangle.
 // C[n][k] = nCk
-vector<vector<mint>> comb_table(int n) {
-  vector<vector<mint>> C(n + 1, vector<mint>(n + 1, 0));
+// Cretates a combination matrix using Pascal's triangle.
+// Time and space complexity: Θ(n^2)
+// Useful to avoid factorials causing integer overflow.
+template <class T = uint64_t>
+vector<vector<T>> comb_table(int n) {
+  vector<vector<T>> C(n + 1, vector<T>(n + 1, 0));
   for (int i = 0; i <= n; ++i) {
     C[i][0] = C[i][i] = 1;
   }
