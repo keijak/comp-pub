@@ -7,11 +7,11 @@ using u64 = std::uint64_t;
 
 template <class T>
 bool chmax(T &a, T b) {
-  return a >= b ? false : ((a = std::move(b)), true);
+  return a < b and ((a = std::move(b)), true);
 }
 template <class T>
 bool chmin(T &a, T b) {
-  return a <= b ? false : ((a = std::move(b)), true);
+  return a > b and ((a = std::move(b)), true);
 }
 
 template <typename T>
