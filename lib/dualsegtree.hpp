@@ -42,17 +42,3 @@ std::ostream &operator<<(std::ostream &os, const DualSegTree<T> &st) {
   }
   return os << "]";
 }
-
-// Monoid
-
-struct MinOp {
-  using T = int;
-  static T op(const T &x, const T &y) { return std::min(x, y); }
-  static inline T unity() { return std::numeric_limits<T>::max(); }
-};
-
-struct MaxOp {
-  using T = int;
-  static T op(const T &x, const T &y) { return std::max(x, y); }
-  static inline T unity() { return std::numeric_limits<T>::min(); }
-};
