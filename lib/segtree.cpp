@@ -55,5 +55,5 @@ std::ostream &operator<<(std::ostream &os, const SegTree<T> &st) {
 struct AddOp {
   using T = mint;
   static T op(const T &x, const T &y) { return x + y; }
-  static T unity() { return 0; }
+  static inline T unity() { return 0; }
 };
