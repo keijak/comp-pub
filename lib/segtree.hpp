@@ -57,3 +57,15 @@ struct AddOp {
   static T op(const T &x, const T &y) { return x + y; }
   static inline T unity() { return 0; }
 };
+
+struct MinOp {
+  using T = int;
+  static T op(const T &x, const T &y) { return std::min(x, y); }
+  static inline T unity() { return std::numeric_limits<T>::max(); }
+};
+
+struct MaxOp {
+  using T = int;
+  static T op(const T &x, const T &y) { return std::max(x, y); }
+  static inline T unity() { return std::numeric_limits<T>::min(); }
+};
