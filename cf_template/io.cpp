@@ -6,11 +6,11 @@ using u64 = std::uint64_t;
 #define SIZE(a) (int)((a).size())
 
 template <class T>
-bool chmax(T &a, T b) {
+inline bool chmax(T &a, T b) {
   return a < b and ((a = std::move(b)), true);
 }
 template <class T>
-bool chmin(T &a, T b) {
+inline bool chmin(T &a, T b) {
   return a > b and ((a = std::move(b)), true);
 }
 
@@ -80,6 +80,7 @@ void pdebug(const T &value, const Ts &... args) {
 #define pdebug(...)
 #define DEBUG(...)
 #endif
+
 using namespace std;
 
 int main() {
