@@ -1,7 +1,7 @@
 template <typename Monoid>
 struct Doubling {
   using T = typename Monoid::T;
-  static const int kBits = 45;
+  static const int kBits = 60;
   std::vector<std::vector<int>> next_pos;
   std::vector<std::vector<T>> acc_value;
 
@@ -26,7 +26,7 @@ struct Doubling {
 
   // Folds values in [start, start + k).
   // Starting from `start`, accumulates values in `k` steps.
-  T fold(int start, const long long k) {
+  std::pair<int, T> query(int start, const long long k) {
     // Only k < 2^kBits is supported.
     assert(k < (1LL << kBits));
     T res = Monoid::unity();
@@ -37,12 +37,22 @@ struct Doubling {
         i = next_pos[d][i];
       }
     }
-    return res;
+    return {i, res};
   }
 };
 
+//
+// Monoids
+//
+
+struct UpdateOp {
+  using T = int;
+  static T unity() { return -1; }
+  static T op(const T &x, const T &y) { return y == unity() ? x : y; }
+};
+
 struct AddOp {
-  using T = i64;
+  using T = long long;
   static T unity() { return 0; }
   static T op(const T &x, const T &y) { return x + y; }
 };
