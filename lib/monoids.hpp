@@ -1,25 +1,25 @@
 struct AddOp {
   using T = int;
   static T op(const T &x, const T &y) { return x + y; }
-  static inline T unity() { return 0; }
+  static constexpr T unity() { return 0; }
 };
 
 struct MulOp {
   using T = int;
   static T op(const T &x, const T &y) { return x * y; }
-  static inline T unity() { return 1; }
+  static constexpr T unity() { return 1; }
 };
 
 struct MinOp {
   using T = int;
   static T op(const T &x, const T &y) { return std::min(x, y); }
-  static inline T unity() { return std::numeric_limits<T>::max(); }
+  static constexpr T unity() { return std::numeric_limits<T>::max(); }
 };
 
 struct MaxOp {
   using T = int;
   static T op(const T &x, const T &y) { return std::max(x, y); }
-  static inline T unity() { return std::numeric_limits<T>::min(); }
+  static constexpr T unity() { return std::numeric_limits<T>::min(); }
 };
 
 struct GCDOp {
@@ -29,5 +29,5 @@ struct GCDOp {
     if (y == unity()) return x;
     return std::gcd(x, y);
   }
-  static inline T unity() { return -1; }
+  static constexpr T unity() { return -1; }
 };
