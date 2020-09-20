@@ -1,11 +1,15 @@
+// A functional graph is a directed graph in which each vertex has outdegree
+// one, and can therefore be specified by a function mapping {0,...,n-1} onto
+// itself.
+// https://mathworld.wolfram.com/FunctionalGraph.html
 template <typename Monoid>
-struct Doubling {
+struct FunctionalGraph {
   using T = typename Monoid::T;
-  static const int kMaxBits = 45;
+  static const int kMaxBits = 60;
   std::vector<std::vector<int>> next_pos;
   std::vector<std::vector<T>> acc_value;
 
-  Doubling(int n)
+  FunctionalGraph(int n)
       : next_pos(kMaxBits, std::vector<int>(n, -1)),
         acc_value(kMaxBits, std::vector<T>(n, Monoid::unity())) {}
 
@@ -24,29 +28,31 @@ struct Doubling {
     }
   }
 
-  // Folds values in [start, start + k).
-  // Starting from `start`, accumulates values in `k` steps.
-  std::pair<int, T> query(int start, const long long k) const {
-    // Only k < 2^kBits is supported.
-    assert(k < (1LL << kMaxBits));
+  // Starting from `start`, go forward `steps` times.
+  // Accumulate values in [start, start + steps).
+  T transition(int start, const long long steps) {
+    // Only k < 2^kMaxBits is supported.
+    assert(steps < (1LL << kMaxBits));
     T res = Monoid::unity();
     int i = start;
     for (int d = kMaxBits - 1; d >= 0; d--) {
-      if ((k >> d) & 1) {
+      if ((steps >> d) & 1) {
         res = Monoid::op(res, acc_value[d][i]);
         i = next_pos[d][i];
       }
     }
-    return {i, res};
+    return res;
   }
 };
 
 // Monoid
 
-struct UpdateOp {
-  using T = int;
-  static T unity() { return -1; }
-  static T op(const T &x, const T &y) { return y == unity() ? x : y; }
+// x := y
+// Override value by the second argument.
+struct AssignOp {
+  using T = std::optional<int>;
+  static T op(const T &x, const T &y) { return y.has_value() ? y : x; }
+  static T unity() { return std::nullopt; }
 };
 
 struct AddOp {
