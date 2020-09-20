@@ -22,6 +22,14 @@ struct MaxOp {
   static constexpr T unity() { return std::numeric_limits<T>::min(); }
 };
 
+// x := y
+// Override value by the second argument.
+struct AssignOp {
+  using T = std::optional<int>;
+  static T op(const T &x, const T &y) { return y.has_value() ? y : x; }
+  static constexpr T unity() { return std::nullopt; }
+};
+
 struct GCDOp {
   using T = int;
   static T op(const T &x, const T &y) {
