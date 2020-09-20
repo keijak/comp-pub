@@ -82,23 +82,35 @@ void pdebug(const T &value, const Ts &... args) {
 #endif
 
 template <typename Monoid>
-struct Doubling {
+struct FunctionalGraph {
   using T = typename Monoid::T;
-  static const int kBits = 60;
-  std::vector<std::vector<int>> next_pos;
+  static const int kMaxBits = 60;
+
+  // number of nodes.
+  int size;
+
+  // acc_value[d][i] := starting from i, what's the value accumulated after 2^d
+  // steps.
   std::vector<std::vector<T>> acc_value;
 
-  Doubling(int n)
-      : next_pos(kBits, std::vector<int>(n, -1)),
-        acc_value(kBits, std::vector<T>(n, Monoid::unity())) {}
+  // next_pos[d][i] := starting from i, what's the position after 2^d steps.
+  std::vector<std::vector<int>> next_pos;
 
-  void set_next(int i, int x) { next_pos[0][i] = x; }
+  explicit FunctionalGraph(int n)
+      : size(n),
+        acc_value(kMaxBits, std::vector<T>(n, Monoid::unity())),
+        next_pos(kMaxBits, std::vector<int>(n, -1)) {}
 
+  // Sets value `x` at node `i`.
   void set_value(int i, T x) { acc_value[0][i] = x; }
 
+  // Sets next position of node `i`.
+  void set_next(int i, int pos) { next_pos[0][i] = pos; }
+
+  // Builds transition tables.
   void build() {
-    for (int d = 0; d + 1 < kBits; d++) {
-      for (size_t i = 0; i < next_pos[d].size(); i++) {
+    for (int d = 0; d + 1 < kMaxBits; d++) {
+      for (int i = 0; i < size; i++) {
         if (int p = next_pos[d][i]; p != -1) {
           next_pos[d + 1][i] = next_pos[d][p];
           acc_value[d + 1][i] = Monoid::op(acc_value[d][i], acc_value[d][p]);
@@ -107,27 +119,28 @@ struct Doubling {
     }
   }
 
-  // Folds values in [start, start + k).
-  // Starting from `start`, accumulates values in `k` steps.
-  std::pair<int, T> query(int start, const long long k) {
-    // Only k < 2^kBits is supported.
-    assert(k < (1LL << kBits));
+  // Starting from `start`, `steps` times goes forward and accumulates values.
+  T transition(int start, const long long steps) const {
+    // steps >= 2^kMaxBits is not supported.
+    assert(steps < (1LL << kMaxBits));
     T res = Monoid::unity();
     int i = start;
-    for (int d = kBits - 1; d >= 0; d--) {
-      if ((k >> d) & 1) {
+    for (int d = kMaxBits - 1; d >= 0; d--) {
+      if ((steps >> d) & 1) {
         res = Monoid::op(res, acc_value[d][i]);
         i = next_pos[d][i];
       }
     }
-    return {i, res};
+    return res;
   }
 };
 
-struct UpdateOp {
-  using T = int;
-  static T unity() { return -1; }
-  static T op(const T &x, const T &y) { return y == unity() ? x : y; }
+// x := y
+// Override value by the second argument.
+struct AssignOp {
+  using T = std::optional<int>;
+  static T op(const T &x, const T &y) { return y.has_value() ? y : x; }
+  static constexpr T unity() { return std::nullopt; }
 };
 
 using namespace std;
@@ -135,15 +148,19 @@ using namespace std;
 int main() {
   cin.tie(nullptr);
   ios::sync_with_stdio(false);
+
   i64 n, k;
   cin >> n >> k;
-  Doubling<UpdateOp> doubling(n);
+
+  FunctionalGraph<AssignOp> g(n);
   REP(i, n) {
     int a;
     cin >> a;
-    a--;
-    doubling.set_next(i, a);
+    g.set_value(i, a);     // 1-indexed
+    g.set_next(i, a - 1);  // 0-indexed
   }
-  doubling.build();
-  cout << (doubling.query(0, k).first + 1) << endl;
+  g.build();
+
+  auto ans = g.transition(0, k);
+  cout << ans.value() << endl;
 }
