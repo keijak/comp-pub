@@ -93,22 +93,22 @@ struct mint {
       val += k * MOD;
     }
     assert(val >= 0);
-    this->x = val % MOD;
+    x = val % MOD;
   }
-  constexpr mint operator-() const { return mint(-x); }
-  constexpr mint &operator+=(const mint &a) {
+  mint operator-() const { return mint(-x); }
+  mint &operator+=(const mint &a) {
     if ((x += a.x) >= MOD) x -= MOD;
     return *this;
   }
-  constexpr mint &operator-=(const mint &a) {
+  mint &operator-=(const mint &a) {
     if ((x += MOD - a.x) >= MOD) x -= MOD;
     return *this;
   }
-  constexpr mint &operator*=(const mint &a) {
+  mint &operator*=(const mint &a) {
     x = (x * (long long)a.x) % MOD;
     return *this;
   }
-  constexpr mint pow(long long t) const {
+  mint pow(long long t) const {
     assert(t >= 0);
     mint base = *this;
     mint res = 1;
@@ -120,66 +120,58 @@ struct mint {
     return res;
   }
   // for prime MOD
-  constexpr mint inv() const { return pow(MOD - 2); }
-  constexpr mint &operator/=(const mint &a) { return *this *= a.inv(); }
+  mint inv() const { return pow(MOD - 2); }
+  mint &operator/=(const mint &a) { return *this *= a.inv(); }
 };
-constexpr mint operator+(const mint &a, const mint &b) { return mint(a) += b; }
-constexpr mint operator-(const mint &a, const mint &b) { return mint(a) -= b; }
-constexpr mint operator*(const mint &a, const mint &b) { return mint(a) *= b; }
-constexpr mint operator/(const mint &a, const mint &b) { return mint(a) /= b; }
-constexpr bool operator==(const mint &a, const mint &b) { return a.x == b.x; }
-constexpr bool operator!=(const mint &a, const mint &b) { return a.x != b.x; }
-constexpr bool operator<(const mint &a, const mint &b) { return a.x < b.x; }
-constexpr bool operator>(const mint &a, const mint &b) { return a.x > b.x; }
-constexpr bool operator<=(const mint &a, const mint &b) { return a.x <= b.x; }
-constexpr bool operator>=(const mint &a, const mint &b) { return a.x >= b.x; }
+mint operator+(const mint &a, const mint &b) { return mint(a) += b; }
+mint operator-(const mint &a, const mint &b) { return mint(a) -= b; }
+mint operator*(const mint &a, const mint &b) { return mint(a) *= b; }
+mint operator/(const mint &a, const mint &b) { return mint(a) /= b; }
+bool operator==(const mint &a, const mint &b) { return a.x == b.x; }
+bool operator!=(const mint &a, const mint &b) { return a.x != b.x; }
+bool operator<(const mint &a, const mint &b) { return a.x < b.x; }
+bool operator>(const mint &a, const mint &b) { return a.x > b.x; }
+bool operator<=(const mint &a, const mint &b) { return a.x <= b.x; }
+bool operator>=(const mint &a, const mint &b) { return a.x >= b.x; }
 istream &operator>>(istream &is, mint &a) { return is >> a.x; }
 ostream &operator<<(ostream &os, const mint &a) { return os << a.x; }
-
 template <typename Monoid>
-struct SegTree {
+struct DualSegTree {
   using T = typename Monoid::T;
   int size;
-  vector<T> dat;
+  std::vector<T> dat;
 
-  SegTree(int n) : size(n), dat(2 * n, Monoid::unity()) {}
+  DualSegTree(int n) : size(n), dat(2 * n, Monoid::unity()) {}
 
-  // Sets i-th value (0-indexed) to x for initial setup.
-  // build() must be called after set() calls.
-  void set(int i, const T &x) { dat[size + i] = x; }
-  void build() {
-    for (int k = size - 1; k > 0; --k) {
-      dat[k] = Monoid::op(dat[k * 2], dat[k * 2 + 1]);
-    }
-  }
-
-  // Sets i-th value (0-indexed) to x.
-  void update(int i, const T &x) {
-    int k = size + i;
-    dat[k] = x;
-    while (k > 1) {
-      k >>= 1;
-      dat[k] = Monoid::op(dat[k * 2], dat[k * 2 + 1]);
-    }
-  }
-
-  // Queries by [l,r) range (0-indexed, open interval).
-  T fold(int l, int r) {
+  // Applies a value to [l,r) range.
+  void apply(int l, int r, T val) {
     l += size;
     r += size;
-    T vleft = Monoid::unity(), vright = Monoid::unity();
     for (; l < r; l >>= 1, r >>= 1) {
-      if (l & 1) vleft = Monoid::op(vleft, dat[l++]);
-      if (r & 1) vright = Monoid::op(dat[--r], vright);
+      if (l & 1) {
+        dat[l] = Monoid::op(dat[l], val);
+        ++l;
+      }
+      if (r & 1) {
+        --r;
+        dat[r] = Monoid::op(dat[r], val);
+      }
     }
-    return Monoid::op(vleft, vright);
   }
 
-  // Queries by a single index (0-indexed).
-  T operator[](int i) const { return dat[size + i]; }
+  // Returns i-th value.
+  T operator[](int i) const {
+    int k = size + i;
+    T res = dat[k];
+    while (k > 1) {
+      k >>= 1;
+      res = Monoid::op(res, dat[k]);
+    }
+    return res;
+  }
 };
 template <typename T>
-ostream &operator<<(ostream &os, const SegTree<T> &st) {
+std::ostream &operator<<(std::ostream &os, const DualSegTree<T> &st) {
   os << "[";
   for (int i = 0; i < st.size; ++i) {
     if (i != 0) os << ", ";
@@ -207,14 +199,14 @@ int main() {
     lr[i] = {l, r};
   }
 
-  // 貰うDP
-  SegTree<AddOp> st(n + 1);
-  st.update(1, 1);
-  for (int i = 2; i <= n; ++i) {
+  // 配るDP
+  DualSegTree<AddOp> st(n + 1);
+  st.apply(1, 2, 1);
+  for (int i = 1; i <= n; ++i) {
     REP(j, k) {
       auto [l, r] = lr[j];
-      if (i - l < 0) continue;
-      st.update(i, st[i] + st.fold(max(i - r, 0), i - l + 1));
+      if (i + l > n) continue;
+      st.apply(i + l, min(i + r + 1, n + 1), st[i]);
     }
   }
   cout << st[n] << endl;
