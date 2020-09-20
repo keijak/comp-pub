@@ -3,23 +3,35 @@
 // itself.
 // https://mathworld.wolfram.com/FunctionalGraph.html
 template <typename Monoid>
-struct FunctionalGraph {
+struct FunctionalGraphDoubling {
   using T = typename Monoid::T;
   static const int kMaxBits = 60;
-  std::vector<std::vector<int>> next_pos;
+
+  // number of nodes.
+  int size;
+
+  // acc_value[d][i] := starting from i, what's the value accumulated after 2^d
+  // steps.
   std::vector<std::vector<T>> acc_value;
 
-  FunctionalGraph(int n)
-      : next_pos(kMaxBits, std::vector<int>(n, -1)),
+  // next_pos[d][i] := starting from i, what's the position after 2^d steps.
+  std::vector<std::vector<int>> next_pos;
+
+  explicit FunctionalGraphDoubling(int n)
+      : size(n),
+        next_pos(kMaxBits, std::vector<int>(n, -1)),
         acc_value(kMaxBits, std::vector<T>(n, Monoid::unity())) {}
 
-  void set_next(int i, int x) { next_pos[0][i] = x; }
-
+  // Sets value `x` at node `i`.
   void set_value(int i, T x) { acc_value[0][i] = x; }
 
+  // Sets next position of node `i`.
+  void set_next(int i, int pos) { next_pos[0][i] = pos; }
+
+  // Builds transition tables.
   void build() {
     for (int d = 0; d + 1 < kMaxBits; d++) {
-      for (size_t i = 0; i < next_pos[d].size(); i++) {
+      for (int i = 0; i < size; i++) {
         if (int p = next_pos[d][i]; p != -1) {
           next_pos[d + 1][i] = next_pos[d][p];
           acc_value[d + 1][i] = Monoid::op(acc_value[d][i], acc_value[d][p]);
@@ -28,8 +40,7 @@ struct FunctionalGraph {
     }
   }
 
-  // Starting from `start`, go forward `steps` times.
-  // Accumulate values in [start, start + steps).
+  // Starting from `start`, `steps` times goes forward and accumulates values.
   T transition(int start, const long long steps) {
     // Only k < 2^kMaxBits is supported.
     assert(steps < (1LL << kMaxBits));
