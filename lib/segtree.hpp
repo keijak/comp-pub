@@ -1,27 +1,25 @@
-#include <iostream>
-#include <vector>
-
 template <typename Monoid>
 struct SegTree {
   using T = typename Monoid::T;
 
-  explicit SegTree(int n) : size_(n), data_(2 * n, Monoid::unity()) {}
+  explicit SegTree(int n) : size_(n), data_(2 * n, Monoid::id()) {}
 
   inline int size() const { return size_; }
+
+  // Returns i-th value (0-indexed).
+  T operator[](int i) const { return data_[size_ + i]; }
 
   // Initializes the data array.
   void init(const std::vector<T> &leaves) {
     assert(int(leaves.size()) == size_);
-    for (int i = 0; i < size_; ++i) {
-      data_[size_ + i] = leaves[i];
-    }
+    std::copy(leaves.begin(), leaves.end(), data_.begin() + size_);
     for (int k = size_ - 1; k > 0; --k) {
       data_[k] = Monoid::op(data_[k * 2], data_[k * 2 + 1]);
     }
   }
 
   // Sets i-th value (0-indexed) to x.
-  void update(int i, const T &x) {
+  void set(int i, const T &x) {
     int k = size_ + i;
     data_[k] = x;
     while (k > 1) {
@@ -32,18 +30,15 @@ struct SegTree {
 
   // Queries by [l,r) range (0-indexed, half-open interval).
   T fold(int l, int r) const {
-    l += size_;
-    r += size_;
-    T vleft = Monoid::unity(), vright = Monoid::unity();
+    l = std::max(l, 0) + size_;
+    r = std::min(r, size_) + size_;
+    T vleft = Monoid::id(), vright = Monoid::id();
     for (; l < r; l >>= 1, r >>= 1) {
       if (l & 1) vleft = Monoid::op(vleft, data_[l++]);
       if (r & 1) vright = Monoid::op(data_[--r], vright);
     }
     return Monoid::op(vleft, vright);
   }
-
-  // Queries by a single index (0-indexed).
-  T operator[](int i) const { return data_[size_ + i]; }
 
   template <bool (*pred)(const T &)>
   int max_right(int l) {
@@ -52,10 +47,10 @@ struct SegTree {
   template <class Predicate>
   int max_right(int l, Predicate pred) {
     assert(0 <= l && l <= size_);
-    assert(predicate(Monoid::unity()));
+    assert(predicate(Monoid::id()));
     if (l == size_) return size_;
     l += size_;
-    T sm = Monoid::unity();
+    T sm = Monoid::id();
     do {
       while (l % 2 == 0) l >>= 1;
       if (!pred(Monoid::op(sm, data_[l]))) {
@@ -81,10 +76,10 @@ struct SegTree {
   template <class Predicate>
   int min_left(int r, Predicate pred) {
     assert(0 <= r && r <= size_);
-    assert(pred(Monoid::unity()));
+    assert(pred(Monoid::id()));
     if (r == 0) return 0;
     r += size_;
-    T sm = Monoid::unity();
+    T sm = Monoid::id();
     do {
       r--;
       while (r > 1 && (r % 2)) r >>= 1;

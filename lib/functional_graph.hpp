@@ -19,7 +19,7 @@ struct FunctionalGraph {
 
   explicit FunctionalGraph(int n)
       : size(n),
-        acc_value(kMaxBits, std::vector<T>(n, Monoid::unity())),
+        acc_value(kMaxBits, std::vector<T>(n, Monoid::id())),
         next_pos(kMaxBits, std::vector<int>(n, -1)) {}
 
   // Sets value `x` at node `i`.
@@ -44,7 +44,7 @@ struct FunctionalGraph {
   T transition(int start, const long long steps) const {
     // steps >= 2^kMaxBits is not supported.
     assert(steps < (1LL << kMaxBits));
-    T res = Monoid::unity();
+    T res = Monoid::id();
     int i = start;
     for (int d = kMaxBits - 1; d >= 0; d--) {
       if ((steps >> d) & 1) {
