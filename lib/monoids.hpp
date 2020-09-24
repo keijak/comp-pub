@@ -22,12 +22,15 @@ struct Prod {
   static constexpr T id() { return 1; }
 };
 
-// x := y
-// Override value by the second argument.
+// Keeps the value with the latest time.
 struct Assign {
-  using T = std::optional<int>;
-  static T op(const T &x, const T &y) { return y.has_value() ? y : x; }
-  static constexpr T id() { return std::nullopt; }
+  // Value with a timestamp.
+  struct T {
+    int time;
+    long long value;
+  };
+  static T op(const T &x, const T &y) { return (x.time > y.time) ? x : y; }
+  static T id() { return {std::numeric_limits<int>::min(), 0}; }
 };
 
 struct GCD {
