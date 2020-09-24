@@ -47,7 +47,7 @@ struct SegTree {
   template <class Predicate>
   int max_right(int l, Predicate pred) {
     assert(0 <= l && l <= size_);
-    assert(predicate(Monoid::id()));
+    assert(pred(Monoid::id()));
     if (l == size_) return size_;
     l += size_;
     T sm = Monoid::id();
@@ -56,8 +56,9 @@ struct SegTree {
       if (!pred(Monoid::op(sm, data_[l]))) {
         while (l < size_) {
           l = (2 * l);
-          if (pred(Monoid::op(sm, data_[l]))) {
-            sm = Monoid::op(sm, data_[l]);
+          T tmp = Monoid::op(sm, data_[l]);
+          if (pred(tmp)) {
+            sm = std::move(tmp);
             l++;
           }
         }

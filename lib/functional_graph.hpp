@@ -41,7 +41,7 @@ struct FunctionalGraph {
   }
 
   // Starting from `start`, `steps` times goes forward and accumulates values.
-  T transition(int start, const long long steps) const {
+  T transition(int start, long long steps) const {
     // steps >= 2^kMaxBits is not supported.
     assert(steps < (1LL << kMaxBits));
     T res = Monoid::id();
