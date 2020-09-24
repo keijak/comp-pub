@@ -1,69 +1,216 @@
-#define DEBUGGING  // Enables DEBUG macro.
 #include <bits/stdc++.h>
-using namespace std;
-using i64 = long long;
-using u64 = unsigned long long;
-#define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
+using i64 = std::int64_t;
+using u64 = std::uint64_t;
+#define REP(i, n) for (int i = 0; i < (i64)(n); ++i)
+#define ALL(x) std::begin(x), std::end(x)
+#define SIZE(a) (int)((a).size())
 
-#ifndef DEBUGGING
-#define debug(...)
-#define DEBUG(...)
-#else
+template <class T>
+inline bool chmax(T &a, T b) {
+  return a < b and ((a = std::move(b)), true);
+}
+template <class T>
+inline bool chmin(T &a, T b) {
+  return a > b and ((a = std::move(b)), true);
+}
+
 template <typename T>
-void debug(T value) {
+using V = std::vector<T>;
+template <typename T>
+std::vector<T> make_vec(size_t n, T a) {
+  return std::vector<T>(n, a);
+}
+template <typename... Ts>
+auto make_vec(size_t n, Ts... ts) {
+  return std::vector<decltype(make_vec(ts...))>(n, make_vec(ts...));
+}
+template <typename T>
+std::istream &operator>>(std::istream &is, std::vector<T> &a) {
+  for (auto &x : a) is >> x;
+  return is;
+}
+template <typename Container>
+std::ostream &pprint(const Container &a, std::string_view sep = " ",
+                     std::string_view ends = "\n", std::ostream *os = nullptr) {
+  if (os == nullptr) os = &std::cout;
+  auto b = std::begin(a), e = std::end(a);
+  for (auto it = std::begin(a); it != e; ++it) {
+    if (it != b) *os << sep;
+    *os << *it;
+  }
+  return *os << ends;
+}
+template <typename T, typename = void>
+struct is_iterable : std::false_type {};
+template <typename T>
+struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
+                                  decltype(std::end(std::declval<T>()))>>
+    : std::true_type {};
+
+template <typename T,
+          typename = std::enable_if_t<is_iterable<T>::value &&
+                                      !std::is_same<T, std::string>::value>>
+std::ostream &operator<<(std::ostream &os, const T &a) {
+  return pprint(a, ", ", "", &(os << "{")) << "}";
+}
+template <typename T, typename U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
+  return os << "(" << a.first << ", " << a.second << ")";
+}
+
+#ifdef ENABLE_DEBUG
+template <typename T>
+void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void debug(T value, Ts... args) {
-  std::cerr << value << ", ";
-  debug(args...);
+void pdebug(const T &value, const Ts &... args) {
+  pdebug(value);
+  std::cerr << ", ";
+  pdebug(args...);
 }
-#define DEBUG(...)                     \
-  do {                                 \
-    cerr << " (L" << __LINE__ << ") "; \
-    cerr << #__VA_ARGS__ << ": ";      \
-    _debug(__VA_ARGS__);               \
-    cerr << endl;                      \
+#define DEBUG(...)                                   \
+  do {                                               \
+    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
+    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
+    pdebug(__VA_ARGS__);                             \
+    std::cerr << std::endl;                          \
   } while (0)
+#else
+#define pdebug(...)
+#define DEBUG(...)
 #endif
-// auto mod int
 
-const i64 MOD = 1'000'000'007;
-
-struct mint {
-  long long x;
-  mint(long long x = 0) : x((x % MOD + MOD) % MOD) {}
-  mint operator-() const { return mint(-x); }
-  mint& operator+=(const mint a) {
-    if ((x += a.x) >= MOD) x -= MOD;
-    return *this;
-  }
-  mint& operator-=(const mint a) {
-    if ((x += MOD - a.x) >= MOD) x -= MOD;
-    return *this;
-  }
-  mint& operator*=(const mint a) {
-    (x *= a.x) %= MOD;
-    return *this;
-  }
-  mint operator+(const mint a) const { return mint(*this) += a; }
-  mint operator-(const mint a) const { return mint(*this) -= a; }
-  mint operator*(const mint a) const { return mint(*this) *= a; }
-  mint pow(long long t) const {
-    if (!t) return 1;
-    mint a = pow(t >> 1);
-    a *= a;
-    if (t & 1) a *= *this;
+// Extended Euclidean algorithm
+// Returns gcd(a,b).
+// x and y are set to satisfy `a*x + b*y == gcd(a,b)`
+long long ext_gcd(long long a, long long b, long long &x, long long &y) {
+  if (b == 0) {
+    x = 1;
+    y = 0;
     return a;
   }
+  long long d = ext_gcd(b, a % b, y, x);
+  y -= a / b * x;
+  return d;
+}
 
-  // for prime MOD
-  mint inv() const { return pow(MOD - 2); }
-  mint& operator/=(const mint a) { return *this *= a.inv(); }
-  mint operator/(const mint a) const { return mint(*this) /= a; }
+template <unsigned int M>
+struct ModInt {
+  constexpr ModInt(long long val = 0) : _v(0) {
+    if (val < 0) {
+      long long k = (abs(val) + M - 1) / M;
+      val += k * M;
+    }
+    assert(val >= 0);
+    _v = val % M;
+  }
+
+  static constexpr int mod() { return M; }
+  static constexpr unsigned int umod() { return M; }
+  inline unsigned int val() const { return _v; }
+
+  ModInt &operator++() {
+    _v++;
+    if (_v == umod()) _v = 0;
+    return *this;
+  }
+  ModInt &operator--() {
+    if (_v == 0) _v = umod();
+    _v--;
+    return *this;
+  }
+  ModInt operator++(int) {
+    auto result = *this;
+    ++*this;
+    return result;
+  }
+  ModInt operator--(int) {
+    auto result = *this;
+    --*this;
+    return result;
+  }
+
+  constexpr ModInt operator-() const { return ModInt(-_v); }
+  constexpr ModInt &operator+=(const ModInt &a) {
+    if ((_v += a._v) >= M) _v -= M;
+    return *this;
+  }
+  constexpr ModInt &operator-=(const ModInt &a) {
+    if ((_v += M - a._v) >= M) _v -= M;
+    return *this;
+  }
+  constexpr ModInt &operator*=(const ModInt &a) {
+    _v = ((unsigned long long)(_v)*a._v) % M;
+    return *this;
+  }
+  constexpr ModInt pow(unsigned long long t) const {
+    assert(t >= 0);
+    ModInt base = *this;
+    ModInt res = 1;
+    while (t) {
+      if (t & 1) res *= base;
+      base *= base;
+      t >>= 1;
+    }
+    return res;
+  }
+
+  // Inverse by Extended Euclidean algorithm.
+  // M doesn't need to be prime, but x and M must be coprime.
+  constexpr ModInt inv() const {
+    assert(_v != 0);
+    long long x, y;
+    long long g = ext_gcd(_v, M, x, y);
+    assert(g == 1LL);  // gcd(_v, M) must be 1.
+    return x;
+  }
+  constexpr ModInt &operator/=(const ModInt &a) { return *this *= a.inv(); }
+
+  friend constexpr ModInt operator+(const ModInt &a, const ModInt &b) {
+    return ModInt(a) += b;
+  }
+  friend constexpr ModInt operator-(const ModInt &a, const ModInt &b) {
+    return ModInt(a) -= b;
+  }
+  friend constexpr ModInt operator*(const ModInt &a, const ModInt &b) {
+    return ModInt(a) *= b;
+  }
+  friend constexpr ModInt operator/(const ModInt &a, const ModInt &b) {
+    return ModInt(a) /= b;
+  }
+  friend constexpr bool operator==(const ModInt &a, const ModInt &b) {
+    return a._v == b._v;
+  }
+  friend constexpr bool operator!=(const ModInt &a, const ModInt &b) {
+    return a._v != b._v;
+  }
+  friend constexpr bool operator<(const ModInt &a, const ModInt &b) {
+    return a._v < b._v;
+  }
+  friend constexpr bool operator>(const ModInt &a, const ModInt &b) {
+    return a._v > b._v;
+  }
+  friend constexpr bool operator<=(const ModInt &a, const ModInt &b) {
+    return a._v <= b._v;
+  }
+  friend constexpr bool operator>=(const ModInt &a, const ModInt &b) {
+    return a._v >= b._v;
+  }
+  friend std::istream &operator>>(std::istream &is, ModInt &a) {
+    return is >> a._v;
+  }
+  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) {
+    return os << a._v;
+  }
+
+ private:
+  unsigned int _v;
 };
-istream& operator>>(istream& is, mint& a) { return is >> a.x; }
-ostream& operator<<(ostream& os, const mint& a) { return os << a.x; }
+const unsigned int MOD = 1'000'000'007;
+using Mint = ModInt<MOD>;
+
+using namespace std;
 
 int main() {
   ios::sync_with_stdio(false);
@@ -83,17 +230,17 @@ int main() {
     a[x] = i;
   }
 
-  mint num = n + 1;
-  mint dinv = mint(1).inv();
-  mint num2 = 1;
-  mint dinv2 = mint(1).inv();
+  Mint num = n + 1;
+  Mint dinv = Mint(1).inv();
+  Mint num2 = 1;
+  Mint dinv2 = Mint(1).inv();
   REP(i, n + 1) {
-    mint allc = num * dinv;  // comb(n+1, i+1)
-    mint dupc = num2 * dinv2;
+    Mint allc = num * dinv;  // comb(n+1, i+1)
+    Mint dupc = num2 * dinv2;
     cout << (allc - dupc) << '\n';
     num *= (n - i);
     num2 *= (n + k1 - k2 - i);
-    dinv *= mint(i + 2).inv();
-    dinv2 *= mint(i + 1).inv();
+    dinv /= i + 2;
+    dinv2 /= i + 1;
   }
 }
