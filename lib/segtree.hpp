@@ -2,25 +2,30 @@ template <typename Monoid>
 struct SegTree {
   using T = typename Monoid::T;
 
-  explicit SegTree(int n) : size_(n), data_(2 * n, Monoid::id()) {}
+  inline int n() const { return n_; }
+  inline int offset() const { return offset_; }
 
-  inline int size() const { return size_; }
+  explicit SegTree(int n) : n_(n) {
+    offset_ = 1;
+    while (offset_ < n_) offset_ <<= 1;
+    data_.assign(2 * offset_, Monoid::id());
+  }
 
-  // Returns i-th value (0-indexed).
-  T operator[](int i) const { return data_[size_ + i]; }
-
-  // Initializes the data array.
-  void init(const std::vector<T> &leaves) {
-    assert(int(leaves.size()) == size_);
-    std::copy(leaves.begin(), leaves.end(), data_.begin() + size_);
-    for (int k = size_ - 1; k > 0; --k) {
-      data_[k] = Monoid::op(data_[k * 2], data_[k * 2 + 1]);
+  explicit SegTree(const std::vector<T> &leaves) : n_(leaves.size()) {
+    offset_ = 1;
+    while (offset_ < n_) offset_ <<= 1;
+    data_.assign(2 * offset_, Monoid::id());
+    for (int i = 0; i < n_; ++i) {
+      data_[offset_ + i] = leaves[i];
+    }
+    for (int i = offset_ - 1; i > 0; --i) {
+      data_[i] = Monoid::op(data_[i * 2], data_[i * 2 + 1]);
     }
   }
 
   // Sets i-th value (0-indexed) to x.
   void set(int i, const T &x) {
-    int k = size_ + i;
+    int k = offset_ + i;
     data_[k] = x;
     while (k > 1) {
       k >>= 1;
@@ -30,8 +35,8 @@ struct SegTree {
 
   // Queries by [l,r) range (0-indexed, half-open interval).
   T fold(int l, int r) const {
-    l = std::max(l, 0) + size_;
-    r = std::min(r, size_) + size_;
+    l = std::max(l, 0) + offset_;
+    r = std::min(r, offset_) + offset_;
     T vleft = Monoid::id(), vright = Monoid::id();
     for (; l < r; l >>= 1, r >>= 1) {
       if (l & 1) vleft = Monoid::op(vleft, data_[l++]);
@@ -40,34 +45,36 @@ struct SegTree {
     return Monoid::op(vleft, vright);
   }
 
+  // Returns i-th value (0-indexed).
+  T operator[](int i) const { return data_[offset_ + i]; }
+
   template <bool (*pred)(const T &)>
   int max_right(int l) {
     return max_right(l, [](const T &x) -> bool { return pred(x); });
   }
   template <class Predicate>
   int max_right(int l, Predicate pred) {
-    assert(0 <= l && l <= size_);
+    assert(0 <= l && l <= n_);
     assert(pred(Monoid::id()));
-    if (l == size_) return size_;
-    l += size_;
+    if (l == n_) return n_;
+    l += offset_;
     T sm = Monoid::id();
     do {
       while (l % 2 == 0) l >>= 1;
       if (!pred(Monoid::op(sm, data_[l]))) {
-        while (l < size_) {
+        while (l < offset_) {
           l = (2 * l);
-          T tmp = Monoid::op(sm, data_[l]);
-          if (pred(tmp)) {
-            sm = std::move(tmp);
+          if (pred(Monoid::op(sm, data_[l]))) {
+            sm = Monoid::op(sm, data_[l]);
             l++;
           }
         }
-        return l - size_;
+        return l - offset_;
       }
       sm = Monoid::op(sm, data_[l]);
       l++;
     } while ((l & -l) != l);
-    return size_;
+    return n_;
   }
 
   template <bool (*pred)(const T &)>
@@ -76,23 +83,23 @@ struct SegTree {
   }
   template <class Predicate>
   int min_left(int r, Predicate pred) {
-    assert(0 <= r && r <= size_);
+    assert(0 <= r && r <= n_);
     assert(pred(Monoid::id()));
     if (r == 0) return 0;
-    r += size_;
+    r += offset_;
     T sm = Monoid::id();
     do {
       r--;
       while (r > 1 && (r % 2)) r >>= 1;
       if (!pred(Monoid::op(data_[r], sm))) {
-        while (r < size_) {
+        while (r < offset_) {
           r = (2 * r + 1);
           if (pred(Monoid::op(data_[r], sm))) {
             sm = Monoid::op(data_[r], sm);
             r--;
           }
         }
-        return r + 1 - size_;
+        return r + 1 - offset_;
       }
       sm = Monoid::op(data_[r], sm);
     } while ((r & -r) != r);
@@ -100,14 +107,15 @@ struct SegTree {
   }
 
  private:
-  int size_;
-  std::vector<T> data_;
+  int n_;                // number of valid leaves.
+  int offset_;           // where leaves start
+  std::vector<T> data_;  // data size: 2*offset_
 };
 
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const SegTree<T> &st) {
   os << "[";
-  for (int i = 0; i < st.size_; ++i) {
+  for (int i = 0; i < st.offset_; ++i) {
     if (i != 0) os << ", ";
     os << st[i];
   }
