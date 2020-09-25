@@ -160,6 +160,16 @@ struct LazySegTree {
     return 0;
   }
 
+  friend std::ostream &operator<<(std::ostream &os, const LazySegTree &st) {
+    os << "[";
+    for (int i = 0; i < st.n(); ++i) {
+      if (i != 0) os << ", ";
+      const auto &x = st[i];
+      os << x;
+    }
+    return os << "]";
+  }
+
  private:
   void update(int k) {
     data_[k] = LazyMonoid::op(data_[2 * k], data_[2 * k + 1]);

@@ -106,18 +106,18 @@ struct SegTree {
     return 0;
   }
 
+  friend std::ostream &operator<<(std::ostream &os, const SegTree &st) {
+    os << "[";
+    for (int i = 0; i < st.n(); ++i) {
+      if (i != 0) os << ", ";
+      const auto &x = st[i];
+      os << x;
+    }
+    return os << "]";
+  }
+
  private:
   int n_;                // number of valid leaves.
   int offset_;           // where leaves start
   std::vector<T> data_;  // data size: 2*offset_
 };
-
-template <typename T>
-std::ostream &operator<<(std::ostream &os, const SegTree<T> &st) {
-  os << "[";
-  for (int i = 0; i < st.offset_; ++i) {
-    if (i != 0) os << ", ";
-    os << st[i];
-  }
-  return os << "]";
-}

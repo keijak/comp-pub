@@ -103,18 +103,6 @@ struct ModInt {
   friend constexpr bool operator!=(const ModInt &a, const ModInt &b) {
     return a._v != b._v;
   }
-  friend constexpr bool operator<(const ModInt &a, const ModInt &b) {
-    return a._v < b._v;
-  }
-  friend constexpr bool operator>(const ModInt &a, const ModInt &b) {
-    return a._v > b._v;
-  }
-  friend constexpr bool operator<=(const ModInt &a, const ModInt &b) {
-    return a._v <= b._v;
-  }
-  friend constexpr bool operator>=(const ModInt &a, const ModInt &b) {
-    return a._v >= b._v;
-  }
   friend std::istream &operator>>(std::istream &is, ModInt &a) {
     return is >> a._v;
   }
