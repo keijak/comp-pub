@@ -27,6 +27,7 @@ struct SegTree {
   void set(int i, const T &x) {
     int k = offset_ + i;
     data_[k] = x;
+    // Update its ancestors.
     while (k > 1) {
       k >>= 1;
       data_[k] = Monoid::op(data_[k * 2], data_[k * 2 + 1]);

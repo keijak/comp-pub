@@ -26,8 +26,10 @@ struct LazySegTree {
   void set(int p, T x) {
     assert(0 <= p && p < n_);
     p += offset_;
+    // Update the leaf.
     for (int i = bits_; i >= 1; i--) push(p >> i);
     data_[p] = x;
+    // Update its ancestors.
     for (int i = 1; i <= bits_; i++) update(p >> i);
   }
 
