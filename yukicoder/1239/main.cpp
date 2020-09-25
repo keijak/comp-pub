@@ -203,10 +203,12 @@ using namespace std;
 int main() {
   cin.tie(nullptr);
   ios::sync_with_stdio(false);
+
   int N;
   cin >> N;
   V<int> A(N);
   cin >> A;
+
   Mint P = 0;
   REP(i, N) {
     if (abs(A[i]) != 2) continue;
@@ -216,27 +218,16 @@ int main() {
     for (int j = i - 1; j >= 0; --j) {
       if (abs(A[j]) != 1) break;
       if (A[j] < 0) neg = not neg;
-      if (neg) {
-        ae += Mint(2).pow(max(j - 1, 0));
-      } else {
-        ao += Mint(2).pow(max(j - 1, 0));
-      }
+      (neg ? ao : ae) += Mint(2).pow(max(j - 1, 0));
     }
-    DEBUG(i, A[i], neg, ae, ao);
-    P += ao;
+    P += Mint(2).pow(max(N - i - 2, 0)) * ao;
     neg = false;
     for (int j = i + 1; j < N; ++j) {
       if (abs(A[j]) != 1) break;
       if (A[j] < 0) neg = not neg;
-      if (neg) {
-        P += Mint(2).pow(max(N - j - 2, 0)) * ae;
-      } else {
-        P += Mint(2).pow(max(N - j - 2, 0)) * ao;
-      }
+      P += (neg ? ae : ao) * Mint(2).pow(max(N - j - 2, 0));
     }
-    DEBUG(P);
   }
   Mint Q = Mint(2).pow(N - 1);
-  DEBUG(P, Q);
   cout << (P * Q.inv()) << endl;
 }
