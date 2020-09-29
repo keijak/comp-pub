@@ -4,6 +4,9 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
+                "/Users/keiji/include/cpp_precompiled_headers",
+                "/Users/keiji/workspace/src/github.com/atcoder/ac-library",
+                "/usr/local/opt/boost/include",
                 "${default}"
             ],
             "defines": [],
