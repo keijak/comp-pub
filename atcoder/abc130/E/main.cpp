@@ -1,10 +1,4 @@
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-#include <map>
-#include <set>
-#include <utility>
-#include <vector>
+#include <bits/stdc++.h>
 
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
