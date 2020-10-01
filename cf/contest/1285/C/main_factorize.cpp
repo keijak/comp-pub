@@ -83,17 +83,62 @@ void pdebug(const T &value, const Ts &... args) {
 
 using namespace std;
 
+// Factorizes a number into {prime, count} pairs.
+//
+// Maybe precalculate primes for a faster main loop.
+//   for (auto k : primes) { ... }
+vector<i64> factorize(i64 n) {
+  vector<i64> res;
+  for (i64 k = 2; k * k <= n; ++k) {
+    i64 z = 1;
+    while (n % k == 0) {
+      n /= k;
+      z *= k;
+    }
+    if (z > 1) {
+      res.emplace_back(z);
+    }
+  }
+  if (n > 1) {
+    res.emplace_back(n);
+  }
+  return res;
+}
+
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
 
   i64 X;
   cin >> X;
-  i64 ans = X;
-  for (i64 k = 1; k * k <= X; ++k) {
-    if (X % k != 0) continue;
-    if (std::gcd(k, X / k) != 1) continue;
-    chmin(ans, max(k, X / k));
+
+  auto fs = factorize(X);
+  int n = fs.size();
+  DEBUG(fs);
+
+  if (n == 0) {
+    assert(X == 1);
+    cout << 1 << ' ' << 1 << endl;
+    return 0;
   }
-  cout << (X / ans) << ' ' << ans << endl;
+  if (n == 1) {
+    cout << 1 << ' ' << fs[0] << endl;
+    return 0;
+  }
+  if (n == 2) {
+    cout << fs[0] << ' ' << fs[1] << endl;
+    return 0;
+  }
+
+  i64 ans = X;
+  REP(s, 1LL << n) {
+    i64 b = 1;
+    REP(i, n) {
+      if (s >> i & 1) {
+        b *= fs[i];
+      }
+    }
+    chmin(ans, max(b, X / b));
+  }
+  cout << ans << ' ' << (X / ans) << endl;
 }
