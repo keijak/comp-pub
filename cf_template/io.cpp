@@ -84,6 +84,6 @@ void pdebug(const T &value, const Ts &... args) {
 using namespace std;
 
 int main() {
-  cin.tie(nullptr);
   ios::sync_with_stdio(false);
+  cin.tie(nullptr);
 }
