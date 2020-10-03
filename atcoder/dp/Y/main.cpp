@@ -26,34 +26,58 @@ void debug(T value, Ts... args) {
 #define DEBUG(...)
 #endif
 
-const int MOD = 1'000'000'007;
-
-struct mint {
-  int x;
-  mint(long long val = 0) {
+template <unsigned int M>
+struct ModInt {
+  constexpr ModInt(long long val = 0) : _v(0) {
     if (val < 0) {
-      long long k = (abs(val) + MOD - 1) / MOD;
-      val += k * MOD;
+      long long k = (abs(val) + M - 1) / M;
+      val += k * M;
     }
-    x = val % MOD;
+    assert(val >= 0);
+    _v = val % M;
   }
-  mint operator-() const { return mint(-x); }
-  mint &operator+=(const mint &a) {
-    if ((x += a.x) >= MOD) x -= MOD;
+
+  static constexpr int mod() { return M; }
+  static constexpr unsigned int umod() { return M; }
+  inline unsigned int val() const { return _v; }
+
+  ModInt &operator++() {
+    _v++;
+    if (_v == umod()) _v = 0;
     return *this;
   }
-  mint &operator-=(const mint &a) {
-    if ((x += MOD - a.x) >= MOD) x -= MOD;
+  ModInt &operator--() {
+    if (_v == 0) _v = umod();
+    _v--;
     return *this;
   }
-  mint &operator*=(const mint &a) {
-    x = (x * (long long)a.x) % MOD;
+  ModInt operator++(int) {
+    auto result = *this;
+    ++*this;
+    return result;
+  }
+  ModInt operator--(int) {
+    auto result = *this;
+    --*this;
+    return result;
+  }
+
+  constexpr ModInt operator-() const { return ModInt(-_v); }
+  constexpr ModInt &operator+=(const ModInt &a) {
+    if ((_v += a._v) >= M) _v -= M;
     return *this;
   }
-  mint pow(long long t) const {
-    assert(t >= 0);
-    mint base = *this;
-    mint res = 1;
+  constexpr ModInt &operator-=(const ModInt &a) {
+    if ((_v += M - a._v) >= M) _v -= M;
+    return *this;
+  }
+  constexpr ModInt &operator*=(const ModInt &a) {
+    _v = ((unsigned long long)(_v)*a._v) % M;
+    return *this;
+  }
+  constexpr ModInt pow(unsigned long long t) const {
+    ModInt base = *this;
+    ModInt res = 1;
     while (t) {
       if (t & 1) res *= base;
       base *= base;
@@ -61,31 +85,82 @@ struct mint {
     }
     return res;
   }
-  // for prime MOD
-  mint inv() const { return pow(MOD - 2); }
-  mint &operator/=(const mint &a) { return *this *= a.inv(); }
+
+  constexpr ModInt inv() const {
+    // Inverse by Extended Euclidean algorithm.
+    // M doesn't need to be prime, but x and M must be coprime.
+    assert(_v != 0);
+    // int g, x, y;
+    // g = ext_gcd(_v, M, x, y);
+    auto [g, x, y] = ext_gcd(_v, M);
+    assert(g == 1LL);  // gcd(_v, M) must be 1.
+    return x;
+
+    // Inverse by Fermat's little theorem.
+    // M must be prime, but it's usually faster.
+    // return pow(M - 2);
+  }
+  constexpr ModInt &operator/=(const ModInt &a) { return *this *= a.inv(); }
+
+  friend constexpr ModInt operator+(const ModInt &a, const ModInt &b) {
+    return ModInt(a) += b;
+  }
+  friend constexpr ModInt operator-(const ModInt &a, const ModInt &b) {
+    return ModInt(a) -= b;
+  }
+  friend constexpr ModInt operator*(const ModInt &a, const ModInt &b) {
+    return ModInt(a) *= b;
+  }
+  friend constexpr ModInt operator/(const ModInt &a, const ModInt &b) {
+    return ModInt(a) /= b;
+  }
+  friend constexpr bool operator==(const ModInt &a, const ModInt &b) {
+    return a._v == b._v;
+  }
+  friend constexpr bool operator!=(const ModInt &a, const ModInt &b) {
+    return a._v != b._v;
+  }
+  friend std::istream &operator>>(std::istream &is, ModInt &a) {
+    return is >> a._v;
+  }
+  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) {
+    return os << a._v;
+  }
+
+ private:
+  // Extended Euclidean algorithm
+  // Returns (gcd(a,b), x, y) where `a*x + b*y == gcd(a,b)`.
+  static std::tuple<int, int, int> ext_gcd(int a, int b) {
+    int ax = 1, ay = 0, bx = 0, by = 1;
+    for (;;) {
+      if (b == 0) break;
+      auto d = std::div(a, b);
+      int u = d.rem;
+      int ux = ax - bx * d.quot;
+      int uy = ay - by * d.quot;
+      a = b;
+      ax = bx;
+      ay = by;
+      b = u;
+      bx = ux;
+      by = uy;
+    }
+    return {a, ax, ay};
+  }
+
+  unsigned int _v;  // raw value
 };
-mint operator+(const mint &a, const mint &b) { return mint(a) += b; }
-mint operator-(const mint &a, const mint &b) { return mint(a) -= b; }
-mint operator*(const mint &a, const mint &b) { return mint(a) *= b; }
-mint operator/(const mint &a, const mint &b) { return mint(a) /= b; }
-bool operator==(const mint &a, const mint &b) { return a.x == b.x; }
-bool operator!=(const mint &a, const mint &b) { return a.x != b.x; }
-bool operator<(const mint &a, const mint &b) { return a.x < b.x; }
-bool operator>(const mint &a, const mint &b) { return a.x > b.x; }
-bool operator<=(const mint &a, const mint &b) { return a.x <= b.x; }
-bool operator>=(const mint &a, const mint &b) { return a.x >= b.x; }
-istream &operator>>(istream &is, mint &a) { return is >> a.x; }
-ostream &operator<<(ostream &os, const mint &a) { return os << a.x; }
+const unsigned int MOD = 1'000'000'007;
+using Mint = ModInt<MOD>;
 
 // Factorials over ModInts.
 struct Factorials {
   // factorials and inverse factorials.
-  vector<mint> fact, ifact;
+  vector<Mint> fact, ifact;
 
   // n: max cached value.
   Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n < MOD);
+    assert(n < (int)MOD);
     fact[0] = 1;
     for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
     ifact[n] = fact[n].inv();
@@ -93,13 +168,13 @@ struct Factorials {
   }
 
   // Combination (nCk)
-  mint C(int n, int k) {
+  Mint C(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[k] * ifact[n - k];
   }
 
   // Permutation (nPk)
-  mint P(int n, int k) {
+  Mint P(int n, int k) {
     if (k < 0 || k > n) return 0;
     return fact[n] * ifact[n - k];
   }
@@ -121,7 +196,7 @@ int main() {
   sort(walls.begin(), walls.end());
   Factorials fs(H + W - 2);
   multimap<int, int> cs;
-  vector<vector<mint>> dp(N, vector<mint>(2));
+  vector<vector<Mint>> dp(N, vector<Mint>(2));
   REP(i, N) {
     auto [r, c] = walls[i];
     dp[i][1] += fs.C(r + c, r) * fs.C(H - 1 - r + W - 1 - c, H - 1 - r);
@@ -130,7 +205,7 @@ int main() {
       --it;
       int p = it->second;
       auto [pr, pc] = walls[p];
-      mint x = fs.C(r - pr + c - pc, r - pr) *
+      Mint x = fs.C(r - pr + c - pc, r - pr) *
                fs.C(H - 1 - r + W - 1 - c, H - 1 - r) *
                fs.C(H - 1 - pr + W - 1 - pc, H - 1 - pr).inv();
       dp[i][0] += dp[p][1] * x;
@@ -138,7 +213,7 @@ int main() {
     }
     cs.emplace(c, i);
   }
-  mint a0, a1;
+  Mint a0, a1;
   a0 = fs.C((H - 1) + (W - 1), H - 1);
   REP(i, N) {
     a0 += dp[i][0];
