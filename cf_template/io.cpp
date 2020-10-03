@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
-#define REP(i, n) for (int i = 0; i < (i64)(n); ++i)
+#define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 #define SIZE(a) (int)((a).size())
 
@@ -16,14 +16,6 @@ inline bool chmin(T &a, T b) {
 
 template <typename T>
 using V = std::vector<T>;
-template <typename T>
-std::vector<T> make_vec(size_t n, T a) {
-  return std::vector<T>(n, a);
-}
-template <typename... Ts>
-auto make_vec(size_t n, Ts... ts) {
-  return std::vector<decltype(make_vec(ts...))>(n, make_vec(ts...));
-}
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
