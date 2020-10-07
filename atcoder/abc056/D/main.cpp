@@ -85,21 +85,21 @@ int main() {
   V<i64> A(N);
   cin >> A;
 
-  auto dpl = vector(N + 1, vector(K + 1, 0));
-  auto dpr = vector(N + 1, vector(K + 1, 0));
-  dpl[0][0] = dpr[N][0] = 1;
+  auto dpl = vector(N + 1, vector(K + 1, false));
+  auto dpr = vector(N + 1, vector(K + 1, false));
+  dpl[0][0] = dpr[N][0] = true;
 
   for (int i = 1; i <= N; ++i) {
     int xl = A[i - 1];
     int xr = A[N - i];
     dpl[i] = dpl[i - 1];
     for (int j = 0; xl + j <= K; ++j) {
-      if (dpl[i - 1][j]) dpl[i][j + xl] = 1;
+      if (dpl[i - 1][j]) dpl[i][j + xl] = true;
     }
     int ri = N - i;
     dpr[ri] = dpr[ri + 1];
     for (int j = 0; xr + j <= K; ++j) {
-      if (dpr[ri + 1][j]) dpr[ri][j + xr] = 1;
+      if (dpr[ri + 1][j]) dpr[ri][j + xr] = true;
     }
   }
 
