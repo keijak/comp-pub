@@ -106,20 +106,16 @@ int main() {
   int ans = 0;
   REP(i, N) {
     bool necessary = false;
-    V<int> ls;
-    REP(j, K) {
-      if (dpl[i][j]) ls.push_back(j);
-    }
-    REP(j, K) {
-      if (dpr[i + 1][j]) {
-        auto it = lower_bound(ls.begin(), ls.end(), K - j);
-        if (it != ls.begin()) {
-          --it;
-          if (*it + j + A[i] >= K) {
-            necessary = true;
-            break;
-          }
-        }
+    int r = K - 1;
+    for (int l = 0; l < K; ++l) {
+      if (not dpl[i][l]) continue;
+      while (l + r >= K or (r >= 0 and not dpr[i + 1][r])) {
+        --r;
+      }
+      if (r < 0) break;
+      if (l + r + A[i] >= K) {
+        necessary = true;
+        break;
       }
     }
     if (not necessary) {
