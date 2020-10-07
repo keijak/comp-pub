@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
-using i64 = std::int64_t;
-using u64 = std::uint64_t;
+using i64 = long long;
+using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 #define SIZE(a) (int)((a).size())
