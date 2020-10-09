@@ -86,16 +86,16 @@ int main() {
 
   V<int> rowc(H), colc(W);
   REP(i, H) REP(j, W) {
-    if (grid[i][j] == '.') {
+    if (grid[i][j] == '#') {
       rowc[i]++;
       colc[j]++;
     }
   }
   REP(i, H) {
-    if (rowc[i] == W) continue;
+    if (rowc[i] == 0) continue;
     bool printed = false;
     REP(j, W) {
-      if (colc[j] == H) continue;
+      if (colc[j] == 0) continue;
       cout << grid[i][j];
       printed = true;
     }
