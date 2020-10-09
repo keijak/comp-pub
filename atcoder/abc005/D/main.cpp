@@ -73,46 +73,6 @@ void pdebug(const T &value, const Ts &... args) {
 #define DEBUG(...)
 #endif
 
-template <class SemiLattice>
-struct SparseTable {
-  using T = typename SemiLattice::T;
-
-  explicit SparseTable(const std::vector<T> &vec) { init(vec); }
-
-  T fold(int l, int r) const {
-    const T &lval = data_[height_[r - l]][l];
-    const T &rval = data_[height_[r - l]][r - (1 << height_[r - l])];
-    return SemiLattice::op(lval, rval);
-  }
-
- private:
-  void init(const std::vector<T> &vec) {
-    int n = vec.size(), h = 0;
-    while ((1 << h) < n) ++h;
-    data_.assign(h, std::vector<T>(1 << h, SemiLattice::id()));
-    height_.assign(n + 1, 0);
-    for (int i = 2; i <= n; i++) {
-      height_[i] = height_[i >> 1] + 1;
-    }
-    for (int i = 0; i < n; ++i) {
-      data_[0][i] = vec[i];
-    }
-    for (int i = 1; i < h; ++i)
-      for (int j = 0; j < n; ++j)
-        data_[i][j] = SemiLattice::op(
-            data_[i - 1][j], data_[i - 1][std::min(j + (1 << (i - 1)), n - 1)]);
-  }
-
-  std::vector<std::vector<T>> data_;
-  std::vector<int> height_;
-};
-
-struct Max {
-  using T = int;
-  static T op(const T &x, const T &y) { return std::max(x, y); }
-  static constexpr T id() { return std::numeric_limits<T>::min(); }
-};
-
 using namespace std;
 
 int main() {
@@ -132,7 +92,7 @@ int main() {
   REP(i, N) REP(j, N) { DS[i + 1][j + 1] += DS[i][j + 1]; }
 
   const int N2 = N * N;
-  V<int> v(N2 + 5, -1e8);
+  V<int> cummax(N2 + 5, -1e8);
   for (int si = 0; si < N; ++si) {
     for (int sj = 0; sj < N; ++sj) {
       for (int i = si + 1; i <= N; ++i) {
@@ -140,17 +100,18 @@ int main() {
         for (int j = sj + 1; j <= N; ++j) {
           int num = di * (j - sj);
           int taste = DS[i][j] - DS[si][j] - DS[i][sj] + DS[si][sj];
-          chmax(v[num], taste);
+          chmax(cummax[num], taste);
         }
       }
     }
   }
-  SparseTable<Max> table(v);
+  for (int i = 1; i <= N2; ++i) {
+    chmax(cummax[i], cummax[i - 1]);
+  }
 
   REP(q, Q) {
     int p;
     cin >> p;
-    int ans = table.fold(0, p + 1);
-    cout << ans << '\n';
+    cout << cummax[p] << '\n';
   }
 }
