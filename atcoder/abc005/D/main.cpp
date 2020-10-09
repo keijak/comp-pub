@@ -99,7 +99,7 @@ struct SparseTable {
     }
     for (int i = 1; i < h; ++i)
       for (int j = 0; j < n; ++j)
-        data_[i][j] = std::max(
+        data_[i][j] = SemiLattice::op(
             data_[i - 1][j], data_[i - 1][std::min(j + (1 << (i - 1)), n - 1)]);
   }
 
