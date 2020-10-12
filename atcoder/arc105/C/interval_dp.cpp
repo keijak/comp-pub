@@ -45,27 +45,41 @@ int main() {
   }
   REP(i, L) { vlmax[i + 1] = max(vlmax[i], vlmax[i + 1]); }
 
-  auto get_len = [&](i64 w) {
-    if (w > L) return lmax;
-    return vlmax[w - 1];
-  };
+  auto get_len = [&](i64 w) { return (w > L) ? lmax : vlmax[w - 1]; };
 
   vector<int> camels(n);
   REP(i, n) { camels[i] = i; }
 
   i64 ans = (n - 1) * lmax;
   do {
-    vector<i64> pos(n);
-    pos[0] = 0;
-    for (int i = 1; i < n; ++i) {
-      i64 w_sub = w[camels[i]];
-      for (int j = i - 1; j >= 0; --j) {
-        w_sub += w[camels[j]];
-        i64 len = get_len(w_sub);
-        chmax(pos[i], pos[j] + len);
+    auto dp = vector(n, vector(n, optional<pair<i64, i64>>()));
+    auto mindist = [&](auto self, int l, int r) -> pair<i64, i64> {
+      assert(l < r);
+      if (r - l == 1) {
+        i64 weight = w[camels[l]] + w[camels[r]];
+        i64 len = get_len(weight);
+        return {weight, len};
       }
-    }
-    chmin(ans, pos[n - 1]);
+      if (dp[l][r].has_value()) return dp[l][r].value();
+      i64 weight = -1, len = 0;  // weight and length of [l,r]
+      for (int k = l + 1; k < r; ++k) {
+        auto [w1, len1] = self(self, l, k);
+        auto [w2, len2] = self(self, k, r);
+        i64 ww = w1 + w2 - w[camels[k]];
+        if (weight == -1) {
+          weight = ww;
+          len = get_len(weight);
+        } else {
+          assert(weight == ww);
+        }
+        chmax(len, len1 + len2);
+      }
+      auto res = make_pair(weight, len);
+      dp[l][r] = res;
+      return res;
+    };
+    auto [weight, len] = mindist(mindist, 0, n - 1);
+    chmin(ans, len);
   } while (next_permutation(ALL(camels)));
 
   cout << ans << endl;
