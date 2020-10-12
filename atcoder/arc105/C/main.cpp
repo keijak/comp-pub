@@ -26,24 +26,21 @@ int main() {
 
   int n, m;
   cin >> n >> m;
-  vector<i64> w(n);
+  vector<int> w(n);
   cin >> w;
-  map<i64, i64> vlmax;
-  i64 lmax = 0;
-  i64 vmin = 1e9;
+  map<int, int> vlmax;
+  int lmax = 0;
+  int vmin = 1e9;
   REP(i, m) {
-    i64 l, v;
+    int l, v;
     cin >> l >> v;
     chmax(lmax, l);
     chmin(vmin, v);
 
-    {
-      auto it = vlmax.upper_bound(v);
-      if (it != vlmax.begin() and prev(it)->second >= l) {
-        continue;
-      }
-    }
     auto it = vlmax.lower_bound(v);
+    if (it != vlmax.begin() and prev(it)->second >= l) {
+      continue;
+    }
     while (it != vlmax.end() and it->second <= l) {
       it = vlmax.erase(it);
     }
@@ -54,7 +51,7 @@ int main() {
     exit(0);
   }
 
-  auto get_len = [&](i64 w) -> i64 {
+  auto get_len = [&](int w) -> int {
     auto it = vlmax.lower_bound(w);
     if (it == vlmax.begin()) return 0LL;
     --it;
@@ -64,15 +61,14 @@ int main() {
   vector<int> camels(n);
   REP(i, n) { camels[i] = i; }
 
-  i64 ans = (n - 1) * lmax;
+  int ans = (n - 1) * lmax;
   do {
-    vector<i64> pos(n);
-    pos[0] = 0;
+    vector<int> pos(n);
     for (int i = 1; i < n; ++i) {
-      i64 w_sub = w[camels[i]];
+      int w_sub = w[camels[i]];
       for (int j = i - 1; j >= 0; --j) {
         w_sub += w[camels[j]];
-        i64 len = get_len(w_sub);
+        int len = get_len(w_sub);
         chmax(pos[i], pos[j] + len);
       }
     }
