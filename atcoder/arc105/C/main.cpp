@@ -23,31 +23,42 @@ using namespace std;
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-  const int L = 100'000'000;
 
   int n, m;
   cin >> n >> m;
   vector<i64> w(n);
   cin >> w;
-  vector<i64> vlmax(L + 1);
+  map<i64, i64> vlmax;
   i64 lmax = 0;
   i64 vmin = 1e9;
   REP(i, m) {
     i64 l, v;
     cin >> l >> v;
-    chmax(vlmax[v], l);
     chmax(lmax, l);
     chmin(vmin, v);
+
+    {
+      auto it = vlmax.upper_bound(v);
+      if (it != vlmax.begin() and prev(it)->second >= l) {
+        continue;
+      }
+    }
+    auto it = vlmax.lower_bound(v);
+    while (it != vlmax.end() and it->second <= l) {
+      it = vlmax.erase(it);
+    }
+    chmax(vlmax[v], l);
   }
   if (vmin < *max_element(ALL(w))) {
     cout << -1 << endl;
     exit(0);
   }
-  REP(i, L) { vlmax[i + 1] = max(vlmax[i], vlmax[i + 1]); }
 
-  auto get_len = [&](i64 w) {
-    if (w > L) return lmax;
-    return vlmax[w - 1];
+  auto get_len = [&](i64 w) -> i64 {
+    auto it = vlmax.lower_bound(w);
+    if (it == vlmax.begin()) return 0LL;
+    --it;
+    return it->second;
   };
 
   vector<int> camels(n);
