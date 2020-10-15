@@ -122,10 +122,10 @@ int main() {
     while (it != valcount.end() and it->first < low) {
       ++it;
     }
-    vector<int> head, tail;
+    deque<int> head, tail;
     while (it != valcount.end() and it->first <= high) {
       head.push_back(it->first);
-      REP(j, it->second - 1) { tail.push_back(it->first); }
+      REP(j, it->second - 1) { tail.push_front(it->first); }
       ++it;
     }
     assert(SIZE(head) + SIZE(tail) == maxsize);
@@ -133,7 +133,9 @@ int main() {
       if (i > 0) cout << ' ';
       cout << head[i];
     }
-    REP(i, SIZE(tail)) { cout << ' ' << tail[SIZE(tail) - 1 - i]; }
+    for (auto x : tail) {
+      cout << ' ' << x;
+    }
     cout << '\n';
   }
 }
