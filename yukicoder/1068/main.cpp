@@ -194,7 +194,7 @@ DenseFPS<ModInt, DMAX> mul_ntt(const DenseFPS<ModInt, DMAX> &x,
 
 using mint = atcoder::modint998244353;
 const int MOD = 998244353;
-const int BMAX = 6'000;
+const int BMAX = 200'000;
 
 int main() {
   ios::sync_with_stdio(false);
@@ -205,7 +205,7 @@ int main() {
 
   deque<DenseFPS<mint, BMAX>> q;
   REP(i, N) {
-    int a;
+    long long a;
     cin >> a;
     vector<mint> v = {mint(a - 1), mint(1)};
     q.push_back(DenseFPS<mint, BMAX>(move(v)));
