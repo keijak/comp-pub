@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 
 #include <atcoder/convolution>
+#include <atcoder/modint>
 
 using i64 = long long;
 using u64 = unsigned long long;
@@ -76,65 +77,52 @@ void pdebug(const T &value, const Ts &... args) {
 #define DEBUG(...)
 #endif
 
-const int MOD = 1e9 + 7;
-
-template <typename T, int asize>
+// Formal Power Series.
+template <typename T, int MAX_DEGREE>
 struct DenseFPS {
-  // Coefficients of terms from x^0 to x^(asize - 1).
-  std::array<T, asize> coeff;
+  // Coefficients of terms from x^0 to x^MAX_DEGREE.
+  std::vector<T> coeff;
 
-  DenseFPS() : coeff{} {};  // zero-initialized
+  DenseFPS() : coeff(MAX_DEGREE + 1) {}  // zero-initialized
+  explicit DenseFPS(std::vector<T> c) : coeff(std::move(c)) {}
+
   DenseFPS(const DenseFPS &other) : coeff(other.coeff) {}
   DenseFPS(DenseFPS &&other) : coeff(std::move(other.coeff)) {}
-  DenseFPS &operator=(const DenseFPS &other) { coeff = other.coeff; }
-  DenseFPS &operator=(DenseFPS &&other) { coeff = std::move(other.coeff); }
+  DenseFPS &operator=(const DenseFPS &other) {
+    coeff = other.coeff;
+    return *this;
+  }
+  DenseFPS &operator=(DenseFPS &&other) {
+    coeff = std::move(other.coeff);
+    return *this;
+  }
 
-  static int size() { return asize; }
+  static constexpr int size() { return MAX_DEGREE + 1; }
 
   const T &operator[](int i) const { return coeff[i]; }
 
   DenseFPS &operator+=(const DenseFPS &other) {
-    for (int i = 0; i < asize; ++i) {
+    for (int i = 0; i < size(); ++i) {
       coeff[i] += other[i];
     }
     return *this;
   }
 
   DenseFPS &operator-=(const DenseFPS &other) {
-    for (int i = 0; i < asize; ++i) {
+    for (int i = 0; i < size(); ++i) {
       coeff[i] -= other[i];
     }
     return *this;
   }
 
   DenseFPS &operator*=(const DenseFPS &other) {
-    std::array<T, asize> res = {};
-    for (int i = 0; i < asize; ++i) {
-      for (int j = 0; i + j < asize; ++j) {
+    std::vector<T> res(size());
+    for (int i = 0; i < size(); ++i) {
+      for (int j = 0; i + j < size(); ++j) {
         res[i + j] += (*this)[i] * other[j];
       }
     }
     coeff = std::move(res);
-    return *this;
-  }
-
-  DenseFPS &mul_fft(const DenseFPS &other) {
-    std::vector<long long> x(coeff.begin(), coeff.end());
-    std::vector<long long> y(other.coeff.begin(), other.coeff.end());
-    auto res = atcoder::convolution_ll(x, y);
-    for (int i = 0; i < asize; ++i) {
-      coeff[i] = res[i] % MOD;
-    }
-    return *this;
-  }
-
-  DenseFPS &mul_ntt(const DenseFPS &other) {
-    std::vector<long long> x(coeff.begin(), coeff.end());
-    std::vector<long long> y(other.coeff.begin(), other.coeff.end());
-    auto res = atcoder::convolution<998244353>(x, y);
-    for (int i = 0; i < asize; ++i) {
-      coeff[i] = res[i];
-    }
     return *this;
   }
 
@@ -168,8 +156,47 @@ struct DenseFPS {
   }
 };
 
-using mint = atcoder::modint1000000007;
+// Fast polynomial multiplication by single NTT.
+template <typename ModInt, int MAX_DEGREE>
+DenseFPS<ModInt, MAX_DEGREE> mul_ntt(const DenseFPS<ModInt, MAX_DEGREE> &x,
+                                     const DenseFPS<ModInt, MAX_DEGREE> &y) {
+  static_assert(ModInt::mod() != 1'000'000'007);  // Must be NTT-friendly MOD!
+  auto z = atcoder::convolution(x.coeff, y.coeff);
+  z.resize(MAX_DEGREE + 1);  // Maybe shrink.
+  return {std::move(z)};
+}
+
+// Polynomial multiplication by NTT + Garner (arbitrary mod).
+template <typename ModInt, int MAX_DEGREE>
+DenseFPS<ModInt, MAX_DEGREE> mul_mod(const DenseFPS<ModInt, MAX_DEGREE> &x,
+                                     const DenseFPS<ModInt, MAX_DEGREE> &y) {
+  std::vector<i64> xll(x.size()), yll(y.size());
+  for (int i = 0; i < x.size(); ++i) {
+    xll[i] = x[i].val();
+  }
+  for (int i = 0; i < y.size(); ++i) {
+    yll[i] = y[i].val();
+  }
+  auto zll = atcoder::convolution_ll(xll, yll);
+  DenseFPS<ModInt, MAX_DEGREE> res;
+  for (int i = 0; i <= MAX_DEGREE; ++i) {
+    res.coeff[i] = zll[i];
+  }
+  return res;
+}
+
+// Polynomial multiplication by NTT + Garner (long long).
+template <int MAX_DEGREE>
+DenseFPS<i64, MAX_DEGREE> mul_ll(const DenseFPS<i64, MAX_DEGREE> &x,
+                                 const DenseFPS<i64, MAX_DEGREE> &y) {
+  auto z = atcoder::convolution_ll(x.coeff, y.coeff);
+  z.resize(MAX_DEGREE + 1);  // Maybe shrink.
+  return DenseFPS<i64, MAX_DEGREE>(std::move(z));
+}
+
 using namespace std;
+using mint = atcoder::modint1000000007;
+const int MOD = 1e9 + 7;
 
 int main() {
   ios::sync_with_stdio(false);
@@ -178,14 +205,14 @@ int main() {
   int S;
   cin >> S;
 
-  DenseFPS<i64, 2005> f;
+  DenseFPS<mint, 2000> f;
   for (int k = 3; k <= S; ++k) f.coeff[k] = 1;
-  DenseFPS<i64, 2005> g = f;
+  auto g = f;
 
   mint ans = 0;
   for (int i = 1; 3 * i <= S; ++i) {
     ans += g.coeff[S];
-    g.mul_fft(f);
+    g = mul_mod(g, f);
   }
   cout << ans.val() << endl;
 }
