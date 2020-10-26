@@ -1,8 +1,8 @@
 import random
 
-n = random.randint(500, 1000)
-k = random.randint(100, n)
-x = random.randint(200, n)
+n = random.randint(4000, 5000)
+k = random.randint(3000, n)
+x = random.randint(3000, n)
 print(n, k, x)
 
 a = [None] * n
