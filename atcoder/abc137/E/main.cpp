@@ -47,7 +47,7 @@ pair<vector<i64>, bool> bellman_ford(const int start,
       if (!reach_s[i] || !reach_e[i]) continue;
       for (const pair<int, i64>& edge : adj[i]) {
         int j = edge.first;  // from i to j
-        if (!reach_s[i] || !reach_e[i]) continue;
+        if (!reach_s[j] || !reach_e[j]) continue;
         i64 cost = edge.second;
         if (dist[j] > dist[i] + cost) {
           dist[j] = dist[i] + cost;
@@ -111,9 +111,10 @@ int main() {
   auto result = bellman_ford(0, cost, reach_s, reach_e);
   const vector<i64>& dist = result.first;
   const bool has_cycle = result.second;
-  if (dist[N - 1] == INF || has_cycle) {
+  if (has_cycle) {
     cout << -1 << '\n';
   } else {
+    assert(dist[N - 1] != INF);
     cout << max(-dist[N - 1], 0LL) << '\n';
   }
 }
