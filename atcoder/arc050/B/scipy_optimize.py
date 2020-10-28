@@ -13,10 +13,20 @@ def solve():
     A_ub = np.array([[X, 1], [1, Y]], dtype=np.float64)
     b_ub = np.array([R, B], dtype=np.float64)
 
-    res = linprog(c, A_ub, b_ub, method="revised simplex")
-    px, py = res.x
-    qx, qy = int(px + 0.5), int(py + 0.5)
-    return qx + qy
+    lpans = linprog(c, A_ub, b_ub, method="revised simplex")
+
+    ans = 0
+    for i in range(-100, 100 + 1):
+        p = int(lpans.x[0]) + i
+        if p < 0:
+            continue
+        for j in range(-100, 100 + 1):
+            q = int(lpans.x[1]) + j
+            if q < 0:
+                continue
+            if p * X + q <= R and p + q * Y <= B:
+                ans = max(ans, p + q)
+    return ans
 
 
 print(solve())
