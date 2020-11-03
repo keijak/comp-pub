@@ -1,6 +1,5 @@
 #include <bits/stdc++.h>
 
-#include <atcoder/scc>
 using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
@@ -83,53 +82,47 @@ int main() {
   int n, m;
   cin >> n >> m;
   V<V<int>> adj(n);
-  atcoder::scc_graph g(n);
   REP(i, m) {
     int u, v;
     cin >> u >> v;
     u--;
     v--;
-    g.add_edge(u, v);
     adj[u].push_back(v);
   }
-
-  auto components = g.scc();
 
   const int INF = 1e9;
   int min_cycle = INF;
   V<int> ans;
-
-  REP(i, components.size()) {
-    const auto &c = components[i];
-    if (c.size() <= 1) continue;
-    // DFS
-    const set<int> cset(ALL(c));
-    set<int> visited;
-    V<int> path;
-
-    auto dfs = [&](auto self, int cur, int index, int root) -> void {
-      for (auto v : adj[cur]) {
-        if (v == cur) continue;
-        if (v == root) {
-          if (chmin(min_cycle, index)) ans = path;
-          continue;
+  ans.reserve(n);
+  REP(r, n) {
+    deque<tuple<int, int>> q;
+    V<optional<int>> dist(n);
+    V<int> par(n, -1);
+    for (auto v : adj[r]) {
+      dist[v] = 1;
+      par[v] = r;
+      q.emplace_back(v, 1);
+    }
+    while (q.size()) {
+      auto [cur, d] = q.front();
+      q.pop_front();
+      if (d >= min_cycle) break;
+      if (cur == r) {
+        if (chmin(min_cycle, d)) {
+          ans.clear();
+          ans.push_back(r);
+          for (int v = par[r]; v != r; v = par[v]) {
+            ans.push_back(v);
+          }
         }
-        if (not cset.count(v)) continue;
-        bool inserted = visited.insert(v).second;
-        if (not inserted) continue;
-        if (index + 1 < min_cycle) {
-          path.push_back(v);
-          self(self, v, index + 1, root);
-          path.pop_back();
-        }
+        break;
       }
-    };
-    for (auto r : c) {
-      visited.clear();
-      path.clear();
-      visited.insert(r);
-      path.push_back(r);
-      dfs(dfs, r, 0, r);
+      for (auto v : adj[cur]) {
+        if (dist[v].has_value()) continue;
+        dist[v] = d + 1;
+        par[v] = cur;
+        q.emplace_back(v, d + 1);
+      }
     }
   }
 
