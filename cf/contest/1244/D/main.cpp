@@ -144,32 +144,32 @@ int main() {
   };
   calc_next(calc_next, start_node, -1);
 
-  auto mincost = vector(3, vector(n, pair(INF, -1)));
-  REP(c, 3) { mincost[c][start_node] = {cost[c][start_node], -1}; }
-  for (int v = start_node; v != end_node; v = next_node[v]) {
-    int cur = next_node[v];
-    REP(c, 3) {
-      REP(cp, 3) {
-        if (cp == c) continue;
-        if (chmin(mincost[c][cur].first, mincost[cp][v].first + cost[c][cur])) {
-          mincost[c][cur].second = cp;
-        }
-      }
-    }
-  }
-
   i64 ans_cost = INF;
   V<int> ans_colors;
-  REP(c, 3) {
-    if (chmin(ans_cost, mincost[c][end_node].first)) {
-      V<int> colors(n);
-      int cc = c;
-      colors[end_node] = cc;
-      for (int v = end_node; v != start_node; v = prev_node[v]) {
-        int cur = prev_node[v];
-        cc = mincost[cc][v].second;
-        colors[cur] = cc;
-      }
+
+  REP(i, 3) REP(j, 3) {
+    if (i == j) continue;
+    auto cumcost = vector(n, INF);
+    auto colors = vector(n, -1);
+    int v0 = start_node, v1 = next_node[v0];
+    int c0 = i, c1 = j;
+    cumcost[v0] = cost[c0][v0];
+    cumcost[v1] = cumcost[v0] + cost[c1][v1];
+    colors[v0] = c0;
+    colors[v1] = c1;
+    assert(v0 != end_node);
+    assert(v1 != end_node);
+    for (int v = next_node[v1];; v = next_node[v1]) {
+      int c2 = 3 - c0 - c1;
+      colors[v] = c2;
+      cumcost[v] = cumcost[v1] + cost[c2][v];
+      c0 = c1;
+      c1 = c2;
+      v0 = v1;
+      v1 = v;
+      if (v == end_node) break;
+    }
+    if (chmin(ans_cost, cumcost[end_node])) {
       ans_colors = colors;
     }
   }
