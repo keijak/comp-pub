@@ -77,59 +77,6 @@ void pdebug(const T &value, const Ts &...args) {
 using namespace std;
 using Mint = atcoder::modint1000000007;
 
-template <int alphabet_size = 26, int alphabet_base = 'a'>
-struct Trie {
-  struct Node {
-    int c;                       // character
-    vector<optional<int>> next;  // child node indices
-    vector<int> entries;         // entry ids stored at the terminal node
-    int entry_count;             // how many entries are stored below this node.
-    Node(int c_) : c(c_), next(alphabet_size), entry_count(0) {}
-  };
-  int root;
-  vector<Node> nodes;
-
-  Trie() : root(0), nodes(1, Node{root}) {}
-
-  void insert(string_view entry, int entry_id) {
-    int node_id = root;
-    for (char ch : entry) {
-      ++(nodes[node_id].entry_count);
-      int c = int(ch) - alphabet_base;
-      auto &next_id = nodes[node_id].next[c];
-      if (not next_id.has_value()) {
-        next_id = (int)nodes.size();
-        nodes.emplace_back(c);
-      }
-      node_id = next_id.value();
-    }
-    ++(nodes[node_id].entry_count);
-    nodes[node_id].entries.push_back(entry_id);
-  }
-  void insert(string_view entry) { insert(entry, nodes[root].entry_count); }
-
-  optional<const Node *> search(string_view entry) const {
-    int node_id = root;
-    for (char ch : entry) {
-      int c = int(ch) - alphabet_base;
-      const auto &next_id = nodes[node_id].next[c];
-      if (not next_id.has_value()) return nullopt;
-      node_id = next_id.value();
-    }
-    return &nodes[node_id];
-  }
-
-  bool contains(string_view entry) const {
-    auto res = search(entry);
-    if (not res.has_value()) return false;
-    return not res.value()->entries.empty();
-  }
-
-  bool contains_prefix(string_view entry) const {
-    return search(entry).has_value();
-  }
-};
-
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
@@ -139,21 +86,21 @@ int main() {
   string spell;
   cin >> spell;
 
-  Trie trie;
+  unordered_set<string> sset;
+  sset.reserve(256);
+  sset.max_load_factor(0.25);
   REP(i, N) {
     string t;
     cin >> t;
-    trie.insert(t);
+    sset.insert(t);
   }
   const int M = spell.size();
-  string_view s{spell};
   auto dp = vector(M + 1, Mint(0));
   dp[0] = 1;
   for (int i = 1; i <= M; ++i) {
     for (int j = 0; j < i; ++j) {
       if (dp[j].val() == 0) continue;
-      string_view ss = s.substr(j, i - j);
-      if (not trie.contains(ss)) continue;
+      if (not sset.count(spell.substr(j, i - j))) continue;
       dp[i] += dp[j];
     }
   }
