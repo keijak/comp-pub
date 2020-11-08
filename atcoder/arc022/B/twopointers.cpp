@@ -10,7 +10,7 @@ inline bool chmax(T &a, T b) {
 using namespace std;
 
 array<int, 100005> a;
-array<int, 100005> prv;
+bitset<100005> b;
 
 int main() {
   ios::sync_with_stdio(false);
@@ -18,23 +18,17 @@ int main() {
 
   int n;
   cin >> n;
-  REP(i, n) {
-    cin >> a[i];
-    prv[a[i]] = -1;
-  }
+  REP(i, n) cin >> a[i];
 
-  int ans = 0, l = 0;
-  REP(i, n) {
-    int x = a[i];
-    int p = prv[x];
-    if (p >= 0) {
-      l = min(l + 1, i - p);
-    } else {
-      l = l + 1;
+  int r = 0, ans = 0;
+  REP(l, n) {
+    for (; r < n; ++r) {
+      int x = a[r];
+      if (b[x]) break;
+      b.set(x, true);
     }
-    chmax(ans, l);
-    prv[x] = i;
+    chmax(ans, r - l);
+    b.set(a[l], false);
   }
-
   cout << ans << '\n';
 }
