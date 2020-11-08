@@ -3,7 +3,6 @@ using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
-#define SIZE(a) (int)((a).size())
 
 template <class T>
 inline bool chmax(T &a, T b) {
@@ -12,6 +11,10 @@ inline bool chmax(T &a, T b) {
 template <class T>
 inline bool chmin(T &a, T b) {
   return a > b and ((a = std::move(b)), true);
+}
+template <class T>
+inline int ssize(const T &a) {
+  return (int)std::size(a);
 }
 
 template <typename T>
