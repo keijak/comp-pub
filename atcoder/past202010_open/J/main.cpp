@@ -132,21 +132,12 @@ int main() {
   cin >> warp;
   REP(i, N) { wnodes[warp[i] - 'A'].insert(i); }
 
-  auto calc_cost = [&](int i, int j, i64 base) -> i64 {
-    i64 res = base;
-    if (warp[i] != warp[j]) {
-      chmin(res, warp_cost[pair(warp[i], warp[j])]);
-    }
-    return res;
-  };
-
   V<V<Edge>> adj(N + 3);
   for (int i = 0; i < M; ++i) {
     int u, v;  // read as 1-indexed.
     i64 c;
     cin >> u >> v >> c;
     u--, v--;  // to 0-indexed.
-    // c = calc_cost(u, v, c);
     adj[u].push_back({c, v});
     adj[v].push_back({c, u});
   }
@@ -161,14 +152,6 @@ int main() {
       }
     }
   }
-
-  //   REP(i, 3) {
-  //     REP(j, 3) {
-  //       if (i == j) continue;
-  //       i64 c = warp_cost[{'A' + i, 'A' + j}];
-  //       adj[N + i].push_back({c, N + j});
-  //     }
-  //   }
 
   auto res = dijkstra(adj, 0);
   DEBUG(res);
