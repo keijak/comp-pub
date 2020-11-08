@@ -18,14 +18,6 @@ def solve():
     trans = False
     # A = np.arange(N * N).reshape(N, N)
     for q in range(Q):
-        # dbg(f"# rows = {rows}")
-        # dbg(f"# cols = {cols}")
-        # for i in range(N):
-        #     dbg(">>", end=" ")
-        #     for j in range(N):
-        #         dbg(A[rows[i], cols[j]], end="\n" if j == N - 1 else " ")
-        # dbg("-" * 80)
-
         qt, *ps = inm()
         if qt == 3:
             trans = not trans
