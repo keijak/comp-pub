@@ -42,9 +42,10 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
     : std::true_type {};
 
-template <typename T,
-          typename = std::enable_if_t<is_iterable<T>::value &&
-                                      !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return pprint(a, ", ", "", &(os << "{")) << "}";
 }
