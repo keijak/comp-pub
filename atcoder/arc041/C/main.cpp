@@ -92,18 +92,16 @@ int main() {
   V<V<int>> ls, rs;
   for (int i = 0; i < N;) {
     rs.emplace_back(0);
-    auto &rv = rs.back();
     while (i < N and D[i] == 'R') {
-      rv.push_back(i++);
+      rs.back().push_back(i++);
     }
     ls.emplace_back(0);
-    auto &lv = ls.back();
     while (i < N and D[i] == 'L') {
-      lv.push_back(i++);
+      ls.back().push_back(i++);
     }
   }
-  int M = ls.size();
-  assert((int)rs.size() == M);
+  int M = ssize(ls);
+  assert(ssize(rs) == M);
   DEBUG(rs);
   DEBUG(ls);
 
@@ -116,7 +114,7 @@ int main() {
       } else {
         lmin = X[rs[i].back()] + 1;
         rmax = X[rs[i].back()] - 1;
-        for (int j = (int)rs[i].size() - 2; j >= 0; --j) {
+        for (int j = ssize(rs[i]) - 2; j >= 0; --j) {
           ans += rmax - X[rs[i][j]];
           rmax--;
         }
@@ -132,12 +130,12 @@ int main() {
       } else {
         rmax = X[ls[i].front()] - 1;
         lmin = X[ls[i].front()] + 1;
-        for (int j = 1; j < (int)ls[i].size(); ++j) {
+        for (int j = 1; j < ssize(ls[i]); ++j) {
           ans += X[ls[i][j]] - lmin;
           lmin++;
         }
       }
-      for (int j = (int)rs[i].size() - 1; j >= 0; --j) {
+      for (int j = ssize(rs[i]) - 1; j >= 0; --j) {
         ans += rmax - X[rs[i][j]];
         rmax--;
       }
