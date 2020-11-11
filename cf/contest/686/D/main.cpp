@@ -79,43 +79,89 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
+// Heavy-Light Decomposition and Euler Tour
 struct HLD {
   int n;
-  V<V<int>> child;
-  V<int> sizes, tour_in, tour_out, comp_root;
+  std::vector<std::vector<int>> adj;
+  std::vector<int> subsize, parent, node_to_index, index_to_node, comp_root;
+  int root;
   int counter;
 
-  explicit HLD(V<V<int>> g)
-      : n(ssize(g)),
-        child(g),
-        sizes(n),
-        tour_in(n),
-        tour_out(n),
-        comp_root(n),
-        counter(0) {
-    dfs_sz();
-    dfs_hld();
+  explicit HLD(std::vector<std::vector<int>> g, int root = 0)
+      : n(int(g.size())),
+        adj(g),
+        subsize(n, 1),
+        parent(n, -1),
+        node_to_index(n, -1),
+        index_to_node(n, -1),
+        comp_root(n, -1),
+        root(root) {
+    dfs_subsize(root);
+    int counter = 0;
+    comp_root[root] = root;
+    dfs_hld(root, counter);
+  }
+
+  int lca(int u, int v) {
+    for (;;) {
+      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
+      if (comp_root[u] == comp_root[v]) return u;
+      v = parent[comp_root[v]];
+    }
+  }
+
+  template <typename F>
+  void for_each(int u, int v, const F &f) {
+    for (;;) {
+      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
+      f(std::max(node_to_index[comp_root[v]], node_to_index[u]),
+        node_to_index[v] + 1);
+      if (comp_root[u] == comp_root[v]) break;
+      v = parent[comp_root[v]];
+    }
+  }
+
+  template <typename F>
+  void for_each_edge(int u, int v, const F &f) {
+    for (;;) {
+      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
+      if (comp_root[u] == comp_root[v]) {
+        if (u != v) f(node_to_index[u] + 1, node_to_index[v] + 1);
+        break;
+      }
+      f(node_to_index[comp_root[v]], node_to_index[v] + 1);
+      v = parent[comp_root[v]];
+    }
   }
 
  private:
-  void dfs_sz(int v = 0) {
-    sizes[v] = 1;
-    for (auto &u : child[v]) {
-      dfs_sz(u);
-      sizes[v] += sizes[u];
-      if (sizes[u] > sizes[child[v][0]]) {
-        swap(u, child[v][0]);
+  // Fills `subsize` and `parent`.
+  void dfs_subsize(int v) {
+    auto &edges = adj[v];
+    if (parent[v] >= 0) {
+      // Drop the parent from `adj`. It's separately stored in `parent`.
+      auto it = std::find(edges.begin(), edges.end(), parent[v]);
+      if (it != edges.end()) edges.erase(it);
+    }
+    for (int &u : edges) {
+      parent[u] = v;
+      dfs_subsize(u);
+      subsize[v] += subsize[u];
+      if (subsize[u] > subsize[edges[0]]) {
+        std::swap(u, edges[0]);
       }
     }
   }
 
-  void dfs_hld(int v = 0) {
-    tour_in[v] = counter++;
-    for (auto u : child[v]) {
-      comp_root[u] = (u == child[v][0] ? comp_root[v] : u);
-      dfs_hld(u);
+  // Fills `node_to_index`, `index_to_node`, and `comp_root`.
+  void dfs_hld(int v, int &counter) {
+    node_to_index[v] = counter++;
+    index_to_node[node_to_index[v]] = v;
+    for (int u : adj[v]) {
+      assert(u != parent[v]);
+      comp_root[u] = (u == adj[v][0] ? comp_root[v] : u);
+      dfs_hld(u, counter);
     }
-    tour_out[v] = counter;
   }
 };
 
@@ -135,36 +181,25 @@ int main() {
     child[p].emplace_back(i + 1);
   }
   HLD hld(child);
-  DEBUG(hld.tour_in);
-  DEBUG(hld.tour_out);
-  DEBUG(hld.comp_root);
-  V<pair<int, int>> compo(N);
-  V<V<int>> compo_node(N);
   V<V<int>> subsizes(N);
 
-  auto dfs_compo = [&](auto self, int v) -> void {
+  REP(i, N) {
+    int v = hld.index_to_node[i];
     int cr = hld.comp_root[v];
-    int cid = subsizes[cr].size();
-    compo[v] = {cr, cid};
-    compo_node[cr].push_back(v);
-    subsizes[cr].push_back(hld.sizes[v]);
-    assert(compo_node[cr].size() == subsizes[cr].size());
-    for (auto c : child[v]) {
-      self(self, c);
-    }
-  };
-  dfs_compo(dfs_compo, 0);
-  DEBUG(compo);
+    subsizes[cr].push_back(hld.subsize[v]);
+  }
   DEBUG(subsizes);
 
   // centroid of subtree
   auto query = [&](int v) -> int {
-    int total = hld.sizes[v];
+    int total = hld.subsize[v];
     if (total <= 2) {
       return v;
     }
-    auto [croot, cid] = compo[v];
-    const auto &sz = subsizes[croot];
+    int cr = hld.comp_root[v];
+    int cr_index = hld.node_to_index[cr];
+    int cid = hld.node_to_index[v] - cr_index;
+    const auto &sz = subsizes[cr];
     int tv = cid, fv = ssize(sz);
     while (fv - tv > 1) {
       int mid = (fv + tv) / 2;
@@ -174,7 +209,9 @@ int main() {
         fv = mid;
       }
     }
-    return compo_node[croot][tv];
+    int ans = hld.index_to_node[cr_index + tv];
+    assert(hld.comp_root[ans] == cr);
+    return ans;
   };
 
   REP(i, Q) {
