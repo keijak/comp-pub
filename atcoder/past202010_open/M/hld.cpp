@@ -25,10 +25,11 @@ struct Graph {
 // Heavy-Light Decomposition
 struct HLD {
   using NodeID = int;  // [0, n)
+  using G = std::vector<std::vector<int>>;
 
   int n;                                      // number of nodes in the tree
   NodeID root;                                // root of the tree
-  std::vector<std::vector<NodeID>> child;     // children node ids
+  G child;                                    // children node ids
   std::vector<std::optional<NodeID>> parent;  // parent node id (or -1)
   std::vector<int> subsize;                   // subtree size
   // "ord" is preorder index in DFS traversal. [0, n)
@@ -36,11 +37,11 @@ struct HLD {
   std::vector<NodeID> ord_to_node;  // preorder index to node id
   std::vector<NodeID> comp_root;    // node id to its heavy path component
 
-  explicit HLD(std::vector<std::vector<int>> g, NodeID root = 0)
+  explicit HLD(G g, NodeID root = 0)
       : n(int(g.size())),
         root(root),
         child(g),
-        parent(n),
+        parent(n, -1),
         subsize(n, 1),
         node_to_ord(n, -1),
         ord_to_node(n, -1),
@@ -62,35 +63,23 @@ struct HLD {
     }
   }
 
-  // f: [l, r) -> void
-  // The intervals contain the preorder indices of the nodes in the
-  // u-v path, including both u and v.
-  void for_each(NodeID u, NodeID v, std::function<void(int, int)> f) {
-    for (;;) {
-      if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
-      NodeID crv = comp_root[v];
-      f(std::max(node_to_ord[crv], node_to_ord[u]), node_to_ord[v] + 1);
-      if (comp_root[u] == crv) break;
-      assert(parent[crv].has_value());
-      v = parent[crv].value();
-    }
-  }
-
-  // f: [l, r) -> void
-  // The intervals contain the preorder indices of nodes corresponding to the
-  // deeper end (closer to leaves) of edges in the u-v path.
-  void for_each_edge(NodeID u, NodeID v, std::function<void(int, int)> f) {
+  // Returns the set of edges in the path in the form of [l, r) intervals of the
+  // preorder indices of nodes corresponding to the deeper end (closer to
+  // leaves) of each edge in the u-v path.
+  auto edge_ranges_on_path(NodeID u, NodeID v) {
+    std::vector<std::pair<int, int>> res;
     for (;;) {
       if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       NodeID crv = comp_root[v];
       if (comp_root[u] == crv) {
-        if (u != v) f(node_to_ord[u] + 1, node_to_ord[v] + 1);
+        if (u != v) res.emplace_back(node_to_ord[u] + 1, node_to_ord[v] + 1);
         break;
       }
-      f(node_to_ord[crv], node_to_ord[v] + 1);
+      res.emplace_back(node_to_ord[crv], node_to_ord[v] + 1);
       assert(parent[crv].has_value());
       v = parent[crv].value();
     }
+    return res;
   }
 
  private:
@@ -183,7 +172,9 @@ int main() {
     cin >> u >> v >> c;
     --u;
     --v;
-    hld.for_each_edge(u, v, [&](int l, int r) { seg.apply(l, r, {i, c}); });
+    for (auto [l, r] : hld.edge_ranges_on_path(u, v)) {
+      seg.apply(l, r, {i, c});
+    }
   }
 
   vector<int> edge_colors(N - 1);
