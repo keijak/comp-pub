@@ -55,7 +55,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
+void pdebug(const T &value, const Ts &... args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -95,19 +95,25 @@ struct Graph {
 
 // Heavy-Light Decomposition and Euler Tour
 struct HLD {
-  int n;
-  std::vector<std::vector<int>> adj;
-  std::vector<int> subsize, parent, node_to_index, index_to_node, comp_root;
-  int root;
-  int counter;
+  using NodeID = int;
 
-  explicit HLD(std::vector<std::vector<int>> g, int root = 0)
+  int n;                                   // number of nodes in the tree
+  std::vector<std::vector<NodeID>> child;  // children node ids
+  std::vector<int> subsize;                // subtree size
+  std::vector<NodeID> parent;              // parent node id (or -1)
+  // "ord" is preorder index in DFS traversal (Euler Tour).
+  std::vector<int> node_to_ord;     // node id to preorder index
+  std::vector<NodeID> ord_to_node;  // preorder index to node id
+  std::vector<NodeID> comp_root;    // root of its heavy path component
+  NodeID root;                      // root of the tree
+
+  explicit HLD(std::vector<std::vector<int>> g, NodeID root = 0)
       : n(int(g.size())),
-        adj(g),
+        child(g),
         subsize(n, 1),
         parent(n, -1),
-        node_to_index(n, -1),
-        index_to_node(n, -1),
+        node_to_ord(n, -1),
+        ord_to_node(n, -1),
         comp_root(n, -1),
         root(root) {
     dfs_subsize(root);
@@ -116,49 +122,53 @@ struct HLD {
     dfs_hld(root, counter);
   }
 
-  int lca(int u, int v) {
+  // Lowest Common Ancestor
+  NodeID lca(NodeID u, NodeID v) {
     for (;;) {
-      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
+      if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       if (comp_root[u] == comp_root[v]) return u;
       v = parent[comp_root[v]];
     }
   }
 
-  // path [u, v]
-  template <typename F>
-  void for_each(int u, int v, const F &f) {
+  // f: [l, r) -> void
+  // The intervals contain the indices of both u and v.
+  void for_each(NodeID u, NodeID v, std::function<void(int, int)> f) {
     for (;;) {
-      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
-      f(std::max(node_to_index[comp_root[v]], node_to_index[u]),
-        node_to_index[v] + 1);
+      if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
+      f(std::max(node_to_ord[comp_root[v]], node_to_ord[u]),
+        node_to_ord[v] + 1);
       if (comp_root[u] == comp_root[v]) break;
       v = parent[comp_root[v]];
     }
   }
 
-  template <typename F>
-  void for_each_edge(int u, int v, const F &f) {
+  // f: [l, r) -> void
+  // The intervals contain the indices of nodes that represent each edge's
+  // deeper end (closer to leaves).
+  void for_each_edge(NodeID u, NodeID v, std::function<void(int, int)> f) {
     for (;;) {
-      if (node_to_index[u] > node_to_index[v]) std::swap(u, v);
+      if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       if (comp_root[u] == comp_root[v]) {
-        if (u != v) f(node_to_index[u] + 1, node_to_index[v] + 1);
+        if (u != v) f(node_to_ord[u] + 1, node_to_ord[v] + 1);
         break;
       }
-      f(node_to_index[comp_root[v]], node_to_index[v] + 1);
+      f(node_to_ord[comp_root[v]], node_to_ord[v] + 1);
       v = parent[comp_root[v]];
     }
   }
 
  private:
   // Fills `subsize` and `parent`.
-  void dfs_subsize(int v) {
-    auto &edges = adj[v];
+  void dfs_subsize(NodeID v) {
+    auto &edges = child[v];
     if (parent[v] >= 0) {
-      // Drop the parent from `adj`. It's separately stored in `parent`.
+      // Drop the parent from the `child` adjacency list.
+      // It's separately stored in `parent`.
       auto it = std::find(edges.begin(), edges.end(), parent[v]);
       if (it != edges.end()) edges.erase(it);
     }
-    for (int &u : edges) {
+    for (NodeID &u : edges) {
       parent[u] = v;
       dfs_subsize(u);
       subsize[v] += subsize[u];
@@ -168,13 +178,13 @@ struct HLD {
     }
   }
 
-  // Fills `node_to_index`, `index_to_node`, and `comp_root`.
-  void dfs_hld(int v, int &counter) {
-    node_to_index[v] = counter++;
-    index_to_node[node_to_index[v]] = v;
-    for (int u : adj[v]) {
+  // Fills `node_to_ord`, `ord_to_node`, and `comp_root`.
+  void dfs_hld(NodeID v, int &counter) {
+    node_to_ord[v] = counter++;
+    ord_to_node[node_to_ord[v]] = v;
+    for (NodeID u : child[v]) {
       assert(u != parent[v]);
-      comp_root[u] = (u == adj[v][0] ? comp_root[v] : u);
+      comp_root[u] = (u == child[v][0] ? comp_root[v] : u);
       dfs_hld(u, counter);
     }
   }
@@ -256,7 +266,7 @@ int main() {
   REP(v, N) {
     if (hld.parent[v] < 0) continue;
     int e = g.edge_id[{hld.parent[v], v}];
-    int i = hld.node_to_index[v];
+    int i = hld.node_to_ord[v];
     ans[e] = seg[i].second;
   }
   pprint(ans, "\n");
