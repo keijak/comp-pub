@@ -94,23 +94,23 @@ struct State {
 };
 bool operator>(const State &x, const State &y) { return x.cost > y.cost; }
 
-const i64 INF = 1e18;
-
-std::vector<i64> dijkstra(const std::vector<std::vector<Edge>> &g, int source) {
+std::vector<std::optional<i64>> dijkstra(
+    const std::vector<std::vector<Edge>> &g, int source) {
   const int n = g.size();
-  std::vector<i64> mincost(n, INF);
+  std::vector<std::optional<i64>> mincost(n);
   mincost[source] = 0LL;
   MinHeap<State> que;
   que.push({0LL, source});
   while (not que.empty()) {
     State cur = std::move(que.top());
     que.pop();
-    if (cur.cost != mincost[cur.node]) {
+    if (not mincost[cur.node].has_value() or
+        cur.cost != mincost[cur.node].value()) {
       continue;
     }
     for (const auto &e : g[cur.node]) {
       i64 new_cost = cur.cost + e.cost;
-      if (mincost[e.to] > new_cost) {
+      if (not mincost[e.to].has_value() or mincost[e.to].value() > new_cost) {
         mincost[e.to] = new_cost;
         que.push({new_cost, e.to});
       }
@@ -152,7 +152,8 @@ int main() {
 
   REP(i, n) {
     if (i == start or i == goal) continue;
-    if (ds[i] == dt[i] and ds[i] != INF) {
+    if (ds[i].has_value() and dt[i].has_value() and
+        ds[i].value() == dt[i].value()) {
       cout << i + 1 << endl;
       exit(0);
     }
