@@ -1,6 +1,4 @@
-#include <iostream>
-#include <string>
-#include <vector>
+#include <bits/stdc++.h>
 using i64 = long long;
 using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
@@ -62,7 +60,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -81,48 +79,46 @@ void pdebug(const T &value, const Ts &... args) {
 
 using namespace std;
 
-optional<V<V<int>>> solve() {
+optional<V<array<int, 3>>> solve() {
   int n;
   cin >> n;
   V<uint32_t> a(n);
   cin >> a;
-  //   REP(i, n) {
-  //     cerr << '#' << i << ' ';
-  //     bitset<10> b(a[i]);
-  //     cerr << b << '\n';
-  //   }
-  //   DEBUG(a);
-
   uint32_t target = 0;
   REP(i, n) { target ^= a[i]; }
-
-  map<uint32_t, V<int>> m;
-  REP(i, n) {
-    uint32_t x = a[i] ^ target;
-    m[x].push_back(i);
+  int m = n;
+  if (not(n & 1)) {
+    if (target != 0) return nullopt;
+    target = a[n - 1];
+    m = n - 1;
   }
-  V<V<int>> res;
-  V<bool> done(n, false);
-  REP(i, n) {
-    if (done[i]) continue;
-    REP(j, i) {
-      if (done[j]) continue;
-      uint32_t x = a[i] ^ a[j];
-      auto it = m.find(x);
-      if (it == m.end()) continue;
-      while (not it->second.empty()) {
-        int k = it->second.back();
-        if (k <= i) break;
-        it->second.pop_back();
-        if (done[k]) continue;
-        res.push_back({j, i, k});
-        done[i] = done[j] = done[k] = true;
-      }
+  V<array<int, 3>> res;
+  int j = 0;
+  array<int, 3> t;
+  for (; j + 2 < m;) {
+    DEBUG(a);
+    for (int k = 0; k < 3 and j < m;) {
+      t[k++] = j++;
     }
+    res.push_back(t);
+    uint32_t x = a[t[0]] ^ a[t[1]] ^ a[t[2]];
+    a[t[0]] = a[t[1]] = a[t[2]] = x;
+    --j;
   }
-  REP(i, n) {
-    if (not done[i] and a[i] != target) return nullopt;
+  assert(a[n - 1] == target);
+  j = 0;
+  while (j + 1 < n - 1) {
+    DEBUG(a);
+    t[2] = n - 1;
+    for (int k = 0; k < 2 and j < n - 1;) {
+      t[k++] = j++;
+    }
+    assert(a[t[0]] == a[t[1]]);
+    res.push_back(t);
+    uint32_t x = a[t[0]] ^ a[t[1]] ^ a[t[2]];
+    a[t[0]] = a[t[1]] = a[t[2]] = x;
   }
+  DEBUG(a);
   return res;
 }
 
