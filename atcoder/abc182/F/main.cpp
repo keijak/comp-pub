@@ -101,7 +101,7 @@ int main() {
   REP(i, N - 1) { ub[i] = A[i + 1] / A[i]; }
   ub[N - 1] = 1e18;
 
-  auto dp = vector(N + 1, vector(2, 0LL));
+  auto dp = vector(2, vector(2, 0LL));
   dp[0][0] = 1;
   for (int i = 0; i < N; ++i) {
     i64 x = xd[i];
@@ -109,16 +109,18 @@ int main() {
       {  // z=0
         i64 y = x + j - nj * ub[i];
         if (0 <= y and y < ub[i]) {
-          dp[i + 1][nj] += dp[i][j];
+          dp[1][nj] += dp[0][j];
         }
       }
       {  // y=0
         i64 z = nj * ub[i] - x - j;
         if (0 < z and z < ub[i]) {
-          dp[i + 1][nj] += dp[i][j];
+          dp[1][nj] += dp[0][j];
         }
       }
     }
+    swap(dp[0], dp[1]);
+    fill(ALL(dp[1]), 0LL);
   }
-  cout << dp[N][0] << endl;
+  cout << dp[0][0] << endl;
 }
