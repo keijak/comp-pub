@@ -1,9 +1,13 @@
 #include <bits/stdc++.h>
 using i64 = long long;
 using u64 = unsigned long long;
-#define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
+#define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 
+template <class T>
+inline int ssize(const T &a) {
+  return (int)std::size(a);
+}
 template <class T>
 inline bool chmax(T &a, T b) {
   return a < b and ((a = std::move(b)), true);
@@ -15,6 +19,7 @@ inline bool chmin(T &a, T b) {
 
 template <typename T>
 using V = std::vector<T>;
+
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
@@ -38,9 +43,10 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
     : std::true_type {};
 
-template <typename T,
-          typename = std::enable_if_t<is_iterable<T>::value &&
-                                      !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return pprint(a, ", ", "", &(os << "{")) << "}";
 }
@@ -55,7 +61,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
+void pdebug(const T &value, const Ts &... args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -74,45 +80,45 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-i64 floordiv(i64 x, i64 y) {
-  int sign = (x < 0 ? -1 : 1) * (y < 0 ? -1 : 1);
-  if (sign == 1) {
-    return abs(x) / abs(y);
-  } else {
-    i64 d = abs(y);
-    i64 cd = (abs(x) + d - 1) / d;
-    return -cd;
-  }
-}
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
 
-i64 floormod(i64 x, i64 y) {
-  i64 a = floordiv(x, y);
-  return x - a * y;
-}
-
-i64 solve() {
   i64 N, X;
   cin >> N >> X;
   V<i64> A(N);
   cin >> A;
-  if (N == 1) return 1;
-  map<pair<i64, int>, i64> memo;
-  auto f = [&](auto self, i64 x, int i) -> i64 {
-    if (i == N - 1) {
-      return (floormod(x, A[i]) == 0) ? 1 : 0;
+  V<i64> xd(N), ub(N);
+  {
+    i64 px = X;
+    for (int i = N - 1; i >= 0; --i) {
+      xd[i] = px / A[i];
+      px %= A[i];
     }
-    i64 g = A[i + 1];
-    for (int j = i + 2; j < N; ++j) {
-      g = gcd(g, A[j]);
+    assert(px == 0);
+  }
+
+  REP(i, N - 1) { ub[i] = A[i + 1] / A[i]; }
+  ub[N - 1] = 1e18;
+
+  auto dp = vector(N + 1, vector(2, 0LL));
+  dp[0][0] = 1;
+  for (int i = 0; i < N; ++i) {
+    i64 x = xd[i];
+    REP(j, 2) REP(nj, 2) {
+      {  // z=0
+        i64 y = x + j - nj * ub[i];
+        if (0 <= y and y < ub[i]) {
+          dp[i + 1][nj] += dp[i][j];
+        }
+      }
+      {  // y=0
+        i64 z = nj * ub[i] - x - j;
+        if (0 < z and z < ub[i]) {
+          dp[i + 1][nj] += dp[i][j];
+        }
+      }
     }
-    i64 m = floormod(x, g);
-  };
-
-  return f(f, X, 0);
-}
-
-int main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
-  cout << solve() << endl;
+  }
+  cout << dp[N][0] << endl;
 }
