@@ -1,9 +1,13 @@
 #include <bits/stdc++.h>
 using i64 = long long;
 using u64 = unsigned long long;
-#define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
+#define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 
+template <class T>
+inline int ssize(const T &a) {
+  return (int)std::size(a);
+}
 template <class T>
 inline bool chmax(T &a, T b) {
   return a < b and ((a = std::move(b)), true);
@@ -12,13 +16,10 @@ template <class T>
 inline bool chmin(T &a, T b) {
   return a > b and ((a = std::move(b)), true);
 }
-template <class T>
-inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
 
 template <typename T>
 using V = std::vector<T>;
+
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
