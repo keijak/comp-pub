@@ -68,11 +68,13 @@ def solve():
     charset = set(s1) | set(s2)
 
     toi, toc = dict(), dict()
+    nums = 0
     for i in range(10):
         c = chr(ord("0") + i)
         if c in charset:
             toc[len(toi)] = c
             toi[c] = len(toi)
+            nums += 1
     for i in range(26):
         c = chr(ord("A") + i)
         if c in charset:
@@ -89,16 +91,7 @@ def solve():
 
     ans = 1
     for r in uf.roots():
-        is_num = False
-        for y in range(10):
-            c = chr(ord("0") + y)
-            x = toi.get(c)
-            if x is None:
-                continue
-            if uf.same(r, x):
-                is_num = True
-                break
-        if is_num:
+        if any(uf.same(r, x) for x in range(nums)):
             continue
         if uf.same(r, toi[s1[0]]) or uf.same(r, toi[s2[0]]):
             ans *= 9
