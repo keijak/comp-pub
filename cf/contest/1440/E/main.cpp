@@ -61,7 +61,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
+void pdebug(const T &value, const Ts &... args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -310,8 +310,8 @@ int main() {
   REP(i, q) {
     i64 qt, x, y;
     cin >> qt >> x >> y;
+    --x;
     if (qt == 1) {
-      --x;
       int fv = -1, tv = x + 1;
       while (tv - fv > 1) {
         int mid = (tv + fv) / 2;
@@ -323,19 +323,34 @@ int main() {
         }
       }
       seg.apply(tv, x + 1, y);
-      DEBUG(tv, y);
-      REP(i, n) { DEBUG(i, seg[i].sum); }
     } else {
-      --x;
-      int j =
-          seg.max_right(x, [&](const auto &t) -> bool { return t.sum <= y; });
-      auto lsum = seg.fold(x, j).sum;
-      int ans = j - x;
-      DEBUG(x, j, lsum, seg[n - 1].sum, ans);
-      if (j <= n - 1 and lsum + seg[n - 1].sum <= y) {
-        ++ans;
+      i64 minval = seg[n - 1].sum;
+      int count = 0;
+      while (x < n and y >= minval) {
+        if (seg[x].sum > y) {
+          int fv = x - 1, tv = n;
+          while (tv - fv > 1) {
+            int mid = (tv + fv) / 2;
+            if (y >= seg[mid].sum) {
+              tv = mid;
+            } else {
+              fv = mid;
+            }
+          }
+          x = tv;
+          if (x == n) break;
+        }
+        i64 lsum = 0;
+        int j = seg.max_right(x, [&](const auto &t) {
+          if (t.sum > y) return false;
+          chmax(lsum, t.sum);
+          return true;
+        });
+        count += j - x;
+        y -= lsum;
+        x = j + 1;
       }
-      cout << ans << '\n';
+      cout << count << '\n';
     }
   }
 }
