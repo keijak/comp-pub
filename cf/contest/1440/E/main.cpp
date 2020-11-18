@@ -61,7 +61,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -277,7 +277,7 @@ struct AssignSum {
     long long sum;
     int width;
   };
-  using F = std::optional<long long>;
+  using F = long long;
 
   // Fold: Sum
   static T op(const T &x, const T &y) {
@@ -287,10 +287,10 @@ struct AssignSum {
 
   // Update: Assign
   static T f_apply(const F &f, const T &x) {
-    return f.has_value() ? T{f.value() * x.width, x.width} : x;
+    return (f != f_id()) ? T{f * x.width, x.width} : x;
   }
-  static F f_compose(const F &f, const F &g) { return f.has_value() ? f : g; }
-  static constexpr F f_id() { return std::nullopt; }
+  static F f_compose(const F &f, const F &g) { return (f != f_id()) ? f : g; }
+  static constexpr F f_id() { return numeric_limits<F>::lowest(); }
 };
 
 int main() {
@@ -307,6 +307,7 @@ int main() {
   }
 
   LazySegTree<AssignSum> seg(a);
+  i64 minval = seg[n - 1].sum;
   REP(i, q) {
     i64 qt, x, y;
     cin >> qt >> x >> y;
@@ -323,29 +324,26 @@ int main() {
         }
       }
       seg.apply(tv, x + 1, y);
+      if (x + 1 >= n and y > minval) {
+        minval = seg[n - 1].sum;
+      }
     } else {
-      i64 minval = seg[n - 1].sum;
       int count = 0;
       while (x < n and y >= minval) {
-        if (seg[x].sum > y) {
-          int fv = x - 1, tv = n;
-          while (tv - fv > 1) {
-            int mid = (tv + fv) / 2;
-            if (y >= seg[mid].sum) {
-              tv = mid;
-            } else {
-              fv = mid;
-            }
+        int fv = x - 1, tv = n;
+        while (tv - fv > 1) {
+          int mid = (tv + fv) / 2;
+          if (y >= seg[mid].sum) {
+            tv = mid;
+          } else {
+            fv = mid;
           }
-          x = tv;
-          if (x == n) break;
         }
-        i64 lsum = 0;
-        int j = seg.max_right(x, [&](const auto &t) {
-          if (t.sum > y) return false;
-          chmax(lsum, t.sum);
-          return true;
-        });
+        x = tv;
+        if (x == n) break;
+
+        int j = seg.max_right(x, [&](const auto &t) { return t.sum <= y; });
+        i64 lsum = seg.fold(x, j).sum;
         count += j - x;
         y -= lsum;
         x = j + 1;
