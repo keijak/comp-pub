@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
 using i64 = long long;
 using u64 = unsigned long long;
+using u128 = __uint128_t;
+
 #define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 
@@ -142,15 +144,15 @@ struct ModInt {
   constexpr ModInt inv() const {
     // Inverse by Extended Euclidean algorithm.
     // M doesn't need to be prime, but x and M must be coprime.
-    assert(_v != 0);
-    auto [g, x, y] = ext_gcd(_v, M);
-    assert(g == 1LL);  // The GCD must be 1.
-    return x;
+    // assert(_v != 0);
+    // auto [g, x, deno] = ext_gcd(_v, M);
+    // assert(g == 1LL);  // The GCD must be 1.
+    // return x;
 
     // Inverse by Fermat's little theorem.
     // M must be prime. It's often faster.
     //
-    //     return pow(M - 2);
+    return pow(M - 2);
   }
   constexpr ModInt &operator/=(const ModInt &a) { return *this *= a.inv(); }
 
@@ -181,7 +183,7 @@ struct ModInt {
 
  private:
   // Extended Euclidean algorithm
-  // Returns (gcd(a,b), x, y) where `a*x + b*y == gcd(a,b)`.
+  // Returns (gcd(a,b), x, deno) where `a*x + b*deno == gcd(a,b)`.
   static std::tuple<int, int, int> ext_gcd(int a, int b) {
     int ax = 1, ay = 0, bx = 0, by = 1;
     for (;;) {
@@ -203,14 +205,34 @@ const unsigned int MOD = 1'000'003;
 using Mint = ModInt<MOD>;
 
 pair<i64, i64> solve() {
-  i64 n, k;
+  u64 n, k;
   cin >> n >> k;
+  assert(k >= 2);
+  if (n < 100 and u128(k) > (u128(1) << n)) {
+    return {1, 1};
+  }
+
+  u128 p2 = 2;
+  u64 d2 = 0;
+  while (p2 <= u128(k - 1)) {
+    d2 += (k - 1) / p2;
+    p2 *= 2;
+  }
+  DEBUG(d2);
   Mint x = Mint(2).pow(n);
-  Mint d = x.pow(k);
-  Mint num = 1;
-  REP(i, k) { num *= x - i; }
-  Mint(1) - num / d;
-  for (int) return {0, 0};
+  Mint deno = x.pow(k - 1);
+  deno /= Mint(2).pow(d2);
+
+  if (k - 1 >= MOD) {
+    return {deno.val(), deno.val()};
+  }
+
+  Mint nume = 1;
+  for (u64 i = 1; i <= k - 1; ++i) {
+    nume *= x - i;
+  }
+  nume /= Mint(2).pow(d2);
+  return {(deno - nume).val(), deno.val()};
 }
 
 int main() {
