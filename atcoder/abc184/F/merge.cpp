@@ -80,58 +80,61 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-i64 solve() {
-  i64 N, T;
+int solve() {
+  int N, T;
   cin >> N >> T;
-  V<i64> A;
+  V<int> A;
   A.reserve(N);
   REP(i, N) {
-    i64 x;
+    int x;
     cin >> x;
-    if (x <= T) {
-      A.push_back(x);
-    }
+    if (x <= T) A.push_back(x);
   }
   N = ssize(A);
+  sort(ALL(A));
 
   int M1 = N / 2;
   int M2 = N - M1;
 
-  V<i64> st;
-  REP(b, 1 << M1) {
-    i64 s = 0;
+  V<int> st1, st2;
+  {
+    st1.reserve((1 << M1) + 5);
+    st1.push_back(0);
     REP(i, M1) {
-      if (b >> i & 1) {
-        s += A[i];
+      int sz = ssize(st1), ai = A[i];
+      REP(j, sz) {
+        int y = st1[j] + ai;
+        if (y <= T) st1.push_back(y);
       }
-    }
-    if (s <= T) {
-      st.push_back(s);
+      std::inplace_merge(st1.begin(), st1.begin() + sz, st1.end());
     }
   }
-  sort(ALL(st));
-  st.erase(unique(ALL(st)), st.end());
-
-  i64 ans = 0;
-  REP(b, 1 << M2) {
-    i64 s = 0;
+  {
+    st2.reserve((1 << M2) + 5);
+    st2.push_back(0);
     REP(i, M2) {
-      if (b >> i & 1) {
-        s += A[M1 + i];
+      int sz = ssize(st2), ai = A[M1 + i];
+      REP(j, sz) {
+        int y = st2[j] + ai;
+        if (y <= T) st2.push_back(y);
       }
+      std::inplace_merge(st2.begin(), st2.begin() + sz, st2.end());
     }
-    if (s > T) continue;
-    auto it = upper_bound(ALL(st), T - s);
-    if (it == st.begin()) continue;
-    --it;
-    chmax(ans, s + *it);
+    reverse(ALL(st2));
   }
-  assert(ans <= T);
+
+  int ans = 0, j = 0, sz2 = ssize(st2);
+  for (int i = 0, sz1 = ssize(st1); i < sz1; ++i) {
+    int ub = T - st1[i];
+    while (j < sz2 and st2[j] > ub) ++j;
+    if (j == sz2) break;
+    chmax(ans, st2[j] + st1[i]);
+  }
   return ans;
 }
+
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-
-  cout << solve() << endl;
+  cout << solve() << '\n';
 }
