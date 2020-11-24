@@ -90,66 +90,61 @@ struct Edge {
 
 struct GridState {
   i64 cost;
-  int node;
+  int r;
+  int c;
+  //...
 };
 bool operator>(const GridState &x, const GridState &y) {
   return x.cost > y.cost;
 }
 
-std::vector<std::optional<i64>> grid_bfs(const std::vector<std::string> &g,
-                                         const V<V<int>> &tele, int source_r,
-                                         int source_c) {
+std::vector<std::vector<std::optional<i64>>> grid_bfs(
+    const std::vector<std::string> &g, const V<V<int>> &tele, int source_r,
+    int source_c) {
   const int H = g.size();
   const int W = g[0].size();
   array<int, 4> dx = {0, 0, 1, -1}, dy = {1, -1, 0, 0};
-  const int N = H * W + 26;
-  auto mincost = std::vector(N, std::optional<i64>());
-  int init_node = source_r * W + source_c;
-  mincost[init_node] = 0LL;
-  MinHeap<GridState> que;
-  que.push({0LL, init_node});
+
+  V<int> warp_used(26);
+
+  auto mincost = std::vector(H, std::vector(W, std::optional<i64>()));
+  mincost[source_r][source_c] = 0LL;
+  std::deque<GridState> que;
+  que.push_back({0LL, source_r, source_c});
   while (not que.empty()) {
-    GridState cur = std::move(que.top());
-    que.pop();
-    if (not mincost[cur.node].has_value() or
-        mincost[cur.node].value() != cur.cost) {
+    GridState cur = std::move(que.front());
+    que.pop_front();
+    if (not mincost[cur.r][cur.c].has_value() or
+        mincost[cur.r][cur.c].value() != cur.cost) {
       continue;
     }
-    if (cur.node >= H * W) {
-      int x = cur.node - H * W;
-      for (auto u : tele[x]) {
-        int nr = u / W;
-        int nc = u % W;
-        int nx = nr * W + nc;
-        i64 new_cost = cur.cost;
-        if (not mincost[nx].has_value() or mincost[nx].value() > new_cost) {
-          mincost[nx] = new_cost;
-          que.push({new_cost, nx});
-        }
+    if (g[cur.r][cur.c] == 'G') break;
+    for (int i = 0; i < 4; ++i) {
+      int nr = cur.r + dy[i];
+      int nc = cur.c + dx[i];
+      if (nr < 0 or nr >= H or nc < 0 or nc >= W) continue;
+      if (g[nr][nc] == '#') continue;
+      i64 new_cost = cur.cost + 1;
+      if (not mincost[nr][nc].has_value() or
+          mincost[nr][nc].value() > new_cost) {
+        mincost[nr][nc] = new_cost;
+        que.push_back({new_cost, nr, nc});
       }
-    } else {
-      int cur_r = cur.node / W;
-      int cur_c = cur.node % W;
-      if (g[cur_r][cur_c] == 'G') break;
-
-      for (int i = 0; i < 4; ++i) {
-        int nr = cur_r + dy[i];
-        int nc = cur_c + dx[i];
-        int nx = nr * W + nc;
-        if (nr < 0 or nr >= H or nc < 0 or nc >= W) continue;
-        if (g[nr][nc] == '#') continue;
-        i64 new_cost = cur.cost + 1;
-        if (not mincost[nx].has_value() or mincost[nx].value() > new_cost) {
-          mincost[nx] = new_cost;
-          que.push({new_cost, nx});
-        }
-      }
-      if (islower(g[cur_r][cur_c])) {
-        int t = H * W + g[cur_r][cur_c] - 'a';
-        i64 new_cost = cur.cost + 1;
-        if (not mincost[t].has_value() or mincost[t].value() > new_cost) {
-          mincost[t] = new_cost;
-          que.push({new_cost, t});
+    }
+    if (islower(g[cur.r][cur.c])) {
+      int x = g[cur.r][cur.c] - 'a';
+      if (not warp_used[x]) {
+        warp_used[x] = true;
+        for (auto u : tele[x]) {
+          int nr = u / W;
+          int nc = u % W;
+          if (nr == cur.r and nc == cur.c) continue;
+          i64 new_cost = cur.cost + 1;
+          if (not mincost[nr][nc].has_value() or
+              mincost[nr][nc].value() > new_cost) {
+            mincost[nr][nc] = new_cost;
+            que.push_back({new_cost, nr, nc});
+          }
         }
       }
     }
@@ -183,8 +178,8 @@ i64 solve() {
   assert(si >= 0 and gi >= 0);
 
   auto res = grid_bfs(grid, tele, si, sj);
-  if (not res[gi * W + gj].has_value()) return -1;
-  return res[gi * W + gj].value();
+  if (not res[gi][gj].has_value()) return -1;
+  return res[gi][gj].value();
 }
 
 int main() {
