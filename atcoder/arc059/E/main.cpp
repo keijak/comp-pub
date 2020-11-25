@@ -64,7 +64,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
+void pdebug(const T &value, const Ts &... args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -80,9 +80,6 @@ void pdebug(const T &value, const Ts &...args) {
 #define pdebug(...)
 #define DEBUG(...)
 #endif
-
-using namespace std;
-using Mint = atcoder::modint1000000007;
 
 // Formal Power Series (dense format).
 template <typename T, int DMAX>
@@ -108,10 +105,10 @@ struct DenseFPS {
 
   int size() const { return (int)coeff_.size(); }
 
-  // Returns the coefficient of x^dy.
-  T operator[](int dy) const {
-    if (dy >= size()) return 0;
-    return coeff_[dy];
+  // Returns the coefficient of x^k.
+  T operator[](int k) const {
+    if (k >= size()) return 0;
+    return coeff_[k];
   }
 
   DenseFPS &operator+=(const T &scalar) {
@@ -210,6 +207,9 @@ struct DenseFPS {
     return DenseFPS(std::move(res));
   }
 };
+
+using namespace std;
+using Mint = atcoder::modint1000000007;
 
 const int CMAX = 400;
 using FPS = DenseFPS<Mint, CMAX>;
