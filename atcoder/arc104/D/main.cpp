@@ -1,10 +1,13 @@
 #include <bits/stdc++.h>
-using i64 = std::int64_t;
-using u64 = std::uint64_t;
-#define REP(i, n) for (int i = 0; i < (i64)(n); ++i)
+#define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
-#define SIZE(a) (int)((a).size())
+using i64 = long long;
+using u64 = unsigned long long;
 
+template <class T>
+inline int ssize(const T &a) {
+  return (int)std::size(a);
+}
 template <class T>
 inline bool chmax(T &a, T b) {
   return a < b and ((a = std::move(b)), true);
@@ -14,16 +17,6 @@ inline bool chmin(T &a, T b) {
   return a > b and ((a = std::move(b)), true);
 }
 
-template <typename T>
-using V = std::vector<T>;
-template <typename T>
-std::vector<T> make_vec(size_t n, T a) {
-  return std::vector<T>(n, a);
-}
-template <typename... Ts>
-auto make_vec(size_t n, Ts... ts) {
-  return std::vector<decltype(make_vec(ts...))>(n, make_vec(ts...));
-}
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
@@ -47,9 +40,10 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
     : std::true_type {};
 
-template <typename T,
-          typename = std::enable_if_t<is_iterable<T>::value &&
-                                      !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return pprint(a, ", ", "", &(os << "{")) << "}";
 }
@@ -64,7 +58,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -81,181 +75,354 @@ void pdebug(const T &value, const Ts &... args) {
 #define DEBUG(...)
 #endif
 
-using namespace std;
+// Formal Power Series (dense format).
+template <typename T, int &DMAX>
+struct DenseFPS {
+  // Coefficients of terms from x^0 to x^DMAX.
+  std::vector<T> coeff_;
 
-template <unsigned long long &M>
-struct ModInt {
-  constexpr ModInt(long long val = 0) : _v(0) {
-    if (val < 0) {
-      long long k = (abs(val) + M - 1) / M;
-      val += k * M;
+  DenseFPS() : coeff_(1) {}  // zero-initialized
+  explicit DenseFPS(std::vector<T> c) : coeff_(std::move(c)) {
+    assert((int)c.size() <= DMAX + 1);
+  }
+  DenseFPS(std::initializer_list<T> init) : coeff_(init.begin(), init.end()) {
+    assert((int)init.size() <= DMAX + 1);
+  }
+
+  DenseFPS(const DenseFPS &other) : coeff_(other.coeff_) {}
+  DenseFPS(DenseFPS &&other) : coeff_(std::move(other.coeff_)) {}
+  DenseFPS &operator=(const DenseFPS &other) {
+    coeff_ = other.coeff_;
+    return *this;
+  }
+  DenseFPS &operator=(DenseFPS &&other) {
+    coeff_ = std::move(other.coeff_);
+    return *this;
+  }
+
+  int size() const { return (int)coeff_.size(); }
+
+  // Returns the coefficient of x^k.
+  T operator[](int k) const {
+    if (k >= size()) return 0;
+    return coeff_[k];
+  }
+
+  DenseFPS &operator+=(const T &scalar) {
+    coeff_[0] += scalar;
+    return *this;
+  }
+  friend DenseFPS operator+(const DenseFPS &x, const T &scalar) {
+    DenseFPS res = x;
+    res += scalar;
+    return res;
+  }
+  DenseFPS &operator+=(const DenseFPS &other) {
+    if (size() < other.size()) {
+      coeff_.resize(other.size());
     }
-    assert(val >= 0);
-    _v = val % M;
-  }
-
-  static constexpr int mod() { return M; }
-  static constexpr unsigned int umod() { return M; }
-  inline unsigned int val() const { return _v; }
-
-  ModInt &operator++() {
-    _v++;
-    if (_v == umod()) _v = 0;
+    for (int i = 0; i < other.size(); ++i) coeff_[i] += other[i];
     return *this;
   }
-  ModInt &operator--() {
-    if (_v == 0) _v = umod();
-    _v--;
-    return *this;
-  }
-  ModInt operator++(int) {
-    auto result = *this;
-    ++*this;
-    return result;
-  }
-  ModInt operator--(int) {
-    auto result = *this;
-    --*this;
-    return result;
-  }
-
-  constexpr ModInt operator-() const { return ModInt(-_v); }
-  constexpr ModInt &operator+=(const ModInt &a) {
-    if ((_v += a._v) >= M) _v -= M;
-    return *this;
-  }
-  constexpr ModInt &operator-=(const ModInt &a) {
-    if ((_v += M - a._v) >= M) _v -= M;
-    return *this;
-  }
-  constexpr ModInt &operator*=(const ModInt &a) {
-    _v = ((unsigned long long)(_v)*a._v) % M;
-    return *this;
-  }
-  constexpr ModInt pow(unsigned long long t) const {
-    ModInt base = *this;
-    ModInt res = 1;
-    while (t) {
-      if (t & 1) res *= base;
-      base *= base;
-      t >>= 1;
-    }
+  friend DenseFPS operator+(const DenseFPS &x, const DenseFPS &y) {
+    DenseFPS res = x;
+    res += y;
     return res;
   }
 
-  constexpr ModInt inv() const {
-    // Inverse by Extended Euclidean algorithm.
-    // M doesn't need to be prime, but x and M must be coprime.
-    assert(_v != 0);
-    long long g, x, y;
-    g = ext_gcd(_v, M, x, y);
-    assert(g == 1LL);  // gcd(_v, M) must be 1.
-    return x;
+  DenseFPS &operator-=(const DenseFPS &other) {
+    if (size() < other.size()) {
+      coeff_.resize(other.size());
+    }
+    for (int i = 0; i < other.size(); ++i) coeff_[i] -= other[i];
+    return *this;
+  }
+  friend DenseFPS operator-(const DenseFPS &x, const DenseFPS &y) {
+    DenseFPS res = x;
+    res -= y;
+    return res;
+  }
 
-    // Inverse by Fermat's little theorem.
-    // M must be prime, but it's usually faster.
-    //
-    //     return pow(M - 2);
+  DenseFPS &operator*=(const T &scalar) {
+    for (auto &x : coeff_) x *= scalar;
+    return *this;
   }
-  constexpr ModInt &operator/=(const ModInt &a) { return *this *= a.inv(); }
+  friend DenseFPS operator*(const DenseFPS &x, const T &scalar) {
+    DenseFPS res = x;
+    res *= scalar;
+    return res;
+  }
+  friend DenseFPS operator*(const T &scalar, const DenseFPS &y) {
+    DenseFPS res = {scalar};
+    res *= y;
+    return res;
+  }
+  DenseFPS &operator*=(const DenseFPS &other) {
+    *this = this->mul_naive(other);
+    return *this;
+  }
+  friend DenseFPS operator*(const DenseFPS &x, const DenseFPS &y) {
+    return x.mul_naive(y);
+  }
 
-  friend constexpr ModInt operator+(const ModInt &a, const ModInt &b) {
-    return ModInt(a) += b;
+  DenseFPS &operator/=(const T &scalar) {
+    for (auto &x : coeff_) x /= scalar;
+    return *this;
   }
-  friend constexpr ModInt operator-(const ModInt &a, const ModInt &b) {
-    return ModInt(a) -= b;
+  friend DenseFPS operator/(const DenseFPS &x, const T &scalar) {
+    DenseFPS res = x;
+    res /= scalar;
+    return res;
   }
-  friend constexpr ModInt operator*(const ModInt &a, const ModInt &b) {
-    return ModInt(a) *= b;
+  friend DenseFPS operator/(const T &scalar, const DenseFPS &y) {
+    DenseFPS res = {scalar};
+    res /= y;
+    return res;
   }
-  friend constexpr ModInt operator/(const ModInt &a, const ModInt &b) {
-    return ModInt(a) /= b;
+  DenseFPS &operator/=(const DenseFPS &other) {
+    return *this *= other.inv_naive();
   }
-  friend constexpr bool operator==(const ModInt &a, const ModInt &b) {
-    return a._v == b._v;
+  friend DenseFPS operator/(const DenseFPS &x, const DenseFPS &y) {
+    return x * y.inv_naive();
   }
-  friend constexpr bool operator!=(const ModInt &a, const ModInt &b) {
-    return a._v != b._v;
-  }
-  friend std::istream &operator>>(std::istream &is, ModInt &a) {
-    return is >> a._v;
-  }
-  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) {
-    return os << a._v;
+
+  // Naive inverse. O(N^2)
+  DenseFPS inv_naive() const {
+    std::vector<T> res(DMAX + 1);
+    res[0] = coeff_[0].inv();
+    for (int i = 1; i <= DMAX; ++i) {
+      T s = 0;
+      const int mi = std::min(i + 1, size());
+      for (int j = 1; j < mi; ++j) {
+        s += coeff_[j] * res[i - j];
+      }
+      res[i] = -res[0] * s;
+    }
+    return DenseFPS(std::move(res));
   }
 
  private:
-  // Extended Euclidean algorithm
-  // Returns gcd(a,b). x and y are set to satisfy `a*x + b*y == gcd(a,b)`
-  static long long ext_gcd(long long a, long long b, long long &x,
-                           long long &y) {
-    if (b == 0) {
-      x = 1;
-      y = 0;
-      return a;
+  // Naive multiplication. O(N^2)
+  DenseFPS mul_naive(const DenseFPS &other) const {
+    const int n = std::min(size() + other.size() - 1, DMAX + 1);
+    std::vector<T> res(n);
+    for (int i = 0; i < size(); ++i) {
+      for (int j = 0; j < other.size(); ++j) {
+        if (i + j >= n) break;
+        res[i + j] += coeff_[i] * other.coeff_[j];
+      }
     }
-    auto d = std::lldiv(a, b);
-    auto g = ext_gcd(b, d.rem, y, x);
-    y -= d.quot * x;
-    return g;
-  }
-
-  unsigned long long _v;  // raw value
-};
-unsigned long long MOD = 1;
-using Mint = ModInt<MOD>;
-
-template <class T = Mint>
-struct Factorials {
-  // factorials and inverse factorials.
-  std::vector<T> fact, ifact;
-
-  // n: max cached value.
-  Factorials(size_t n) : fact(n + 1), ifact(n + 1) {
-    assert(n > 0 and n < MOD);
-    fact[0] = 1;
-    for (size_t i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
-    ifact[n] = fact[n].inv();
-    for (size_t i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
-  }
-
-  // Combination (nCk)
-  T C(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
-  }
-
-  // Permutation (nPk)
-  T P(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[n - k];
+    return DenseFPS(std::move(res));
   }
 };
+
+// Formal Power Series (sparse format).
+template <typename T>
+struct SparseFPS {
+  int size_;
+  std::vector<int> degree_;
+  std::vector<T> coeff_;
+
+  SparseFPS() : size_(0) {}
+
+  explicit SparseFPS(std::vector<std::pair<int, T>> terms)
+      : size_(terms.size()), degree_(size_), coeff_(size_) {
+    // Sort by degree.
+    std::sort(terms.begin(), terms.end(),
+              [](const auto &x, const auto &y) { return x.first < y.first; });
+    for (int i = 0; i < size_; ++i) {
+      degree_[i] = terms[i].first;
+      coeff_[i] = terms[i].second;
+      assert(degree_[i] >= 0);
+    }
+  }
+
+  SparseFPS(std::initializer_list<std::pair<int, T>> terms)
+      : SparseFPS(std::vector<std::pair<int, T>>(terms.begin(), terms.end())) {}
+
+  inline int size() const { return size_; }
+  inline const T &coeff(int i) const { return coeff_[i]; }
+  inline int degree(int i) const { return degree_[i]; }
+  int max_degree() const { return (size_ == 0) ? 0 : degree_.back(); }
+
+  void emplace_back(int d, T c) {
+    assert(d >= 0);
+    if (not degree_.empty()) {
+      assert(d > degree_.back());
+    }
+    degree_.push_back(std::move(d));
+    coeff_.push_back(std::move(c));
+    ++size_;
+  }
+
+  // Returns the coefficient of x^d.
+  T operator[](int d) const {
+    auto it = std::lower_bound(degree_.begin(), degree_.end(), d);
+    if (it == degree_.end() or *it != d) return (T)(0);
+    int j = std::distance(degree_.begin(), it);
+    return coeff_[j];
+  }
+
+  SparseFPS &operator+=(const T &scalar) {
+    for (auto &x : coeff_) x += scalar;
+    return *this;
+  }
+  friend SparseFPS operator+(const SparseFPS &x, const T &scalar) {
+    SparseFPS res = x;
+    res += scalar;
+    return res;
+  }
+  SparseFPS &operator+=(const SparseFPS &other) {
+    *this = this->add(other);
+    return *this;
+  }
+  friend SparseFPS operator+(const SparseFPS &x, const SparseFPS &y) {
+    return x.add(y);
+  }
+
+  SparseFPS &operator*=(const T &scalar) {
+    for (auto &x : coeff_) x *= scalar;
+    return *this;
+  }
+  friend SparseFPS operator*(const SparseFPS &x, const T &scalar) {
+    SparseFPS res = x;
+    res *= scalar;
+    return res;
+  }
+
+  SparseFPS &operator-=(const SparseFPS &other) {
+    *this = this->add(other * -1);
+    return *this;
+  }
+  friend SparseFPS operator-(const SparseFPS &x, const SparseFPS &y) {
+    return x.add(y * -1);
+  }
+
+ private:
+  SparseFPS add(const SparseFPS &other) const {
+    SparseFPS res;
+    int j = 0;  // two pointers (i, j)
+    for (int i = 0; i < size(); ++i) {
+      const int deg = this->degree(i);
+      for (; j < other.size() and other.degree(j) < deg; ++j) {
+        res.emplace_back(other.degree(j), other.coeff(j));
+      }
+      T c = this->coeff(i);
+      if (j < other.size() and other.degree(j) == deg) {
+        c += other.coeff(j);
+        ++j;
+      }
+      if (c != 0) {
+        res.emplace_back(deg, c);
+      }
+    }
+    for (; j < other.size(); ++j) {
+      res.emplace_back(other.degree(j), other.coeff(j));
+    }
+    return res;
+  }
+};
+
+// Polynomial multiplication (dense * sparse).
+template <typename T, int &DMAX>
+DenseFPS<T, DMAX> &operator*=(DenseFPS<T, DMAX> &x, const SparseFPS<T> &y) {
+  if (y.size() == 0) {
+    return x *= 0;
+  }
+  T c0 = 0;
+  int j0 = 0;
+  if (y.degree(0) == 0) {
+    c0 = y.coeff(0);
+    ++j0;
+  }
+  const int yd_max = y.degree(y.size() - 1);
+  const int xd_max = x.size() - 1;
+  const int n = std::min(xd_max + yd_max + 1, DMAX + 1);
+  if (x.size() < n) x.coeff_.resize(n);
+  for (int xd = n - 1; xd >= 0; --xd) {
+    x.coeff_[xd] *= c0;
+    for (int j = j0; j < y.size(); ++j) {
+      int yd = y.degree(j);
+      if (yd > xd) break;
+      x.coeff_[xd] += x[xd - yd] * y.coeff(j);
+    }
+  }
+  return x;
+}
+template <typename T, int &DMAX>
+DenseFPS<T, DMAX> operator*(const DenseFPS<T, DMAX> &x, const SparseFPS<T> &y) {
+  DenseFPS<T, DMAX> res = x;
+  res *= y;
+  return res;
+}
+template <typename T, int &DMAX>
+DenseFPS<T, DMAX> operator*(const SparseFPS<T> &x, const DenseFPS<T, DMAX> &y) {
+  return y * x;  // commutative
+}
+
+// Polynomial division (dense / sparse).
+template <typename T, int &DMAX>
+DenseFPS<T, DMAX> &operator/=(DenseFPS<T, DMAX> &x, const SparseFPS<T> &y) {
+  assert(y.size() > 0 and y.degree(0) == 0 and y.coeff(0) != 0);
+  const T inv_c0 = y.coeff(0).inv();
+  const int yd_max = y.degree(y.size() - 1);
+  const int xd_max = x.size() - 1;
+  const int n = std::min(xd_max + yd_max + 1, DMAX + 1);
+  if (x.size() < n) x.coeff_.resize(n);
+  for (int xd = 0; xd < n; ++xd) {
+    for (int j = 1; j < y.size(); ++j) {
+      int yd = y.degree(j);
+      if (yd > xd) break;
+      x.coeff_[xd] -= x[xd - yd] * y[j];
+    }
+    x.coeff_[xd] *= inv_c0;
+  }
+  return x;
+}
+template <typename T, int &DMAX>
+DenseFPS<T, DMAX> operator/(const DenseFPS<T, DMAX> &x, const SparseFPS<T> &y) {
+  DenseFPS<T, DMAX> res = x;
+  res /= y;
+  return res;
+}
+
+using namespace std;
+
+#include <atcoder/modint>
+using Mint = atcoder::modint;
+std::ostream &operator<<(std::ostream &os, const Mint &m) {
+  return os << m.val();
+}
+
+int N, K, M;
+int NMAX = 1'000'005;
+using FPS = DenseFPS<Mint, NMAX>;
+
+Mint solve(int x) {
+  FPS f = {1};
+  for (int i = 1; i <= N; ++i) {
+    map<int, int> m;
+    for (int k = 0; k <= K; ++k) {
+      m[k * (i - x) + N * K] += 1;
+    }
+    SparseFPS<Mint> s;
+    for (auto [k, v] : m) {
+      s.emplace_back(k, v);
+    }
+    f *= s;
+  }
+  return f[N * N * K] - 1;
+}
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
 
-  int n, k;
-  cin >> n >> k >> MOD;
+  cin >> N >> K >> M;
+  Mint::set_mod(M);
+  NMAX = N * N * K;
 
-  int total_sum = n * (n + 1) / 2;
-  Factorials fs(total_sum);
-  V<Mint> ans(n + 1);
-
-  for (int s = 1; s <= total_sum; ++s) {
-    // TODO: osa_k
-    for (int j = 1; j * j <= s; ++j) {
-      if (s % (j + 1) != 0) continue;
-      int mean = s / (j + 1);
-      auto r = fs.C(s - 1, j);
-      DEBUG(mean, r, s, j);
-
-      ans[mean] += r;
-    }
-  }
-
-  for (int i = 1; i <= n; ++i) {
-    cout << ans[i] << '\n';
+  for (int x = 1; x <= N; ++x) {
+    cout << solve(x).val() << '\n';
   }
 }
