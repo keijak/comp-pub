@@ -94,7 +94,7 @@ Mint solve(int x) {
       int j = it->first;
       for (int k = 0; k <= K; ++k) {
         int d = k * (i - x);
-        if (-NNK <= j + d and j + d <= NNK) {
+        if (-K * (N - i) * (N - x) <= j + d and j + d <= (N - i) * x * K) {
           dp[i][j + d] += it->second;
         }
       }

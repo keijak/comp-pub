@@ -201,6 +201,14 @@ struct DenseFPS {
     return DenseFPS(std::move(res));
   }
 
+  DenseFPS &operator<<=(const int d) {
+    int k = std::clamp(d, 0, ssize(coeff_));
+    if (k > 0) {
+      coeff_.erase(coeff_.begin(), coeff_.begin() + k);
+    }
+    return *this;
+  }
+
  private:
   // Naive multiplication. O(N^2)
   DenseFPS mul_naive(const DenseFPS &other) const {
@@ -395,24 +403,8 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
 }
 
 int N, K, M;
-int NMAX = 1'000'005;
+int NMAX = 3'000'005;
 using FPS = DenseFPS<Mint, NMAX>;
-
-Mint solve(int x) {
-  FPS f = {1};
-  for (int i = 1; i <= N; ++i) {
-    map<int, int> m;
-    for (int k = 0; k <= K; ++k) {
-      m[k * (i - x) + N * K] += 1;
-    }
-    SparseFPS<Mint> s;
-    for (auto [k, v] : m) {
-      s.emplace_back(k, v);
-    }
-    f *= s;
-  }
-  return f[N * N * K] - 1;
-}
 
 int main() {
   ios::sync_with_stdio(false);
@@ -422,7 +414,52 @@ int main() {
   Mint::set_mod(M);
   NMAX = N * N * K;
 
-  for (int x = 1; x <= N; ++x) {
-    cout << solve(x).val() << '\n';
+  FPS f = {1};
+  for (int i = 1; i <= N; ++i) {
+    map<int, int> m;
+    for (int k = 0; k <= K; ++k) {
+      m[k * (i - N) + N * K] += 1;
+    }
+    SparseFPS<Mint> s;
+    for (auto [k, v] : m) {
+      s.emplace_back(k, v);
+    }
+    f *= s;
   }
+
+  vector<Mint> ans(N);
+  ans[N - 1] = f[N * N * K] - 1;
+
+  for (int x = N - 1; x >= 1; --x) {
+    {
+      map<int, int> m;
+      for (int k = 0; k <= K; ++k) {
+        int c = N * K + k * (-x);
+        m[c] += 1;
+      }
+      int b = K * (N - x);
+      f <<= b;
+      SparseFPS<Mint> s;
+      for (auto [k, v] : m) {
+        s.emplace_back(k - b, v);
+      }
+      f /= s;
+    }
+
+    {
+      map<int, int> m;
+      for (int k = 0; k <= K; ++k) {
+        int c = N * K + k * (N - x);
+        m[c] += 1;
+      }
+      SparseFPS<Mint> s;
+      for (auto [k, v] : m) {
+        s.emplace_back(k, v);
+      }
+      f *= s;
+    }
+
+    ans[x - 1] = f[N * N * K] - 1;
+  }
+  REP(i, N) { cout << ans[i] << '\n'; }
 }
