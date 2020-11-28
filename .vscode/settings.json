@@ -3,7 +3,8 @@
         "queue": "cpp",
         "optional": "cpp",
         "iosfwd": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "modint": "cpp"
     },
     "python.pythonPath": "/Users/keiji/.pyenv/shims/python",
     "C_Cpp.default.intelliSenseMode": "gcc-x64"
