@@ -84,28 +84,22 @@ i64 solve() {
   REP(i, H) REP(j, W) cin >> grid[i][j];
 
   auto cumb = vector(H + 1, vector(W + 1, 0LL));
-  auto cumw = vector(H + 1, vector(W + 1, 0LL));
   REP(i, H) {
     REP(j, W) {
+      int b;
       if ((i + j) % 2 == 0) {
-        int b = grid[i][j];
-        cumb[i + 1][j + 1] = cumb[i + 1][j] + cumb[i][j + 1] - cumb[i][j] + b;
-        cumw[i + 1][j + 1] = cumw[i + 1][j] + cumw[i][j + 1] - cumw[i][j];
+        b = grid[i][j];
       } else {
-        int w = grid[i][j];
-        cumw[i + 1][j + 1] = cumw[i + 1][j] + cumw[i][j + 1] - cumw[i][j] + w;
-        cumb[i + 1][j + 1] = cumb[i + 1][j] + cumb[i][j + 1] - cumb[i][j];
+        b = -grid[i][j];
       }
+      cumb[i + 1][j + 1] = cumb[i + 1][j] + cumb[i][j + 1] - cumb[i][j] + b;
     }
   }
 
   i64 ans = 0;
   REP(i, H + 1) REP(j, W + 1) REP(i2, i) REP(j2, j) {
     i64 b = cumb[i][j] - cumb[i2][j] - cumb[i][j2] + cumb[i2][j2];
-    i64 w = cumw[i][j] - cumw[i2][j] - cumw[i][j2] + cumw[i2][j2];
-    if (b == w) {
-      chmax(ans, i64(i - i2) * i64(j - j2));
-    }
+    if (b == 0) chmax(ans, i64(i - i2) * i64(j - j2));
   }
   return ans;
 }
