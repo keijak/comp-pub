@@ -1,8 +1,8 @@
 #include <bits/stdc++.h>
-using i64 = long long;
-using u64 = unsigned long long;
 #define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
+using i64 = long long;
+using u64 = unsigned long long;
 
 template <class T>
 inline int ssize(const T &a) {
@@ -16,9 +16,6 @@ template <class T>
 inline bool chmin(T &a, T b) {
   return a > b and ((a = std::move(b)), true);
 }
-
-template <typename T>
-using V = std::vector<T>;
 
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
@@ -61,7 +58,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -80,7 +77,12 @@ void pdebug(const T &value, const Ts &... args) {
 
 using namespace std;
 
+i64 solve() {
+  //
+  return -42;
+}
+
 int main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
+  ios::sync_with_stdio(false), cin.tie(nullptr);
+  cout << solve() << endl;
 }
