@@ -89,42 +89,39 @@ i64 solve() {
     g[v].push_back(u);
   }
 
-  vector<int> depth(n, -1), maxdepth(n, -1);
+  int ans = 1;
+  const int INF = 1e8;
+  vector<int> depth(n, -1);
   auto dfs_depth = [&](auto self, int v, int p, int d) -> int {
     depth[v] = d;
-    int md = d;
-    int mdi = 0;
+    int mind = INF;
+    vector<int> minds;
     REP(j, ssize(g[v])) {
       int u = g[v][j];
       if (u == p) continue;
-      int r = self(self, u, v, d + 1);
-      if (chmax(md, r)) {
-        mdi = j;
+      auto mi = self(self, u, v, d + 1);
+      minds.push_back(mi);
+      chmin(mind, mi);
+    }
+    sort(ALL(minds), greater<>());
+    if (ssize(minds) > 1) {
+      if (p == -1) {
+        chmax(ans, minds[1] - d + 1);
+      } else {
+        chmax(ans, minds[0] - d + 1);
       }
     }
-    if (mdi != 0) {
-      swap(g[v][0], g[v][mdi]);
+    if (mind == INF) {
+      mind = d;
+    } else if (p == -1) {
+      mind = minds[0];
     }
-    maxdepth[v] = md;
-    return md;
+    return mind;
   };
-  dfs_depth(dfs_depth, 0, -1, 0);
-
-  i64 ans = 1;
-  auto dfs = [&](auto self, int v, int p) -> void {
-    if (ssize(g[v]) > 1) {
-      int u = g[v][0];
-      self(self, u, v);
-    }
-    for (int i = 1; i < ssize(g[v]); ++i) {
-      int u = g[v][i];
-      if (u == p) continue;
-      //
-    }
-  };
-  dfs(dfs, 0, -1);
-  //
-  return -42;
+  int m = dfs_depth(dfs_depth, 0, -1, 0);
+  chmax(ans, m);
+  DEBUG(depth);
+  return ans;
 }
 
 int main() {
