@@ -3,114 +3,64 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 using u64 = unsigned long long;
-
-template <class T>
-inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
-template <class T>
-inline bool chmax(T &a, T b) {
-  return a < b and ((a = std::move(b)), true);
-}
-template <class T>
-inline bool chmin(T &a, T b) {
-  return a > b and ((a = std::move(b)), true);
-}
-
-template <typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
-}
-template <typename Container>
-std::ostream &pprint(const Container &a, std::string_view sep = " ",
-                     std::string_view ends = "\n", std::ostream *os = nullptr) {
-  if (os == nullptr) os = &std::cout;
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) *os << sep;
-    *os << *it;
-  }
-  return *os << ends;
-}
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-template <typename T, typename = std::enable_if_t<
-                          is_iterable<T>::value &&
-                          !std::is_same<T, std::string_view>::value &&
-                          !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return pprint(a, ", ", "", &(os << "{")) << "}";
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
-}
-
-#ifdef ENABLE_DEBUG
-template <typename T>
-void pdebug(const T &value) {
-  std::cerr << value;
-}
-template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
-  pdebug(value);
-  std::cerr << ", ";
-  pdebug(args...);
-}
-#define DEBUG(...)                                   \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    pdebug(__VA_ARGS__);                             \
-    std::cerr << std::endl;                          \
-  } while (0)
-#else
-#define pdebug(...)
-#define DEBUG(...)
-#endif
+using i32 = std::int32_t;
+using u32 = std::uint32_t;
 
 using namespace std;
 
-int n;
-vector<i64> a(n);
-
-const int L = 4005;
+const int L = 4001;
+const int K = 91;
 const i64 INF = 1e18;
-i64 memo1[L][L][2];
-i64 memo2[L][L][2];
+i64 memo1[K * K * L];
+i64 memo2[K * K * L];
 
-i64 minimizer(int l, int r, int k);
+int n;
+vector<i64> cum;
 
-i64 maximizer(int l, int r, int k) {
-  // No choice
-  if (r == l) return 0;
-  if (k == 2 and r - l == 1) return 0;
-  if (k == 1 and r - l == 1) return a[l];
-  if (k == 2 and r - l == 2) return a[l] + a[l + 1];
+i64 minimizer(u32 l, i32 d, i32 k);
 
-  auto &cached = memo1[l][r][k - 1];
+i64 maximizer(u32 l, i32 d, i32 k) {
+  u32 r = n - l - d;
+  if (l + k - 1 >= r) return 0;
+  if (l + k == r) return cum[l + k] - cum[l];
+
+  u32 key = l * K * K + d * K + k;
+  auto &cached = memo1[key];
   if (cached != INF) return cached;
-  if (a[l + 1] <) a[l]
+
+  i64 r1 = (cum[l + k] - cum[l]) + minimizer(l + k, d - k, k);
+  i64 r2 = (cum[l + k + 1] - cum[l]) + minimizer(l + k + 1, d - k - 1, k + 1);
+  i64 res = max(r1, r2);
+  return cached = res;
 }
 
-i64 minimizer(int l, int r, int k) {
-  if (r == l) return 0;
-  if (k == 2 and r - l == 1) return 0;
-  if (k == 1 and r - l == 1) return -a[l];
-  if (k == 2 and r - l == 2) return -a[l] - a[l + 1];
+i64 minimizer(u32 l, i32 d, i32 k) {
+  u32 r = n - l - d;
+  if (l + k - 1 >= r) return 0;
+  if (l + k == r) return -(cum[r] - cum[r - k]);
+
+  u32 key = l * K * K + (d + K) * K + k;
+  auto &cached = memo2[key];
+  if (cached != INF) return cached;
+
+  i64 r1 = -(cum[r] - cum[r - k]) + maximizer(l, d + k, k);
+  i64 r2 = -(cum[r] - cum[r - k - 1]) + maximizer(l, d + k + 1, k + 1);
+  i64 res = min(r1, r2);
+  return cached = res;
 }
 
 i64 solve() {
   cin >> n;
-  cin >> a;
-  REP(i, L) REP(j, L) REP(k, 2) { memo1[i][j][k] = memo2[i][j][k] = INF; }
-  return maximizer(0, n, 1);
+  cum.resize(n + 1);
+  fill(ALL(memo1), INF);
+  fill(ALL(memo2), INF);
+
+  REP(i, n) {
+    i64 x;
+    cin >> x;
+    cum[i + 1] = cum[i] + x;
+  }
+  return maximizer(0, 0, 1);
 }
 
 int main() {
