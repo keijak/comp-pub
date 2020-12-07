@@ -151,10 +151,11 @@ i64 solve() {
       }
     }
   }
+
   i64 full = (1 << n) - 1;
-  int min_collect = INF;
-  REP(i, 2) REP(j, n * n) { chmin(min_collect, dp[full][i][j]); }
-  return min_collect + n;
+  int min_draw = INF;
+  REP(i, 2) REP(j, n * n) { chmin(min_draw, dp[full][i][j]); }
+  return min_draw + n;
 }
 
 int main() {
