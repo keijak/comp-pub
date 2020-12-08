@@ -4,7 +4,20 @@
         "optional": "cpp",
         "iosfwd": "cpp",
         "span": "cpp",
-        "modint": "cpp"
+        "modint": "cpp",
+        "iostream": "cpp",
+        "vector": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "ranges": "cpp",
+        "regex": "cpp",
+        "utility": "cpp",
+        "valarray": "cpp",
+        "limits": "cpp",
+        "*.tcc": "cpp",
+        "string": "cpp"
     },
     "python.pythonPath": "/Users/keiji/.pyenv/shims/python",
     "C_Cpp.default.intelliSenseMode": "gcc-x64"
