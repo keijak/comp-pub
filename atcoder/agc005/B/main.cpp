@@ -1,8 +1,4 @@
-#include <deque>
-#include <iostream>
-#include <limits>
-#include <ranges>
-#include <vector>
+#include <bits/stdc++.h>
 
 #define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
@@ -63,7 +59,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
