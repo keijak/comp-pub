@@ -4,16 +4,16 @@
 using i64 = long long;
 using u64 = unsigned long long;
 
-template <class T>
+template <typename T>
 inline int ssize(const T &a) {
   return (int)std::size(a);
 }
-template <class T>
-inline bool chmax(T &a, T b) {
+template <typename T, typename U>
+inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template <class T>
-inline bool chmin(T &a, T b) {
+template <typename T, typename U>
+inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
 
@@ -84,5 +84,5 @@ i64 solve() {
 
 int main() {
   ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << solve() << endl;
+  cout << solve() << "\n";
 }
