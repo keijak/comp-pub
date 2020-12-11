@@ -83,15 +83,17 @@ using MinHeap = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 struct State {
   i64 magic;
   int steps;
+  int closed;
   int node;
 };
 bool operator>(const State &x, const State &y) {
   if (x.magic != y.magic) return x.magic > y.magic;
-  return x.steps < y.steps;
+  if (x.steps != y.steps) return x.steps < y.steps;
+  return x.closed < y.closed;
 }
 
-i64 grid_search(const std::vector<std::string> &g,
-                const vector<bool> &init_nodes, int K) {
+i64 grid_search(const std::vector<std::string> &g, int source_r, int source_c,
+                int K) {
   const int H = g.size();
   const int W = g[0].size();
   auto pack = [&](int r, int c) -> int { return r * W + c; };
@@ -99,13 +101,11 @@ i64 grid_search(const std::vector<std::string> &g,
     return {node / W, node % W};
   };
   array<int, 4> dx = {0, 0, 1, -1}, dy = {1, -1, 0, 0};
-  auto mincost = std::vector(H * W, std::optional<State>());
+  auto mincost = std::vector(H * W * 2, std::optional<State>());
+  int source_node = pack(source_r, source_c);
+  mincost[source_node] = {1, K, 0, source_node};
   MinHeap<State> que;
-  REP(i, H * W) {
-    if (not init_nodes[i]) continue;
-    mincost[i] = {1, 0, i};
-    que.push(mincost[i].value());
-  }
+  que.push(mincost[source_node].value());
   while (not que.empty()) {
     State cur = std::move(que.top());
     que.pop();
@@ -126,19 +126,29 @@ i64 grid_search(const std::vector<std::string> &g,
       //   }
       //   cerr << endl;
       // }
-      // cerr << endl;
       return cur.magic;
     }
 
     for (int i = 0; i < 4; ++i) {
       int nr = cur_r + dy[i];
       int nc = cur_c + dx[i];
+      char room = g[nr][nc];
+      if (room == 'S') continue;
       int new_node = pack(nr, nc);
       State new_state;
-      if (cur.steps > 0) {
-        new_state = {cur.magic, cur.steps - 1, new_node};
+      if (room == '.') {
+        if (cur.steps > 0) {
+          new_state = {cur.magic, cur.steps - 1, cur.closed, new_node};
+        } else {
+          new_state = {cur.magic + 1, K - 1, cur.closed + K, new_node};
+        }
       } else {
-        new_state = {cur.magic + 1, K - 1, new_node};
+        assert(room == '#');
+        if (cur.steps > 0 and cur.closed > 0) {
+          new_state = {cur.magic, cur.steps - 1, cur.closed - 1, new_node};
+        } else {
+          new_state = {cur.magic + 1, K - 1, cur.closed + K - 1, new_node};
+        }
       }
       if (not mincost[new_node].has_value() or
           mincost[new_node].value() > new_state) {
@@ -165,50 +175,7 @@ i64 solve() {
       }
     }
   }
-
-  auto pack = [&](int r, int c) -> int { return r * W + c; };
-  auto unpack = [&](int node) -> tuple<int, int> {
-    return {node / W, node % W};
-  };
-  array<int, 4> dx = {0, 0, 1, -1}, dy = {1, -1, 0, 0};
-
-  vector<bool> reached(H * W, false);
-  {
-    queue<tuple<int, int>> q;
-    int source_node = pack(si, sj);
-    q.emplace(source_node, 0);
-    reached[source_node] = true;
-    while (q.size()) {
-      auto [node, steps] = q.front();
-      q.pop();
-      auto [cur_r, cur_c] = unpack(node);
-      if (steps == K) break;
-      REP(i, 4) {
-        int nr = cur_r + dy[i];
-        int nc = cur_c + dx[i];
-        if (nr < 0 or nr >= H or nc < 0 or nc >= W) continue;
-        char room = grid[nr][nc];
-        if (room == 'S' or room == '#') continue;
-        int new_node = pack(nr, nc);
-        if (reached[new_node]) continue;
-        DEBUG(nr, nc);
-        reached[new_node] = true;
-        q.emplace(new_node, steps + 1);
-      }
-    }
-
-    // REP(i, H) {
-    //   REP(j, W) {
-    //     if (reached[pack(i, j)]) {
-    //       cerr << 'o';
-    //     } else {
-    //       cerr << '_';
-    //     }
-    //   }
-    //   cerr << endl;
-    // }
-  }
-  auto res = grid_search(grid, reached, K);
+  auto res = grid_search(grid, si, sj, K);
   return res;
 }
 
