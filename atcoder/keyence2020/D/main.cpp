@@ -90,7 +90,7 @@ i64 solve() {
   vector<bool> even(n, false);
   int ans = INF;
   REP(bits, 1 << n) {
-    int num_even = 0;
+    int even_count = 0;
     REP(i, n) {
       bool red;
       if (bits >> i & 1) {
@@ -101,9 +101,9 @@ i64 solve() {
         val[i] = b[i];
       }
       even[i] = red ^ (i % 2 == 1);
-      if (even[i]) ++num_even;
+      if (even[i]) ++even_count;
     }
-    if (num_even != total_even_pos) continue;
+    if (even_count != total_even_pos) continue;
 
     vector<int> sorted = val;
     sort(ALL(sorted));
