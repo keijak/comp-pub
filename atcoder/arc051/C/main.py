@@ -16,8 +16,8 @@ def solve():
     a.sort()
 
     if N == 1:
-        x = (a[0] * pow(A, B, MOD)) % MOD
-        print(x)
+        x = a[0] * pow(A, B, MOD)
+        print(x % MOD)
         exit(0)
 
     if A == 1:
@@ -34,11 +34,6 @@ def solve():
             break
         a.sort()
     a.sort()
-
-    if B == 0:
-        for x in a:
-            print(x % MOD)
-        exit(0)
 
     p = B // N
     r = B % N
