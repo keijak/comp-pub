@@ -105,19 +105,13 @@ i64 solve() {
     u64 ub = r / p;
     DEBUG(k, p, lb, ub);
     for (u64 q = ub; q >= lb; --q) {
-      u64 fv = 0, tv = k;
-      while (tv - fv > 1) {
-        u64 mid = (tv + fv) / 2;
+      for (u64 z = k - 1; z >= 1; --z) {
+        if (std::gcd(k, z) != 1) continue;
         u64 y = q;
-        REP(j, n - 1) { y *= mid; }
-        if (l <= y) {
-          tv = mid;
-        } else {
-          fv = mid;
-        }
+        REP(j, n - 1) { y *= z; }
+        if (y < l) break;
+        ans += 2;
       }
-      ans += 2 * (k - tv);
-      DEBUG(q, tv);
     }
   }
 
