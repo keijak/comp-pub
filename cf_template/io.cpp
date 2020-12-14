@@ -4,10 +4,6 @@
 using i64 = long long;
 using u64 = unsigned long long;
 
-template <typename T>
-inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
 template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
@@ -16,6 +12,10 @@ template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
+template <typename T>
+inline int ssize(const T &a) {
+  return (int)std::size(a);
+}
 
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
@@ -23,8 +23,9 @@ std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   return is;
 }
 template <typename Container>
-std::ostream &pprint(const Container &a, std::string_view sep = " ",
-                     std::string_view ends = "\n", std::ostream *os = nullptr) {
+std::ostream &print_seq(const Container &a, std::string_view sep = " ",
+                        std::string_view ends = "\n",
+                        std::ostream *os = nullptr) {
   if (os == nullptr) os = &std::cout;
   auto b = std::begin(a), e = std::end(a);
   for (auto it = std::begin(a); it != e; ++it) {
@@ -45,7 +46,7 @@ template <typename T, typename = std::enable_if_t<
                           !std::is_same<T, std::string_view>::value &&
                           !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
-  return pprint(a, ", ", "", &(os << "{")) << "}";
+  return print_seq(a, ", ", "", &(os << "{")) << "}";
 }
 template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
@@ -83,6 +84,6 @@ i64 solve() {
 }
 
 int main() {
-  ios::sync_with_stdio(false), cin.tie(nullptr);
+  std::ios::sync_with_stdio(false), cin.tie(nullptr);
   cout << solve() << "\n";
 }
