@@ -135,14 +135,11 @@ i64 solve() {
   i64 ans = 0;
   REP(i, N) {
     auto dists = dijkstra(g, i);
-    DEBUG(i, dists);
     sort(ALL(dists));
     int ti = 0;
     for (int ri = 1; ri < N; ++ri) {
       i64 rd = dists[ri];
       assert(rd < INF);
-      assert(dists[ti] * R < rd * T);
-
       while (ti + 1 < N) {
         i64 td = dists[ti + 1];
         if (td * R >= rd * T) break;
@@ -153,7 +150,6 @@ i64 solve() {
       } else {
         ans += ti - 1;
       }
-      DEBUG(rd, dists[ti], ti);
     }
   }
 
