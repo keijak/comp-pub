@@ -111,6 +111,7 @@ void solve() {
       last_pos = ed;
       i64 len = ed - st + 1;
       c -= len;
+      if (c == 0) break;
       s = it->second;
     }
     cout << last_pos << '\n';
