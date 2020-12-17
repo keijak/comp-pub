@@ -1,7 +1,4 @@
-#include <cassert>
-#include <iostream>
-#include <map>
-#include <vector>
+#include <bits/stdc++.h>
 
 #define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
