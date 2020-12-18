@@ -1,5 +1,7 @@
 #include <bits/stdc++.h>
-#define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
+#define REP_(i, a_, b_, a, b, ...) \
+  for (int i = (a), N_##i = (b); i < N_##i; ++i)
+#define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 using u64 = unsigned long long;
