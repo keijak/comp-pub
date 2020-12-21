@@ -17,7 +17,9 @@
         "valarray": "cpp",
         "limits": "cpp",
         "*.tcc": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "chrono": "cpp",
+        "complex": "cpp"
     },
     "python.pythonPath": "/Users/keiji/.pyenv/shims/python",
     "C_Cpp.default.intelliSenseMode": "gcc-x64"
