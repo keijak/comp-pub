@@ -1,4 +1,7 @@
 #include <bits/stdc++.h>
+
+#include <atcoder/mincostflow>
+
 #define REP(i, n) for (int i = 0, REP_N_ = (n); i < REP_N_; ++i)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
@@ -76,14 +79,18 @@ void pdebug(const T &value, const Ts &...args) {
 #endif
 
 using namespace std;
+const int INF = 1e9;
+const i64 INF64 = 1e18;
 
 i64 solve() {
   int n, m;
   cin >> n >> m;
+  const int nm = n * m;
+
   vector<string> grid(n);
-  unordered_set<int> walls;
   set<int> pieces;
   int piece_cnt = 0;
+  i64 init_cost = 0;
   REP(i, n) {
     cin >> grid[i];
     REP(j, m) {
@@ -91,44 +98,40 @@ i64 solve() {
       if (grid[i][j] == 'o') {
         ++piece_cnt;
         pieces.insert(pos);
-      } else if (grid[i][j] == '#') {
-        walls.insert(pos);
+        init_cost += (n - 1 - i) + (m - 1 - j);
       }
     }
   }
 
-  array<int, 2> dx = {1, 0};
-  array<int, 2> dy = {0, 1};
-  map<vector<int>, int> memo;
-
-  auto dfs = [&](auto self) -> int {
-    vector<int> curs(ALL(pieces));
-    auto it = memo.find(curs);
-    if (it != memo.end()) return it->second;
-
-    int res = 0;
-    for (int cur : curs) {
-      int r = cur / m;
-      int c = cur % m;
-      REP(j, 2) {
-        int nr = r + dx[j];
-        int nc = c + dy[j];
-        if (nr == n or nc == m) continue;
-        int ns = nr * m + nc;
-        if (walls.count(ns)) continue;
-        if (pieces.count(ns)) continue;
-
-        pieces.erase(cur);
-        pieces.insert(ns);
-        chmax(res, self(self) + 1);
-        pieces.erase(ns);
-        pieces.insert(cur);
-      }
+  atcoder::mcf_graph<int, int> g(nm + 2);
+  const int SOURCE = nm;
+  const int SINK = nm + 1;
+  for (auto p : pieces) {
+    g.add_edge(SOURCE, p, 1, 0);
+  }
+  REP(i, n) REP(j, m) {
+    if (grid[i][j] == '#') continue;
+    int pos = i * m + j;
+    int cost = (n - 1 - i) + (m - 1 - j);
+    g.add_edge(pos, SINK, 1, cost);
+  }
+  REP(i, n) REP(j, m) {
+    if (grid[i][j] == '#') continue;
+    int pos = i * m + j;
+    if (i < n - 1 and grid[i + 1][j] != '#') {
+      int pos2 = (i + 1) * m + j;
+      g.add_edge(pos, pos2, piece_cnt, 0);
     }
-    memo[curs] = res;
-    return res;
-  };
-  return dfs(dfs);
+    if (j < m - 1 and grid[i][j + 1] != '#') {
+      int pos2 = i * m + (j + 1);
+      g.add_edge(pos, pos2, piece_cnt, 0);
+    }
+  }
+  auto [flow, mincost] = g.flow(SOURCE, SINK);
+  DEBUG(flow, piece_cnt);
+  assert(flow == piece_cnt);
+  DEBUG(mincost);
+  return init_cost - mincost;
 }
 
 int main() {
