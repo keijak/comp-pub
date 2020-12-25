@@ -1,29 +1,33 @@
 #include <bits/stdc++.h>
+#define REP_(i, a_, b_, a, b, ...) \
+  for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
+#define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
+#define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 using u64 = unsigned long long;
-#define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
-#define ALL(x) std::begin(x), std::end(x)
-#define SIZE(a) (int)((a).size())
 
-template <class T>
-inline bool chmax(T &a, T b) {
+template <typename T, typename U>
+inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template <class T>
-inline bool chmin(T &a, T b) {
+template <typename T, typename U>
+inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-
 template <typename T>
-using V = std::vector<T>;
+inline int ssize(const T &a) {
+  return (int)std::size(a);
+}
+
 template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
 template <typename Container>
-std::ostream &pprint(const Container &a, std::string_view sep = " ",
-                     std::string_view ends = "\n", std::ostream *os = nullptr) {
+std::ostream &print_seq(const Container &a, std::string_view sep = " ",
+                        std::string_view ends = "\n",
+                        std::ostream *os = nullptr) {
   if (os == nullptr) os = &std::cout;
   auto b = std::begin(a), e = std::end(a);
   for (auto it = std::begin(a); it != e; ++it) {
@@ -39,11 +43,12 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
     : std::true_type {};
 
-template <typename T,
-          typename = std::enable_if_t<is_iterable<T>::value &&
-                                      !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
-  return pprint(a, ", ", "", &(os << "{")) << "}";
+  return print_seq(a, ", ", "", &(os << "{")) << "}";
 }
 template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
@@ -56,7 +61,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -74,35 +79,40 @@ void pdebug(const T &value, const Ts &... args) {
 #endif
 
 using namespace std;
+const i64 INF = 1e15;
+
+i64 solve() {
+  int n;
+  cin >> n;
+  vector<i64> a(n), b(n);
+  cin >> a >> b;
+  vector<i64> gain(n);
+  i64 score = 0;
+  REP(i, n) {
+    score += a[i];
+    gain[i] = b[i] - a[i];
+  }
+
+  priority_queue<i64> qe, qo;
+  REP(i, n) {
+    if (i & 1) {
+      qo.push(gain[i]);
+    } else {
+      qe.push(gain[i]);
+    }
+  }
+  assert(ssize(qe) == ssize(qo));
+  while (qe.size()) {
+    auto v1 = qe.top();
+    auto v2 = qo.top();
+    qe.pop(), qo.pop();
+    if (v1 + v2 <= 0) break;
+    score += v1 + v2;
+  }
+  return score;
+}
 
 int main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
-
-  int N;
-  cin >> N;
-  V<u64> A(N), B(N);
-  cin >> A >> B;
-
-  auto dp = vector(N, vector(N + 1, optional<u64>()));
-
-  auto f = [&](auto self, int l, int r) -> u64 {
-    if (l == r) return 0ULL;
-    if (dp[l][r].has_value()) return dp[l][r].value();
-    assert(l < r);
-    assert((r - l) % 2 == 0);
-    u64 res = 0;
-    {
-      auto rr = self(self, l + 1, r - 1);
-      chmax(res, rr + max(A[l] + A[r - 1], B[l] + B[r - 1]));
-    }
-    for (int i = l + 2; i < r; i += 2) {
-      auto r1 = self(self, l, i);
-      auto r2 = self(self, i, r);
-      chmax(res, r1 + r2);
-    }
-    dp[l][r] = res;
-    return res;
-  };
-  cout << f(f, 0, N) << endl;
+  std::ios::sync_with_stdio(false), cin.tie(nullptr);
+  cout << solve() << "\n";
 }
