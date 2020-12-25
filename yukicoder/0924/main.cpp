@@ -107,96 +107,108 @@ int main() {
 
   int n, q;
   cin >> n >> q;
-  int bsize = 1000;  // sqrt(n) + 1;
-  int bcount = n / bsize + 1;
 
   vector<int> a(n);
   cin >> a;
   Compress<int> comp(a);
 
-  vector<atcoder::fenwick_tree<int>> bits;
-  vector<atcoder::fenwick_tree<i64>> bits2;
-  REP(bi, bcount) {
-    bits.emplace_back(comp.size());
-    bits2.emplace_back(comp.size());
-    REP(j, bsize) {
-      int p = bi * bsize + j;
-      if (p < n) {
-        int ai = comp.index(a[p]);
-        bits[bi].add(ai, 1);
-        bits2[bi].add(ai, a[p]);
-      }
-    }
-  }
-
-  auto check = [&](int mi, int l, int r) -> bool {
-    int lb = l / bsize, rb = r / bsize;
-    assert(lb < rb);
-    i64 count = 0;
-    for (int i = l; i < (lb + 1) * bsize; ++i) {
-      if (comp.index(a[i]) < mi) ++count;
-    }
-    for (int i = rb * bsize; i < r; ++i) {
-      if (comp.index(a[i]) < mi) ++count;
-    }
-    for (int bi = lb + 1; bi < rb; ++bi) {
-      count += bits[bi].sum(0, mi);
-    }
-    return count <= (r - l) / 2;
-  };
-
+  vector<pair<int, int>> queries(q);
   REP(qi, q) {
     int l, r;
     cin >> l >> r;
     --l;
+    queries[qi] = {l, r};
+  }
 
-    int lb = l / bsize, rb = r / bsize;
-    if (lb == rb) {
-      vector<int> xs;
-      xs.reserve(r - l);
-      for (int i = l; i < r; ++i) {
-        xs.push_back(a[i]);
+  vector<int> tv(q, 0), fv(q, comp.size());
+  vector<vector<int>> left(n + 1), right(n + 1);
+  vector<int> pc(q);
+  for (int iter = 0;; ++iter) {
+    REP(i, n + 1) {
+      left[i].clear();
+      right[i].clear();
+    }
+    bool done = true;
+    REP(i, q) {
+      if (fv[i] - tv[i] > 1) {
+        auto [l, r] = queries[i];
+        left[l].push_back(i);
+        right[r].push_back(i);
+        done = false;
       }
-      int m = (r - l) / 2;
-      nth_element(xs.begin(), xs.begin() + m, xs.end());
-      int medval = xs.at(m);
-      i64 dsum = 0;
-      for (auto x : xs) {
-        dsum += abs(x - medval);
+    }
+    if (done) break;
+
+    atcoder::fenwick_tree<int> bit_c(comp.size());
+    fill(ALL(pc), 0);
+    REP(i, n + 1) {
+      for (int j : left[i]) {
+        int mid = (tv[j] + fv[j]) / 2;
+        pc[j] = bit_c.sum(0, mid);
       }
-      cout << dsum << "\n";
-    } else {
-      int tv = 0, fv = comp.size();
-      while (fv - tv > 1) {
-        int mid = (tv + fv) / 2;
-        if (check(mid, l, r)) {
-          tv = mid;
+      for (int j : right[i]) {
+        int mid = (tv[j] + fv[j]) / 2;
+        i64 after_c = bit_c.sum(0, mid);
+        int smaller_c = after_c - pc[j];
+        auto [l, r] = queries[j];
+        int length = r - l;
+        if (smaller_c <= length / 2) {
+          tv[j] = mid;
         } else {
-          fv = mid;
+          fv[j] = mid;
         }
       }
-      assert(0 <= tv and tv < comp.size());
-      int medi = tv;
-      int medval = comp.value(medi);
-      DEBUG(medi, medval);
-
-      i64 dsum = 0;
-      for (int i = l; i < (lb + 1) * bsize; ++i) {
-        dsum += abs(a[i] - medval);
+      if (i < n) {
+        int aix = comp.index(a[i]);
+        bit_c.add(aix, 1);
       }
-      for (int i = rb * bsize; i < r; ++i) {
-        dsum += abs(a[i] - medval);
-      }
-      for (int bi = lb + 1; bi < rb; ++bi) {
-        i64 lower_cnt = bits[bi].sum(0, medi);
-        i64 lower_sum = bits2[bi].sum(0, medi);
-        dsum += medval * lower_cnt - lower_sum;
-
-        i64 upper_cnt = bits[bi].sum(medi, comp.size());
-        i64 upper_sum = bits2[bi].sum(medi, comp.size());
-        dsum += upper_sum - medval * upper_cnt;
-      }
-      cout << dsum << '\n';
     }
+  }
+
+  // Compute f.
+  {
+    vector<i64> ans(q);
+    vector<i64> ps(q), pa(q);
+    REP(i, n + 1) {
+      left[i].clear();
+      right[i].clear();
+    }
+    REP(i, q) {
+      auto [l, r] = queries[i];
+      left[l].push_back(i);
+      right[r].push_back(i);
+    }
+    atcoder::fenwick_tree<int> bit_c(comp.size());
+    atcoder::fenwick_tree<i64> bit_s(comp.size());
+    fill(ALL(pc), 0);
+    fill(ALL(ps), 0LL);
+    fill(ALL(pa), 0LL);
+    i64 all_sum = 0;
+    REP(i, n + 1) {
+      for (int j : left[i]) {
+        int med = tv[j];
+        pc[j] = bit_c.sum(0, med);
+        ps[j] = bit_s.sum(0, med);
+        pa[j] = all_sum;
+      }
+      for (int j : right[i]) {
+        int med = tv[j];
+        i64 after_c = bit_c.sum(0, med);
+        i64 after_s = bit_s.sum(0, med);
+        int smaller_c = after_c - pc[j];
+        auto [l, r] = queries[j];
+        i64 smaller_s = after_s - ps[j];
+        i64 val = comp.value(med);
+        ans[j] = smaller_c * val - smaller_s;
+        ans[j] += (all_sum - pa[j] - smaller_s) - (r - l - smaller_c) * val;
+      }
+      if (i < n) {
+        int aix = comp.index(a[i]);
+        bit_c.add(aix, 1);
+        bit_s.add(aix, a[i]);
+        all_sum += a[i];
+      }
+    }
+    REP(qi, q) { cout << ans[qi] << '\n'; }
   }
 }
