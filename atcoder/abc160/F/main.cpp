@@ -111,9 +111,95 @@ struct Factorials {
   }
 };
 
+Factorials fs(200005);
+
 using namespace std;
 
-vector<int> solve() {
+template <typename Monoid>
+struct ReRooting {
+  using T = typename Monoid::T;
+
+  int n;                  // number of nodes
+  vector<vector<int>> g;  // graph (tree)
+  vector<T> sub;          // values for each subtree rooted at i.
+  vector<T> full;         // values for each entire tree rooted at i
+  int base_root;          // base root node where we start DFS
+
+  explicit ReRooting(vector<vector<int>> g, int r = 0)
+      : n((int)g.size()), g(move(g)), sub(n), full(n), base_root(r) {}
+
+  const vector<T> &run() {
+    pull_up(base_root, -1);
+    push_down(base_root, -1, Monoid::id());
+    return full;
+  }
+
+ private:
+  T pull_up(int v, int par) {
+    T res = Monoid::id();
+    for (int u : g[v]) {
+      if (u == par) continue;
+      res = Monoid::op(res, pull_up(u, v));
+    }
+    sub[v] = Monoid::build(res);
+    return sub[v];
+  }
+
+  void push_down(int v, int par, T upper_sub) {
+    int m = g[v].size();
+    vector<T> cuml(m + 1, Monoid::id()), cumr(m + 1, Monoid::id());
+
+    for (int i = 0; i < m; ++i) {
+      int u = g[v][i];
+      if (u == par) {
+        cuml[i + 1] = Monoid::op(cuml[i], upper_sub);
+      } else {
+        cuml[i + 1] = Monoid::op(cuml[i], sub[u]);
+      }
+    }
+
+    for (int i = m - 1; i >= 0; --i) {
+      int u = g[v][i];
+      if (u == par) {
+        cumr[i] = Monoid::op(upper_sub, cumr[i + 1]);
+      } else {
+        cumr[i] = Monoid::op(sub[u], cumr[i + 1]);
+      }
+    }
+
+    full[v] = Monoid::build(cuml[m]);
+
+    for (int i = 0; i < m; ++i) {
+      int u = g[v][i];
+      if (u == par) continue;
+      T next_upper_sub = Monoid::build(Monoid::op(cuml[i], cumr[i + 1]));
+      push_down(u, v, move(next_upper_sub));
+    }
+  }
+};
+
+struct Counting {
+  struct T {
+    int size;
+    Mint value;
+  };
+
+  static T op(const T &x, const T &y) {
+    int sz = x.size + y.size;
+    Mint val = x.value * y.value * fs.C(sz, y.size);
+    return {sz, val};
+  }
+
+  static T id() { return {0, 1}; }
+
+  static T build(T val) { return {val.size + 1, val.value}; }
+};
+
+ostream &operator<<(ostream &os, const Counting::T &x) {
+  return os << "(size=" << x.size << ", value=" << x.value << ")";
+}
+
+void solve() {
   int n;
   cin >> n;
   vector<vector<int>> g(n);
@@ -125,65 +211,12 @@ vector<int> solve() {
     g[b].push_back(a);
   }
 
-  vector<int> sizes(n, 0);
-  auto dfs_sz = [&](auto self, int v, int p) -> int {
-    int s = 1;
-    for (auto w : g[v]) {
-      if (w == p) continue;
-      s += self(self, w, v);
-    }
-    return sizes[v] = s;
-  };
-  dfs_sz(dfs_sz, 0, -1);
-  DEBUG(sizes);
-
-  Factorials fs(n);
-  vector<Mint> sub(n, 0);
-  auto dfs_sub = [&](auto self, int v, int p) -> Mint {
-    Mint res = 1;
-    int m = sizes[v] - 1;
-    for (auto w : g[v]) {
-      if (w == p) continue;
-      int wn = sizes[w];
-      res *= fs.C(m, wn);
-      m -= wn;
-      res *= self(self, w, v);
-    }
-    sub[v] = res;
-    return res;
-  };
-  dfs_sub(dfs_sub, 0, -1);
-  DEBUG(sub);
-
-  vector<int> ans(n, 0);
-  auto dfs_ans = [&](auto self, int v, int p, Mint psub) -> void {
-    Mint prod_subs = 1, prod_facts = 1;
-    for (auto w : g[v]) {
-      if (w == p) continue;
-      int wn = sizes[w];
-      prod_subs *= sub[w];
-      prod_facts *= fs.fact[wn];
-    }
-    DEBUG(v, p, psub, prod_subs, prod_facts);
-    int pn = n - sizes[v];
-    prod_subs *= psub;
-    prod_facts *= fs.fact[pn];
-    Mint res = fs.fact[n - 1] * prod_subs / prod_facts;
-    ans[v] = res.val();
-
-    for (auto w : g[v]) {
-      if (w == p) continue;
-      int wn = sizes[w];
-      int m = n - wn - 1;
-      Mint psub2 = fs.fact[m] * (prod_subs / sub[w]) / prod_facts * fs.fact[wn];
-      self(self, w, v, psub2);
-    }
-  };
-  dfs_ans(dfs_ans, 0, -1, 1);
-  return ans;
+  ReRooting<Counting> rerooting(g);
+  const auto &res = rerooting.run();
+  REP(i, n) { cout << res[i].value.val() << '\n'; }
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  print_seq(solve(), "\n");
+  solve();
 }
