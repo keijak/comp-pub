@@ -116,7 +116,7 @@ struct Factorials {
 const int L = 2000005;
 Factorials fs(L);
 
-Mint f(int r, int c) {
+Mint g(int r, int c) {
   Mint res = (r + 2) * fs.C(c + r + 2, c) - c - 1;
   res /= c + 1;
   return res;
@@ -125,7 +125,7 @@ Mint f(int r, int c) {
 i64 solve() {
   int r1, c1, r2, c2;
   cin >> r1 >> c1 >> r2 >> c2;
-  Mint ans = f(r2, c2) - f(r2, c1 - 1) - f(r1 - 1, c2) + f(r1 - 1, c1 - 1);
+  Mint ans = g(r2, c2) - g(r2, c1 - 1) - g(r1 - 1, c2) + g(r1 - 1, c1 - 1);
   return ans.val();
 }
 
