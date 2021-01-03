@@ -94,15 +94,19 @@ i64 solve() {
 
   vector<bool> is_clique(1 << n);
   REP(mask, 1 << n) {
+    if (mask == 0) {
+      is_clique[mask] = true;
+      continue;
+    }
+    int r = __builtin_ctz(mask);
+    unsigned r_mask = 1 << r;
+    if (not is_clique[mask & ~r_mask]) continue;
     bool ok = true;
     REP(i, n) {
       if (not(mask & (1 << i))) continue;
-      REP(j, i) {
-        if (not(mask & (1 << j))) continue;
-        if (not g[i][j]) {
-          ok = false;
-          break;
-        }
+      if (i != r and not g[i][r]) {
+        ok = false;
+        break;
       }
     }
     is_clique[mask] = ok;
