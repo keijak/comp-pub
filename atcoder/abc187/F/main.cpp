@@ -80,6 +80,13 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
+int mssb_pos(unsigned x) {
+  static const int CLZ_WIDTH = __builtin_clz(1);
+  // assert(x != 0);
+  return CLZ_WIDTH - __builtin_clz(x);
+}
+inline unsigned mssb(unsigned int x) { return 1U << mssb_pos(x); }
+
 i64 solve() {
   int n, m;
   cin >> n >> m;
@@ -93,36 +100,36 @@ i64 solve() {
   }
 
   vector<bool> is_clique(1 << n);
-  REP(mask, 1 << n) {
-    if (mask == 0) {
-      is_clique[mask] = true;
+  REP(bits, 1 << n) {
+    if (bits == 0) {
+      is_clique[bits] = true;
       continue;
     }
-    int r = __builtin_ctz(mask);
+    int r = mssb_pos(bits);
     unsigned r_mask = 1 << r;
-    if (not is_clique[mask & ~r_mask]) continue;
+    if (not is_clique[bits - r_mask]) continue;
     bool ok = true;
     REP(i, n) {
-      if (not(mask & (1 << i))) continue;
+      if (not(bits & (1 << i))) continue;
       if (i != r and not g[i][r]) {
         ok = false;
         break;
       }
     }
-    is_clique[mask] = ok;
+    is_clique[bits] = ok;
   }
 
   vector<int> dp(1 << n, n);
   dp[0] = 0;
-  REP(mask, 1 << n) {
-    dp[mask] = __builtin_popcount(mask);
-    if (is_clique[mask]) {
-      chmin(dp[mask], 1);
+  REP(bits, 1, 1 << n) {
+    dp[bits] = __builtin_popcount(bits);
+    if (is_clique[bits]) {
+      chmin(dp[bits], 1);
       continue;
     }
-    for (int sub = mask; sub; sub = (sub - 1) & mask) {
-      if (sub == mask) continue;
-      chmin(dp[mask], dp[mask & ~sub] + dp[sub]);
+    int h_bit = mssb(bits);
+    for (int sub = (bits - 1) & bits; sub & h_bit; sub = (sub - 1) & bits) {
+      chmin(dp[bits], dp[sub] + dp[bits - sub]);
     }
   }
   return dp[(1 << n) - 1];
