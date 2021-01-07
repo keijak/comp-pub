@@ -80,10 +80,18 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
+struct Edge {
+  int to;
+  int visited;
+  Edge() : to(-1), visited(-1) {}
+  explicit Edge(int to, int vis = -1) : to(to), visited(vis) {}
+};
+bool operator<(const Edge &x, const Edge &y) { return x.visited < y.visited; }
+
 void solve() {
   int n, m;
   cin >> n >> m;
-  vector<vector<int>> g(n);
+  vector<vector<Edge>> g(n);
   REP(i, m) {
     int a, b;
     cin >> a >> b;
@@ -103,30 +111,38 @@ void solve() {
   }
   reverse(ALL(queries));
 
-  vector<int> color(n, -1), visited(n, -1);
-  auto paint = [&](int v0, int c, int d0) -> void {
-    if (visited[v0] >= d0) return;
-    visited[v0] = d0;
-
-    queue<tuple<int, int>> q;
-    q.emplace(v0, d0);
-    while (q.size()) {
-      auto [v, d] = q.front();
-      q.pop();
-      if (color[v] == -1) {
-        color[v] = c;
+  vector<int> color(n, -1);
+  auto paint = [&](auto rec, int v, int c, int d, int par) -> void {
+    assert(d >= 0);
+    if (color[v] == -1) {
+      color[v] = c;
+    }
+    if (d == 0) return;
+    --d;
+    if (g[v].empty() or d <= g[v][0].visited) return;
+    vector<Edge> links = g[v];
+    map<int, int> renew;
+    for (const auto &e : links) {
+      if (e.to == par) continue;
+      if (d <= e.visited) continue;
+      if (renew.count(e.to)) {
+        chmax(renew[e.to], d);
+      } else {
+        renew[e.to] = d;
       }
-      if (d == 0) continue;
-      --d;
-      for (const auto &e : g[v]) {
-        if (visited[e] >= d) continue;
-        visited[e] = d;
-        q.emplace(e, d);
+      rec(rec, e.to, c, d, v);
+    }
+    if (not renew.empty()) {
+      for (auto &e : g[v]) {
+        if (renew.count(e.to)) {
+          e.visited = renew[e.to];
+        }
       }
+      sort(ALL(g[v]));
     }
   };
   for (auto [v, d, c] : queries) {
-    paint(v, c, d);
+    paint(paint, v, c, d, -1);
   }
 
   REP(i, n) {
