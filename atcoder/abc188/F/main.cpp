@@ -1,8 +1,4 @@
 #include <bits/stdc++.h>
-using i128 = __int128_t;
-using u128 = __uint128_t;
-#include <boost/multiprecision/cpp_int.hpp>
-using Int = boost::multiprecision::cpp_int;
 
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
