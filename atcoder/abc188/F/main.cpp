@@ -113,9 +113,11 @@ i64 solve() {
     }
     if (cur.cost >= worst) break;
     chmin(worst, cur.cost + abs(X - cur.val));
+    i64 newcost = cur.cost + 1;
+    if (newcost >= worst) continue;
 
     vector<i64> newvals;
-    if (cur.val >= X) {
+    if (cur.val > X) {
       if (cur.val % 2 == 0) {
         newvals.emplace_back(cur.val / 2);
       } else {
@@ -123,8 +125,6 @@ i64 solve() {
         newvals.emplace_back(cur.val - 1);
       }
     }
-    i64 newcost = cur.cost + 1;
-    if (newcost > worst) continue;
     for (auto newval : newvals) {
       auto it = mincost.find(newval);
       if (it == mincost.end() or it->second > newcost) {
