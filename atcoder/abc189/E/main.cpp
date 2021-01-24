@@ -86,11 +86,10 @@ struct Matrix {
   std::vector<Row> A;
 
   Matrix() {}
-  explicit Matrix(std::vector<Row> a) : A(a) {}
-
   Matrix(int n, int m) : A(n, Row(m, 0)) {}
-
-  Matrix(int n) : A(n, Row(n, 0)){};
+  explicit Matrix(int n) : A(n, Row(n, 0)){};
+  explicit Matrix(std::vector<Row> a) : A(std::move(a)) {}
+  Matrix(std::initializer_list<Row> a) : A(std::move(a)) {}
 
   inline int height() const { return (int)(A.size()); }
 
@@ -254,50 +253,30 @@ void solve() {
     mp[a].push_back(i);
   }
 
-  Matrix<i64> mat = Matrix<i64>::I(3);
-  Matrix<i64> r1(vector<vector<i64>>{{0, 1, 0}, {-1, 0, 0}, {0, 0, 1}});
-  Matrix<i64> r2(vector<vector<i64>>{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}});
+  Matrix mat = Matrix<i64>::I(3);
+  Matrix r1 = {{0, 1, 0}, {-1, 0, 0}, {0, 0, 1}};
+  Matrix r2 = {{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
 
   auto operate = [&](int i) -> void {
     auto [op, p] = ops[i];
     if (op == 1) {
       mat = r1 * mat;
-      //   REP(j, n) {
-      //     auto [x, y] = points[j];
-      //     points[j] = {y, -x};
-      //   }
     } else if (op == 2) {
       mat = r2 * mat;
-      //   REP(j, n) {
-      //     auto [x, y] = points[j];
-      //     points[j] = {-y, x};
-      //   }
     } else if (op == 3) {
-      Matrix<i64> b(vector<vector<i64>>{{-1, 0, 2 * p}, {0, 1, 0}, {0, 0, 1}});
-      mat = b * mat;
-      DEBUG(mat);
-      //   REP(j, n) {
-      //     auto [x, y] = points[j];
-      //     points[j] = {2 * p - x, y};
-      //   }
+      mat = Matrix<i64>{{-1, 0, 2 * p}, {0, 1, 0}, {0, 0, 1}} * mat;
     } else {
       assert(op == 4);
-      Matrix<i64> b(vector<vector<i64>>{{1, 0, 0}, {0, -1, 2 * p}, {0, 0, 1}});
-      mat = b * mat;
-      //   REP(j, n) {
-      //     auto [x, y] = points[j];
-      //     points[j] = {x, 2 * p - y};
-      //   }
+      mat = Matrix<i64>{{1, 0, 0}, {0, -1, 2 * p}, {0, 0, 1}} * mat;
     }
   };
 
   vector<array<i64, 2>> ans(q);
   REP(i, m + 1) {
-    DEBUG(mat);
     for (auto j : mp[i]) {
       auto [a, b] = queries[j];
       auto [x, y] = points[b];
-      Matrix<i64> p = Matrix<i64>::column({x, y, 1});
+      auto p = Matrix<i64>::column({x, y, 1});
       p = mat * p;
       ans[j] = {p[0][0], p[1][0]};
     }
