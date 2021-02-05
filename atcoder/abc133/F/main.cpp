@@ -204,7 +204,7 @@ struct HLD {
 template <typename T, int K = 20>
 struct PersistentArray {
   struct Node;
-  using NodePtr = std::shared_ptr<Node>;
+  using NodePtr = Node *;  // std::shared_ptr<Node>;
 
   struct Node {
     std::optional<T> val;
@@ -219,7 +219,7 @@ struct PersistentArray {
   PersistentArray &operator=(const PersistentArray &) = default;
   PersistentArray &operator=(PersistentArray &&) = default;
 
-  std::optional<T> get(int idx) const { return get_(idx, root_); }
+  std::optional<T> operator[](int idx) const { return get_(idx, root_); }
 
   PersistentArray<T, K> set(int idx, T val) const {
     return PersistentArray<T, K>(set_(idx, val, root_));
@@ -287,9 +287,9 @@ int main() {
       int ei = edge_id[{v, p}];
       const auto &e = edges[ei];
       const TNode &tp = tnodes[p];
-      int count = tp.color_count.get(e.color).value_or(0) + 1;
+      int count = tp.color_count[e.color].value_or(0) + 1;
       tnodes[v].color_count = tp.color_count.set(e.color, count);
-      i64 length = tp.color_length.get(e.color).value_or(0LL) + e.length;
+      i64 length = tp.color_length[e.color].value_or(0LL) + e.length;
       tnodes[v].color_length = tp.color_length.set(e.color, length);
       tnodes[v].total_length = tp.total_length + e.length;
     }
@@ -302,10 +302,10 @@ int main() {
   auto length_sum = [&](int x, i64 y, int v, int a) -> i64 {
     const auto &tv = tnodes[v];
     const auto &ta = tnodes[a];
-    i64 rv = tv.total_length - tv.color_length.get(x).value_or(0LL) +
-             tv.color_count.get(x).value_or(0) * y;
-    i64 ra = ta.total_length - ta.color_length.get(x).value_or(0LL) +
-             ta.color_count.get(x).value_or(0) * y;
+    i64 rv = tv.total_length - tv.color_length[x].value_or(0LL) +
+             tv.color_count[x].value_or(0) * y;
+    i64 ra = ta.total_length - ta.color_length[x].value_or(0LL) +
+             ta.color_count[x].value_or(0) * y;
     return rv - ra;
   };
 
