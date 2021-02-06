@@ -1,10 +1,19 @@
 #include <bits/stdc++.h>
+
+#include <boost/multiprecision/cpp_int.hpp>
+#include <cmath>
+// using Int = boost::multiprecision::cpp_int;
+// using Rational = boost::multiprecision::cpp_rational;
+
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 using u64 = unsigned long long;
+using i128 = __int128_t;
+using Int = long long;
+using Float = long double;
 
 template <typename T, typename U>
 inline bool chmax(T &a, U b) {
@@ -80,36 +89,86 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-i64 solve() {
-  int H, W;
-  cin >> H >> W;
-  vector grid(H, vector(W, ' '));
-  REP(i, H) cin >> grid[i];
+Float EPS = 1e-9;
 
-  auto is_black = [&](int i, int j) -> bool {
-    if (i < 0 or i >= H or j < 0 or j >= W) return false;
-    return grid[i][j] == '#';
-  };
-  auto is_white = [&](int i, int j) -> bool {
-    if (i < 0 or i >= H or j < 0 or j >= W) return false;
-    return grid[i][j] == '.';
-  };
+const Int BIG = Int(2e5) + 5;
 
-  int corners = 0;
-  REP(i, H) REP(j, W) {
-    if (is_black(i, j)) {
-      if (is_white(i - 1, j) and is_white(i, j - 1)) ++corners;
-      if (is_white(i - 1, j) and is_white(i, j + 1)) ++corners;
-      if (is_white(i + 1, j) and is_white(i, j - 1)) ++corners;
-      if (is_white(i + 1, j) and is_white(i, j + 1)) ++corners;
-    } else {
-      if (is_black(i - 1, j) and is_black(i, j - 1)) ++corners;
-      if (is_black(i - 1, j) and is_black(i, j + 1)) ++corners;
-      if (is_black(i + 1, j) and is_black(i, j - 1)) ++corners;
-      if (is_black(i + 1, j) and is_black(i, j + 1)) ++corners;
+// Returns ceil(x / y).
+Int ceildiv(Int x, Int y) {
+  if (y <= 0) {
+    assert(y != 0);
+    y *= -1;
+    x *= -1;
+  }
+  if (x >= 0) {
+    return (x + y - 1) / y;
+  } else {
+    return -((-x) / y);
+  }
+}
+
+// Returns floor(x / y).
+Int floordiv(Int x, Int y) {
+  if (y <= 0) {
+    assert(y != 0);
+    y *= -1;
+    x *= -1;
+  }
+  if (x >= 0) {
+    return x / y;
+  } else {
+    return -((-x + y - 1) / y);
+  }
+}
+
+Int floorsqrt(Int x) {
+  assert(x >= 0);
+  if (x <= 1) return x;
+  Int r = sqrtl((long double)x);
+  while (r * r < x) ++r;
+  while (r * r > x) --r;
+  return r;
+}
+
+Int ceilsqrt(Int x) {
+  assert(x >= 0);
+  if (x <= 1) return x;
+  Int r = sqrtl((long double)x);
+  while (r * r > x) --r;
+  while (r * r < x) ++r;
+  return r;
+}
+
+const Int D = 10000;
+
+Int solve() {
+  Float X, Y, R;
+  cin >> X >> Y >> R;
+  if (X < 0) X *= -1;
+  if (Y < 0) Y *= -1;
+  Int xp = Int(X * D + 0.1) % D;
+  Int yp = Int(Y * D + 0.1) % D;
+  Int rp = Int(R * D + 0.1);
+  Int rp2 = rp * rp;
+  DEBUG(xp, yp, rp);
+
+  Int res = 0;
+  Int start = ceildiv(xp - rp, D) * D;
+  Int end = floordiv(xp + rp, D) * D;
+
+  for (Int i = start; i <= end; i += D) {
+    Int xd2 = (xp - i) * (xp - i);
+    Int yd2 = rp2 - xd2;
+    Int yd = ceilsqrt(yd2);
+    Int ytop = ceildiv(yp + yd, D) * D;
+    while (ytop > yp and (ytop - yp) * (ytop - yp) > yd2) ytop -= D;
+    Int ybot = floordiv(yp - yd, D) * D;
+    while (ybot < yp and (yp - ybot) * (yp - ybot) > yd2) ybot += D;
+    if (ytop >= ybot) {
+      res += (ytop - ybot) / D + 1;
     }
   }
-  return corners;
+  return res;
 }
 
 int main() {
