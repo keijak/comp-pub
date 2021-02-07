@@ -6,12 +6,11 @@ template <typename T, int K = 20>
 struct PersistentArray {
   struct Node;
   // No memory release by default.
-  using NodePtr = std::shared_ptr<Node>;
+  using NodePtr = Node *;  // std::shared_ptr<Node>;
 
   struct Node {
     std::optional<T> val;
-    std::array<NodePtr, K> ch;
-    Node() : val{}, ch{} {}
+    std::unique_ptr<std::array<NodePtr, K>> children;
   };
 
   explicit PersistentArray(NodePtr root) : root_{std::move(root)} {}
@@ -21,31 +20,38 @@ struct PersistentArray {
   PersistentArray &operator=(const PersistentArray &) = default;
   PersistentArray &operator=(PersistentArray &&) = default;
 
-  std::optional<T> operator[](int idx) const { return get_(idx, root_); }
+  std::optional<T> operator[](int idx) const { return do_get(idx, root_); }
 
   PersistentArray<T, K> set(int idx, T val) const {
-    return PersistentArray<T, K>(set_(idx, val, root_));
+    return PersistentArray<T, K>(do_set(idx, val, root_));
   }
 
  private:
-  static std::optional<T> get_(int idx, const NodePtr &node) {
+  static std::optional<T> do_get(int idx, const NodePtr &node) {
     if (node == nullptr) return std::nullopt;
     if (idx == 0) return node->val;
-    const NodePtr &child = node->ch[idx % K];
+    if (node->children == nullptr) return std::nullopt;
+    const NodePtr &child = (*node->children)[idx % K];
     if (child == nullptr) return std::nullopt;
-    return get_(idx / K, child);
+    return do_get(idx / K, child);
   }
 
-  static NodePtr set_(int idx, T val, const NodePtr &node) {
+  static NodePtr do_set(int idx, T val, const NodePtr &node) {
     NodePtr res{new Node()};
     if (node != nullptr) {
       res->val = node->val;
-      std::copy(node->ch.begin(), node->ch.end(), res->ch.begin());
+      if (node->children != nullptr) {
+        res->children.reset(new std::array<NodePtr, K>(*node->children));
+      }
     }
     if (idx == 0) {
       res->val = std::move(val);
     } else {
-      res->ch[idx % K] = set_(idx / K, std::move(val), res->ch[idx % K]);
+      if (res->children == nullptr) {
+        res->children.reset(new std::array<NodePtr, K>());
+      }
+      (*res->children)[idx % K] =
+          do_set(idx / K, std::move(val), (*res->children)[idx % K]);
     }
     return res;
   }
@@ -54,29 +60,31 @@ struct PersistentArray {
 };
 
 class PersistentUnionFind {
-  PersistentArray<int> data_;
-
  public:
-  PersistentUnionFind() : data_{} {}
-  explicit PersistentUnionFind(PersistentArray<int> data)
-      : data_{std::move(data)} {}
+  explicit PersistentUnionFind(PersistentArray<int> par)
+      : parent_{std::move(par)} {}
+  PersistentUnionFind() : parent_{} {}
+  PersistentUnionFind(const PersistentUnionFind &) = default;
+  PersistentUnionFind(PersistentUnionFind &&) = default;
+  PersistentUnionFind &operator=(const PersistentUnionFind &) = default;
+  PersistentUnionFind &operator=(PersistentUnionFind &&) = default;
 
   PersistentUnionFind unite(int x, int y) const {
     x = find(x);
     y = find(y);
     if (x == y) return *this;
     // Ensure x is bigger than y.
-    int x_size = -data_[x].value_or(-1);
-    int y_size = -data_[y].value_or(-1);
+    int x_size = -parent_[x].value_or(-1);
+    int y_size = -parent_[y].value_or(-1);
     if (x_size < y_size) {
       std::swap(x, y);
       std::swap(x_size, y_size);
     }
-    return PersistentUnionFind(data_.set(x, -(x_size + y_size)).set(y, x));
+    return PersistentUnionFind(parent_.set(x, -(x_size + y_size)).set(y, x));
   }
 
   int find(int x) const {
-    const std::optional<int> &par = data_[x];
+    const std::optional<int> &par = parent_[x];
     if (not par or *par < 0) return x;
     return find(*par);
   }
@@ -84,12 +92,12 @@ class PersistentUnionFind {
   bool same(int x, int y) const { return find(x) == find(y); }
 
   int size(int x) const {
-    int r = find(x);
-    assert(data_[r]);
-    int res = -*data_[r];
-    assert(res > 0);
-    return res;
+    int root = find(x);
+    return -(parent_[root].value_or(-1));
   }
+
+ private:
+  PersistentArray<int> parent_;
 };
 
 int main() {
