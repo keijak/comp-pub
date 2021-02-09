@@ -78,75 +78,101 @@ void pdebug(const T &value, const Ts &...args) {
 #define DEBUG(...)
 #endif
 
-// Partially Persistent UnionFind.
-struct UnionFindWithTime {
-  int n;
-  mutable std::vector<int> parent_;  // positive: parent, negative: size
-  std::vector<int> rank_;
-  int num_roots_;
-  int clock_;
-  std::vector<int> parented_time_;
-  std::vector<std::vector<std::pair<int, int>>> size_history_;
+template <typename T, int K = 20>
+class PersistentArray {
+ public:
+  struct Node;
+  // No memory release by default.
+  using NodePtr = Node *;  // std::shared_ptr<Node>;
 
-  explicit UnionFindWithTime(int sz)
-      : n(sz),
-        parent_(sz, -1),
-        rank_(sz, 1),
-        num_roots_(sz),
-        clock_(0),
-        parented_time_(sz, -1),
-        size_history_(n, {{0, 1}}) {}
+  struct Node {
+    std::optional<T> val;
+    std::unique_ptr<std::array<NodePtr, K>> children;
+  };
 
-  // Returns current clock_.
-  int unite(int x, int y) {
-    ++clock_;
-    x = find(x, clock_), y = find(y, clock_);
-    if (x == y) return clock_;
-    if (rank_[x] < rank_[y]) std::swap(x, y);
-    parent_[x] += parent_[y];
-    parent_[y] = x;
-    rank_[x] = std::max(rank_[x], rank_[y] + 1);
-    parented_time_[y] = clock_;
-    size_history_[x].emplace_back(clock_, -parent_[x]);
-    --num_roots_;
-    return clock_;
+  explicit PersistentArray(NodePtr root) : root_{std::move(root)} {}
+  PersistentArray() : root_{} {}
+  PersistentArray(const PersistentArray &) = default;
+  PersistentArray(PersistentArray &&) = default;
+  PersistentArray &operator=(const PersistentArray &) = default;
+  PersistentArray &operator=(PersistentArray &&) = default;
+
+  std::optional<T> operator[](int idx) const { return do_get(idx, root_); }
+
+  PersistentArray<T, K> set(int idx, T val) const {
+    return PersistentArray<T, K>(do_set(idx, val, root_));
   }
 
-  int find(int v, int time) const {
-    if (parent_[v] < 0) return v;
-    if (time < parented_time_[v]) return v;
-    return find(parent_[v], time);
+ private:
+  static std::optional<T> do_get(int idx, const NodePtr &node) {
+    if (node == nullptr) return std::nullopt;
+    if (idx == 0) return node->val;
+    if (node->children == nullptr) return std::nullopt;
+    const NodePtr &child = (*node->children)[idx % K];
+    if (child == nullptr) return std::nullopt;
+    return do_get(idx / K, child);
   }
-  int find(int v) const { return find(v, clock_); }
 
-  int size(int v, int time) const {
-    int r = find(v, time);
-    const auto &h = size_history_[r];
-    auto it = std::lower_bound(h.begin(), h.end(), std::pair(time + 1, -1));
-    return (--it)->second;
-  }
-  int size(int v) const { return -parent_[find(v)]; }
-
-  bool same(int x, int y, int time) const {
-    return find(x, time) == find(y, time);
-  }
-  bool same(int x, int y) const { return find(x) == find(y); }
-
-  std::optional<int> united_time(int x, int y) {
-    if (not same(x, y)) {
-      return std::nullopt;
-    }
-    int fv = 0, tv = clock_;
-    while (tv - fv > 1) {
-      int mid = (tv + fv) / 2;
-      if (same(x, y, mid)) {
-        tv = mid;
-      } else {
-        fv = mid;
+  static NodePtr do_set(int idx, T val, const NodePtr &node) {
+    NodePtr res(new Node());
+    if (node != nullptr) {
+      res->val = node->val;
+      if (node->children != nullptr) {
+        res->children.reset(new std::array<NodePtr, K>(*node->children));
       }
     }
-    return tv;
+    if (idx == 0) {
+      res->val = std::move(val);
+    } else {
+      if (res->children == nullptr) {
+        res->children.reset(new std::array<NodePtr, K>());
+      }
+      (*res->children)[idx % K] =
+          do_set(idx / K, std::move(val), (*res->children)[idx % K]);
+    }
+    return res;
   }
+
+ private:
+  NodePtr root_;
+};
+
+class PersistentUnionFind {
+ public:
+  explicit PersistentUnionFind(PersistentArray<int> par)
+      : parent_{std::move(par)} {}
+  PersistentUnionFind() {}
+  PersistentUnionFind(const PersistentUnionFind &) = default;
+  PersistentUnionFind(PersistentUnionFind &&) = default;
+  PersistentUnionFind &operator=(const PersistentUnionFind &) = default;
+  PersistentUnionFind &operator=(PersistentUnionFind &&) = default;
+
+  PersistentUnionFind unite(int x, int y) const {
+    x = find(x);
+    y = find(y);
+    if (x == y) return *this;
+    const int x_size = -parent_[x].value_or(-1);
+    const int y_size = -parent_[y].value_or(-1);
+    // Ensure |x| >= |y|.
+    if (x_size < y_size) std::swap(x, y);
+    return PersistentUnionFind(parent_.set(x, -(x_size + y_size)).set(y, x));
+  }
+
+  int find(int x) const {
+    const std::optional<int> &par = parent_[x];
+    if (not par or *par < 0) return x;
+    return find(*par);
+  }
+
+  bool same(int x, int y) const { return find(x) == find(y); }
+
+  int size(int x) const {
+    int root = find(x);
+    return -(parent_[root].value_or(-1));
+  }
+
+ private:
+  PersistentArray<int> parent_;
 };
 
 using namespace std;
@@ -155,20 +181,20 @@ int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
   int n, m;
   cin >> n >> m;
-  UnionFindWithTime tuf(n);
+  vector<PersistentUnionFind> ufs(m + 1);
   REP(i, m) {
     int a, b;
     cin >> a >> b;
     --a, --b;
-    assert(tuf.unite(a, b) == i + 1);
+    ufs[i + 1] = ufs[i].unite(a, b);
   }
 
   auto score_separate = [&](int x, int y, int z) -> int {
     int fv = 0, tv = m;
     while (tv - fv > 1) {
       int mid = (tv + fv) / 2;
-      int sz1 = tuf.size(x, mid);
-      int sz2 = tuf.size(y, mid);
+      int sz1 = ufs[mid].size(x);
+      int sz2 = ufs[mid].size(y);
       if (sz1 + sz2 >= z) {
         tv = mid;
       } else {
@@ -182,7 +208,7 @@ int main() {
     int fv = 0, tv = m;
     while (tv - fv > 1) {
       int mid = (tv + fv) / 2;
-      int sz = tuf.size(x, mid);
+      int sz = ufs[mid].size(x);
       if (sz >= z) {
         tv = mid;
       } else {
@@ -199,7 +225,7 @@ int main() {
     cin >> x >> y >> z;
     --x, --y;
     int j = score_separate(x, y, z);
-    if (tuf.same(x, y, j)) {
+    if (ufs[j].same(x, y)) {
       j = score_united(x, z);
     }
     cout << j << "\n";
