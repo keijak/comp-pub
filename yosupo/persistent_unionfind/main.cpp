@@ -4,6 +4,7 @@ using namespace std;
 
 template <typename T, int K = 20>
 class PersistentArray {
+ public:
   struct Node;
   // No memory release by default.
   using NodePtr = Node *;  // std::shared_ptr<Node>;
@@ -74,14 +75,12 @@ class PersistentUnionFind {
     x = find(x);
     y = find(y);
     if (x == y) return *this;
-    // Ensure x is bigger than y.
-    int x_size = -parent_[x].value_or(-1);
-    int y_size = -parent_[y].value_or(-1);
-    if (x_size < y_size) {
-      std::swap(x, y);
-      std::swap(x_size, y_size);
-    }
-    return PersistentUnionFind(parent_.set(x, -(x_size + y_size)).set(y, x));
+    const int x_rank = -parent_[x].value_or(-1);
+    const int y_rank = -parent_[y].value_or(-1);
+    if (x_rank < y_rank) std::swap(x, y);
+    return PersistentUnionFind(
+        ((x_rank >= y_rank + 1) ? parent_ : (parent_.set(x, -(y_rank + 1))))
+            .set(y, x));
   }
 
   int find(int x) const {
@@ -91,11 +90,6 @@ class PersistentUnionFind {
   }
 
   bool same(int x, int y) const { return find(x) == find(y); }
-
-  int size(int x) const {
-    int root = find(x);
-    return -(parent_[root].value_or(-1));
-  }
 
  private:
   PersistentArray<int> parent_;
