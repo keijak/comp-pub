@@ -4,79 +4,6 @@
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
-using u64 = unsigned long long;
-
-template <typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
-template <typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
-template <typename T>
-inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
-
-template <typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
-}
-template <typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
-                        std::ostream *os = nullptr) {
-  if (os == nullptr) os = &std::cout;
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) *os << sep;
-    *os << *it;
-  }
-  return *os << ends;
-}
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-template <typename T, typename = std::enable_if_t<
-                          is_iterable<T>::value &&
-                          !std::is_same<T, std::string_view>::value &&
-                          !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", &(os << "{")) << "}";
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
-}
-
-#ifdef ENABLE_DEBUG
-template <typename T>
-void pdebug(const T &value) {
-  std::cerr << value;
-}
-template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
-  pdebug(value);
-  std::cerr << ", ";
-  pdebug(args...);
-}
-#define DEBUG(...)                                   \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    pdebug(__VA_ARGS__);                             \
-    std::cerr << std::endl;                          \
-  } while (0)
-#else
-#define pdebug(...)
-#define DEBUG(...)
-#endif
 
 using namespace std;
 
@@ -85,19 +12,15 @@ struct UnionFindWithTime {
   int n;
   mutable std::vector<int> parent_;  // positive: parent, negative: size
   std::vector<int> rank_;
-  int num_roots_;
   int clock_;
   std::vector<int> parented_time_;
-  std::vector<std::vector<std::pair<int, int>>> size_history_;
 
   explicit UnionFindWithTime(int sz)
       : n(sz),
         parent_(sz, -1),
         rank_(sz, 1),
-        num_roots_(sz),
         clock_(0),
-        parented_time_(sz, -1),
-        size_history_(n, {{0, 1}}) {}
+        parented_time_(sz, -1) {}
 
   // Returns current clock_.
   int unite(int x, int y) {
@@ -112,8 +35,6 @@ struct UnionFindWithTime {
     parent_[y] = x;
     rank_[x] = std::max(rank_[x], rank_[y] + 1);
     parented_time_[y] = clock_;
-    size_history_[x].emplace_back(clock_, -parent_[x]);
-    --num_roots_;
     return clock_;
   }
 
@@ -124,23 +45,12 @@ struct UnionFindWithTime {
   }
   int find(int v) const { return find(v, clock_); }
 
-  int size(int v, int time) const {
-    int r = find(v, time);
-    const auto &h = size_history_[r];
-    auto it = std::lower_bound(h.begin(), h.end(), std::pair(time + 1, -1));
-    return (--it)->second;
-  }
-  int size(int v) const { return -parent_[find(v)]; }
-
   bool same(int x, int y, int time) const {
     return find(x, time) == find(y, time);
   }
   bool same(int x, int y) const { return find(x) == find(y); }
 
-  std::optional<int> united_time(int x, int y) {
-    if (not same(x, y)) {
-      return std::nullopt;
-    }
+  int united_time(int x, int y) {
     int fv = 0, tv = clock_;
     while (tv - fv > 1) {
       int mid = (tv + fv) / 2;
@@ -154,7 +64,8 @@ struct UnionFindWithTime {
   }
 };
 
-void solve() {
+int main() {
+  ios_base::sync_with_stdio(false), cin.tie(nullptr);
   int n, m;
   cin >> n >> m;
   vector<array<int, 3>> edges(m);
@@ -168,14 +79,13 @@ void solve() {
 
   i64 total_cost = 0;
   UnionFindWithTime uf(n);
-  map<int, i64> cmap;
+  vector<int> cmap(5000);
   for (auto [c, a, b] : edges) {
     if (uf.same(a, b)) continue;
     int t = uf.unite(a, b);
     total_cost += c;
     cmap[t] = c;
   }
-  DEBUG(total_cost);
 
   int q;
   cin >> q;
@@ -184,13 +94,7 @@ void solve() {
     cin >> s >> t;
     --s, --t;
     auto j = uf.united_time(s, t);
-    assert(j.has_value());
-    i64 ans = total_cost - cmap[*j];
+    i64 ans = total_cost - cmap[j];
     cout << ans << "\n";
   }
-}
-
-int main() {
-  ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  solve();
 }
