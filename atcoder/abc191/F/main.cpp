@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
@@ -81,8 +82,41 @@ void pdebug(const T &value, const Ts &...args) {
 using namespace std;
 
 i64 solve() {
-  //
-  return -42;
+  int n;
+  cin >> n;
+  vector<int> a(n);
+  cin >> a;
+  sort(ALL(a));
+
+  unordered_set<int> s;
+  s.reserve(1 << 20);
+  s.max_load_factor(0.25);
+  s.insert(a[0]);
+  int g = a[0];
+  REP(i, 1, n) { g = gcd(g, a[i]); }
+  REP(i, n) {
+    i64 x = a[i];
+    for (i64 q = g; q * q <= x; ++q) {
+      if (x % q != 0) continue;
+      int r = x / q;
+      if (g <= q and q <= a[0]) s.insert(q);
+      if (g <= r and r <= a[0]) s.insert(r);
+    }
+  }
+  int count = 0;
+  for (int x : s) {
+    i64 t = 0;
+    for (int y : a) {
+      if (y % x != 0) continue;
+      if (t == 0) {
+        t = y;
+      } else {
+        t = gcd(t, y);
+      }
+    }
+    if (t == x) ++count;
+  }
+  return count;
 }
 
 int main() {
