@@ -85,5 +85,5 @@
         "variant": "cpp"
     },
     "python.pythonPath": "/Users/keiji/.pyenv/shims/python",
-    "C_Cpp.default.intelliSenseMode": "gcc-x64"
+    "C_Cpp.default.intelliSenseMode": "macos-gcc-x64"
 }
