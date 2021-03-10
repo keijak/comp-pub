@@ -2,18 +2,14 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "C/C++: build before debug",
+            "label": "g++ build active file",
             "command": "/usr/local/bin/g++-10",
             "args": [
+                "-std=c++17",
                 "-g",
                 "${file}",
-                "-o",
-                "${fileDirname}/a.out",
-                "-std=c++17",
                 "-fsanitize=address",
                 "-fsanitize=undefined",
-                "-D_GLIBCXX_DEBUG",
-                "-D_GLIBCXX_DEBUG_PEDANTIC",
                 "-Wall",
                 "-Wextra",
                 "-pedantic"
@@ -28,7 +24,46 @@
                 "kind": "build",
                 "isDefault": true
             }
-        }
+        },
+        {
+            "type": "shell",
+            "label": "clang++ build active file",
+            "command": "clang++",
+            "args": [
+                "-std=c++17",
+                "-stdlib=libc++",
+                "-x",
+                "c++",
+                "${file}",
+                "-fsanitize=address",
+                "-fsanitize=undefined",
+                "-Wall",
+                "-Wextra",
+                "-pedantic",
+                "--debug"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "CheckTestCase",
+            "type": "shell",
+            "command": "cd ${fileDirname} && rm -f ${fileDirname}/a.out && g++-10 -std=c++17 -g -O0 -Wall -Wextra -Wl,-stack_size,0x10000000 -fsanitize=address,undefined -DENABLE_DEBUG ${fileBasename} && oj test -c \"${fileDirname}/a.out -d ${fileDirname}/tests/\"",
+            "presentation": {
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+            }
+        },
+        {
+            "label": "SubmitCode",
+            "type": "shell",
+            "command": "cd ${fileDirname} && oj submit ${file}",
+            "presentation": {
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+            }
+        },
     ],
     "version": "2.0.0"
 }

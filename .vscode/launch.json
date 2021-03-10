@@ -5,20 +5,34 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "lldb debug",
+            "name": "LLDB debug",
             "type": "lldb",
             "request": "launch",
             "program": "${fileDirname}/a.out",
             "args": [],
             "cwd": "${fileDirname}",
-            "preLaunchTask": "C/C++: build before debug"
-        }
+            "preLaunchTask": "clang++ build active file",
+        },
+        {
+            "name": "LLDB debug < input.txt",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${fileDirname}/a.out",
+            "args": [],
+            "cwd": "${fileDirname}",
+            "stdio": [
+                "${fileDirname}/input.txt",
+                null,
+                null
+            ],
+            "preLaunchTask": "clang++ build active file",
+        },
+        {
+            "name": "Python debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+        },
     ]
 }
