@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
 #define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), N_##i = (b); i < N_##i; ++i)
+  for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
@@ -27,14 +27,13 @@ std::istream &operator>>(std::istream &is, std::vector<T> &a) {
 template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
-                        std::ostream *os = nullptr) {
-  if (os == nullptr) os = &std::cout;
+                        std::ostream &os = std::cout) {
   auto b = std::begin(a), e = std::end(a);
   for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) *os << sep;
-    *os << *it;
+    if (it != b) os << sep;
+    os << *it;
   }
-  return *os << ends;
+  return os << ends;
 }
 template <typename T, typename = void>
 struct is_iterable : std::false_type {};
@@ -48,7 +47,7 @@ template <typename T, typename = std::enable_if_t<
                           !std::is_same<T, std::string_view>::value &&
                           !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", &(os << "{")) << "}";
+  return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
@@ -86,6 +85,6 @@ i64 solve() {
 }
 
 int main() {
-  std::ios::sync_with_stdio(false), cin.tie(nullptr);
+  ios_base::sync_with_stdio(false), cin.tie(nullptr);
   cout << solve() << "\n";
 }
