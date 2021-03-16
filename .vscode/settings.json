@@ -1,6 +1,6 @@
 {
     "code-runner.executorMap": {
-        "cpp": "cd $dir && rm $dir/a.out && clang++ -std=c++17 $fileName && $dir/a.out",
+        "cpp": "cd $dir && clang++ -std=c++17 -fsanitize=address,undefined $fileName && $dir/a.out",
     },
     "code-runner.clearPreviousOutput": true,
     "code-runner.runInTerminal": true,
@@ -87,6 +87,7 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "strstream": "cpp"
     },
 }
