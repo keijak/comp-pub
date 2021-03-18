@@ -77,46 +77,74 @@ void pdebug(const T &value, const Ts &...args) {
 #define DEBUG(...)
 #endif
 
+using namespace std;
+
 #include <atcoder/modint>
-using Mint = atcoder::modint998244353;
+using Mint = atcoder::modint1000000007;
 std::ostream &operator<<(std::ostream &os, const Mint &m) {
   return os << m.val();
 }
 
-template <class T = Mint>
-struct Factorials {
-  // factorials and inverse factorials.
-  std::vector<T> fact, ifact;
-
-  // n: max cached value.
-  Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n > 0 and n < T::mod());
-    fact[0] = 1;
-    for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
-    ifact[n] = fact[n].inv();
-    for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
+// osa_k's algorithm. O(n log log n).
+// Returns a vector that maps x to x's smallest divisor (> 1).
+std::vector<int> min_divisor_sieve(int n) {
+  std::vector<int> res(n + 1);
+  for (int i = 1; i <= n; ++i) res[i] = i;
+  for (int i = 4; i <= n; i += 2) res[i] = 2;
+  int sqrt_n = std::lround(std::ceil(std::sqrt((double)n)));  // n in 32 bits.
+  for (int i = 3; i <= sqrt_n; i += 2) {
+    if (res[i] != i) continue;
+    for (int j = i * i; j <= n; j += i) {
+      if (res[j] == j) res[j] = i;
+    }
   }
+  return res;
+}
 
-  // Combination (nCk)
-  T C(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
+// Quick factorization.
+map<int, int> quick_factorize(int n, const std::vector<int> &min_divisor) {
+  assert(0 < n and n < int(min_divisor.size()));
+  map<int, int> res;
+  for (;;) {
+    int p = min_divisor[n];
+    if (p == 1) break;
+    int count = 0;
+    do {
+      n /= p;
+      ++count;
+    } while (n % p == 0);
+    res.emplace(p, count);
   }
-};
-
-using namespace std;
+  return res;
+}
 
 Mint solve() {
-  int n, m, k;
-  cin >> n >> m >> k;
-  Factorials fs(n);
+  int n;
+  cin >> n;
+  vector<int> a(n);
+  cin >> a;
 
+  auto min_divisors = min_divisor_sieve(1'000'005);
+  map<int, int> pm;
+  vector<map<int, int>> afs(n);
+  REP(i, n) {
+    afs[i] = quick_factorize(a[i], min_divisors);
+    for (auto [p, cnt] : afs[i]) {
+      if (pm.count(p)) {
+        chmax(pm[p], cnt);
+      } else {
+        pm[p] = cnt;
+      }
+    }
+  }
+  Mint alcm = 1;
+  for (auto [p, cnt] : pm) {
+    alcm *= Mint(p).pow(cnt);
+  }
   Mint ans = 0;
-  REP(i, k + 1) {
-    Mint x = fs.C(n - 1, i);
-    x *= m;
-    x *= Mint(m - 1).pow(n - 1 - i);
-    ans += x;
+  REP(i, n) {
+    Mint b = alcm / a[i];
+    ans += b;
   }
   return ans;
 }

@@ -77,46 +77,20 @@ void pdebug(const T &value, const Ts &...args) {
 #define DEBUG(...)
 #endif
 
-#include <atcoder/modint>
-using Mint = atcoder::modint998244353;
-std::ostream &operator<<(std::ostream &os, const Mint &m) {
-  return os << m.val();
-}
-
-template <class T = Mint>
-struct Factorials {
-  // factorials and inverse factorials.
-  std::vector<T> fact, ifact;
-
-  // n: max cached value.
-  Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n > 0 and n < T::mod());
-    fact[0] = 1;
-    for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i;
-    ifact[n] = fact[n].inv();
-    for (int i = n; i >= 1; --i) ifact[i - 1] = ifact[i] * i;
-  }
-
-  // Combination (nCk)
-  T C(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
-  }
-};
-
 using namespace std;
 
-Mint solve() {
-  int n, m, k;
-  cin >> n >> m >> k;
-  Factorials fs(n);
-
-  Mint ans = 0;
-  REP(i, k + 1) {
-    Mint x = fs.C(n - 1, i);
-    x *= m;
-    x *= Mint(m - 1).pow(n - 1 - i);
-    ans += x;
+i64 solve() {
+  i64 n, m;
+  cin >> n >> m;
+  vector<i64> a(n), acc(n + 1);
+  cin >> a;
+  REP(i, n) { acc[i + 1] = (acc[i] + a[i]) % m; }
+  map<int, int> modc;
+  modc[0] = 1;
+  i64 ans = 0;
+  REP(r, n) {
+    ans += modc[acc[r + 1]];
+    ++modc[acc[r + 1]];
   }
   return ans;
 }
