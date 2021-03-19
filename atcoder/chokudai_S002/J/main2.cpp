@@ -79,38 +79,68 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
+// s &= t;
+// Merges two sets into their intersection.
+// The first argument will be updated to the result.
+template <typename T>
+std::set<T> &operator&=(std::set<T> &s, const std::set<T> &t) {
+  auto it = s.begin();
+  auto jt = t.begin();
+  while (it != s.end()) {
+    while (jt != t.end() and *jt < *it) ++jt;
+    if (jt == t.end()) {
+      s.erase(it, s.end());
+      break;
+    }
+    if (*it < *jt) {
+      it = s.erase(it);
+    } else {
+      ++it, ++jt;
+    }
+  }
+  return s;
+}
+template <typename T>
+std::set<T> &operator&=(std::set<T> &s, std::set<T> &&t) {
+  if (s.size() <= t.size()) {
+    const std::set<T> &c(t);
+    s &= c;
+  } else {
+    const std::set<T> &c(s);
+    t &= c;
+    s = std::move(t);
+  }
+  return s;
+}
+
 i64 solve() {
   int n;
   cin >> n;
-  vector<array<i64, 2>> p(n);
+  set<int> sall;
+  vector<array<int, 2>> p(n);
   REP(i, n) {
-    auto &a = p[i];
-    cin >> a[0] >> a[1];
-  }
-
-  set<i64> st;
-  REP(i, 2) {
-    i64 x = p[0][i];
-    for (i64 k = 1; k * k <= x; ++k) {
-      const auto &[q, r] = std::div(x, k);
+    i64 a, b;
+    cin >> a >> b;
+    set<int> st;
+    for (i64 k = 1; k * k <= a; ++k) {
+      const auto &[q, r] = std::div(a, k);
       if (r != 0) continue;
       st.insert(k);
       st.insert(q);
     }
-  }
-
-  for (auto it = st.rbegin(); it != st.rend(); ++it) {
-    i64 x = *it;
-    REP(i, 1, n) {
-      const auto &[a, b] = p[i];
-      if (a % x != 0 and b % x != 0) {
-        goto loop_end;
-      }
+    for (i64 k = 1; k * k <= b; ++k) {
+      const auto &[q, r] = std::div(b, k);
+      if (r != 0) continue;
+      st.insert(k);
+      st.insert(q);
     }
-    return x;
-  loop_end:;
+    if (i == 0) {
+      sall = move(st);
+    } else {
+      sall &= move(st);
+    }
   }
-  assert(false);
+  return *sall.rbegin();
 }
 
 int main() {
