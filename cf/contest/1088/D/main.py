@@ -6,60 +6,59 @@ def ask(c, d):
     return int(input())
 
 
-a = b = c = d = 0
+c = d = 0
 
 
 def solve(mi, base):
-    # print(f"# solve: {mi=} {base=}", file=sys.stderr)
-
     def solve_same():
-        global a, b, c, d
-        z = c
+        global c, d
+        print("# solve_same", file=sys.stderr)
         for i in range(mi, -1, -1):
-            # print(f">> {i=} {z=}", file=sys.stderr)
+            print(f">> {i=} {c=} {d=}", file=sys.stderr)
             bit = 1 << i
-            res1 = ask(z ^ bit, z)
-            res2 = ask(z, z ^ bit)
+            res1 = ask(c ^ bit, d)
+            res2 = ask(c, d ^ bit)
             if res1 == -1 and res2 == 1:
-                z |= bit
-                a |= bit
-                b |= bit
+                c |= bit
+                d |= bit
 
     def solve1():
-        global a, b, c, d
-        # print("solve1", file=sys.stderr)
+        global c, d
+        print("# solve1", file=sys.stderr)
         for i in range(mi, -1, -1):
-            # print(f">> {i=} {a=} {b=} {c=} {d=}", file=sys.stderr)
+            print(f">> {i=} {c=} {d=}", file=sys.stderr)
             bit = 1 << i
             res1 = ask(c ^ bit, d ^ bit)
             if res1 == -1:
-                a |= bit
+                # a[i] == 1, b[i] == 0
                 c |= bit
-                res2 = ask(c, d)
-                return solve(i - 1, res2)
+                return solve(i - 1, ask(c, d))
             else:
+                # a[i] == b[i]
                 res2 = ask(c ^ bit, d)
                 if res2 == -1:
-                    a |= bit
-                    b |= bit
+                    # a[i] == b[i] == 1
+                    c |= bit
+                    d |= bit
 
     def solve2():
-        global a, b, c, d
-        # print("solve2", file=sys.stderr)
+        global c, d
+        print("# solve2", file=sys.stderr)
         for i in range(mi, -1, -1):
-            # print(f">> {i=} {a=} {b=} {c=} {d=}", file=sys.stderr)
+            print(f">> {i=} {c=} {d=}", file=sys.stderr)
             bit = 1 << i
             res1 = ask(c ^ bit, d ^ bit)
             if res1 == 1:
-                b |= bit
+                # a[i] == 0, b[i] == 1
                 d |= bit
-                res2 = ask(c, d)
-                return solve(i - 1, res2)
+                return solve(i - 1, ask(c, d))
             else:
+                # a[i] == b[i]
                 res2 = ask(c, d ^ bit)
                 if res2 == 1:
-                    a |= bit
-                    b |= bit
+                    # a[i] == b[i] == 1
+                    c |= bit
+                    d |= bit
 
     if base == 0:
         solve_same()
@@ -69,6 +68,5 @@ def solve(mi, base):
         solve2()
 
 
-base = ask(0, 0)
-solve(29, base)
-print("! {} {}".format(a, b))
+solve(29, ask(0, 0))
+print("! {} {}".format(c, d))
