@@ -319,8 +319,9 @@ struct DenseFPS {
   }
 
   DenseFPS pow(i64 t) {
+    std::assert(t >= 0);
     DenseFPS res = {1};
-    DenseFPS base = std::move(*this);
+    DenseFPS base = *this;
     while (t) {
       if (t & 1) res *= base;
       base *= base;
