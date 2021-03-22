@@ -55,7 +55,7 @@ Mint solve() {
   };
 
   // d = [x^(n-1)] g(x)
-  // where g(x) = (1+x) * (1 + x + x^2)^(m-1)
+  // where g(x) = (1 + x) * (1 + x + x^2)^(m - 1)
   Mint d = f(n - 1) + f(n - 2);
   return total - d;
 }
