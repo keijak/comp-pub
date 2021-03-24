@@ -8,6 +8,7 @@ ins = lambda: sys.stdin.readline().rstrip()
 # debug = lambda *a, **kw: print("\033[33m", *a, "\033[0m", **dict(file=sys.stderr, **kw))
 
 L = 10 ** 7
+K = ini()
 
 
 def dsum(x):
@@ -26,9 +27,14 @@ def solve():
         r = Fraction(x, s)
         if r <= minr:
             if x != L:
+                # print(f"{x=}\t{s=}\t{float(r)}")
                 ans.appendleft(x)
             minr = r
-    print(*ans, sep="\n")
+    for i, x in enumerate(ans):
+        if i >= K:
+            break
+        print(x)
+    # print(*ans, sep="\n")
 
 
 try:
