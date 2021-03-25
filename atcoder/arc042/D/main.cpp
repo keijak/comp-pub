@@ -211,19 +211,25 @@ i64 solve() {
   cin >> X >> P >> A >> B;
   MOD = P;
 
-  int m = min(B - A + 1, P);
-  if (m <= THRES) {
+  // Fermat
+  {
+    int k = B / (P - 1);
+    if (k * (P - 1) >= A) return 1;
+  }
+
+  if (B - A <= THRES) {
     // cerr << "# fast track: ";
     // cerr.flush();
     Mint y = Mint(X).pow(A);
     unsigned ans = P;
-    REP(i, m) {
+    for (int i = A; i <= B; ++i) {
       chmin(ans, y.val());
       if (y.val() == 1) break;
       y *= X;
     }
     return ans;
   }
+
   //   cerr << "# slow track: ";
   //   cerr.flush();
   const int R = ceilsqrt(P);
