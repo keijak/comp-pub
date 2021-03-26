@@ -1,6 +1,11 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <unordered_map>
+#include <vector>
+
 #define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
+  for (int i = (a), end__##i = (b); i < end__##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
@@ -79,36 +84,54 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-i64 solve() {
-  int n, k;
-  cin >> n >> k;
-  vector<int> a(n);
-  cin >> a;
-  vector<int> divisors;
-  for (int i = 1; i64(i) * i <= k; ++i) {
-    if (k % i != 0) continue;
-    divisors.push_back(i);
-    int q = k / i;
-    if (q != i) divisors.push_back(q);
-  }
-  unordered_map<int, int> gcds;
-  gcds.reserve(1 << 20);
-  gcds.max_load_factor(0.25);
-  i64 ans = 0;
-  REP(i, n) {
-    int g = std::gcd(a[i], k);
-    int q = k / g;
-    for (auto d : divisors) {
-      if (d % q == 0) {
-        ans += gcds[d];
-      }
-    }
-    ++gcds[g];
-  }
-  return ans;
+int a[200005];
+pair<int, int> divisors[1500];
+
+bool pair_less(const pair<int, int> &x, const pair<int, int> &y) {
+  return x.first < y.first;
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << solve() << "\n";
+
+  int n, k;
+  cin >> n >> k;
+  REP(i, n) cin >> a[i];
+
+  unordered_map<int, int> gcds;
+  gcds.reserve(1 << 11);
+  gcds.max_load_factor(0.25);
+  REP(i, n) {
+    int g = std::gcd(a[i], k);
+    ++gcds[g];
+  }
+
+  int m = 0;
+  for (int i = 1; i * i <= k; ++i) {
+    const auto &[q, r] = std::div(k, i);
+    if (r != 0) continue;
+    divisors[m++] = pair(i, gcds[i]);
+    if (q != i) divisors[m++] = pair(q, gcds[q]);
+  }
+  sort(divisors, divisors + m, pair_less);
+
+  i64 ans = 0;
+  for (int i = m - 1; i >= 0; --i) {
+    const auto &[di, ci] = divisors[i];
+    if (ci == 0) continue;
+    i64 di2 = i64(di) * di;
+    if (di2 < k) break;
+    if (di2 % k == 0) {
+      ans += i64(ci) * (ci - 1) / 2;
+    }
+    for (int j = i - 1; j >= 0; --j) {
+      const auto &[dj, cj] = divisors[j];
+      i64 dd = i64(di) * dj;
+      if (dd < k) break;
+      if (dd % k == 0) {
+        ans += i64(ci) * cj;
+      }
+    }
+  }
+  cout << ans << "\n";
 }
