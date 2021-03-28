@@ -125,16 +125,16 @@ i64 solve() {
   }
   DEBUG(sub);
   vector<optional<int>> hops(ns);
-  deque<bool> in_search(ns);
+  deque<bool> searching(ns);
   auto f = [&](auto &f, int i) -> int {
     if (hops[i].has_value()) return *hops[i];
     if (not sub[i]) return 0;
-    if (in_search[i]) return BIG;
-    in_search[i] = true;
+    if (searching[i]) return BIG;
+    searching[i] = true;
     int j = (i + nt) % ns;
     int res = f(f, j);
     hops[i] = res == BIG ? BIG : res + 1;
-    in_search[i] = false;
+    searching[i] = false;
     return *hops[i];
   };
   int ans = 0;
