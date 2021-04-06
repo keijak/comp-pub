@@ -87,24 +87,21 @@ struct Edge {
   unsigned cost;
 };
 
-// tour: preorder node ids
-// The interval [pre_index[v], post_index[v]) represents a subtree whose
-// root is v.
-struct EulerTour {
+struct EulerTourOnEdge {
   using G = vector<vector<Edge>>;
 
   const int n;  // number of nodes
-  G adj;
+  G g;
 
   // Euler Tour on edges.
-  vector<pair<unsigned, bool>> tour;  // edge cost, in?
+  vector<pair<unsigned, bool>> tour;  // (edge cost, entering?)
   vector<int> pre_index;   // index in the tour on entering the subtree of v
   vector<int> post_index;  // index in the tour on exiting the subtree of v
   vector<int> depth;
 
-  explicit EulerTour(G g, int root = 0)
+  explicit EulerTourOnEdge(G g, int root = 0)
       : n((int)g.size()),
-        adj(move(g)),
+        g(move(g)),
         pre_index(n, -1),
         post_index(n, -1),
         depth(n, -1) {
@@ -117,11 +114,10 @@ struct EulerTour {
   void dfs(int v, int p) {
     pre_index[v] = int(tour.size());
     if (p >= 0) depth[v] = depth[p] + 1;
-    for (const Edge &e : adj[v]) {
-      const int u = e.to;
-      if (u == p) continue;
+    for (const Edge &e : g[v]) {
+      if (e.to == p) continue;
       tour.push_back({e.cost, true});
-      dfs(u, v);
+      dfs(e.to, v);
       tour.push_back({e.cost, false});
     }
     post_index[v] = int(tour.size());
@@ -139,7 +135,7 @@ i64 solve() {
     g[x].push_back({y, c});
     g[y].push_back({x, c});
   }
-  EulerTour et(g);
+  EulerTourOnEdge et(g);
   map<unsigned, int> counts;
   ++counts[0];
   unsigned acc = 0;
