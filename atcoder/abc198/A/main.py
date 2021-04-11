@@ -1,0 +1,22 @@
+import sys
+
+try:
+    import frosch
+
+    frosch.hook()
+except ImportError:
+    pass
+
+
+def debug(*a, **kw):
+    print("\033[33m", *a, "\033[0m", **dict(file=sys.stderr, **kw))
+
+
+def solve():
+    n = int(sys.stdin.readline())
+    if n < 2:
+        return 0
+    return n - 1
+
+
+print(solve())
