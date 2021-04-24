@@ -1,4 +1,6 @@
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <iostream>
+#include <vector>
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
@@ -115,20 +117,22 @@ Mint solve() {
   const int P = ssize(row_bits);
   vector<vector<int>> nexts(P);
 
-  auto dfs = [&](auto &dfs, const int p1, const u32 b1, int i, u32 b2) {
-    if (i == W) {
-      const int p2 = bmap[b2];
-      nexts[p1].push_back(p2);
-      return;
-    }
-    dfs(dfs, p1, b1, i + 1, b2);
-    if (b1 & (1 << i)) return;
-    if (b1 & (1 << (i + 1))) return;
-    if (i > 0 and (b1 & (1 << (i - 1)))) return;
-    if (i > 0 and (b2 & (1 << (i - 1)))) return;
-    dfs(dfs, p1, b1, i + 1, b2 | (1 << i));
-  };
-  REP(i, P) { dfs(dfs, i, row_bits[i], 0, 0); }
+  REP(j, P) {
+    const u32 b1 = row_bits[j];
+    auto dfs = [&](auto &dfs, int i, u32 b2) {
+      if (i == W) {
+        nexts[j].push_back(bmap[b2]);
+        return;
+      }
+      dfs(dfs, i + 1, b2);
+      if (b1 & (1 << i)) return;
+      if (b1 & (1 << (i + 1))) return;
+      if (i > 0 and (b1 & (1 << (i - 1)))) return;
+      if (i > 0 and (b2 & (1 << (i - 1)))) return;
+      dfs(dfs, i + 1, b2 | (1 << i));
+    };
+    dfs(dfs, 0, 0);
+  }
 
   // cerr << "precalc done: " << P << endl;
 
