@@ -79,120 +79,57 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-int main() {
-  int n;
-  cin >> n;
-  vector<bool> board(n, false);
+i64 solve() {
+  int n, s, t;
+  cin >> n >> s >> t;
+  --s, --t;
+  const int m = (n + 1) / 2;
+  vector<i64> a(n);
+  cin >> a;
+  const i64 total = accumulate(ALL(a), 0LL);
 
-  auto scan = [&]() -> vector<int> {
-    vector<int> stones;
-    int cur = 0;
-    REP(i, n) {
-      if (board[i]) {
-        if (cur > 0) {
-          stones.push_back(cur);
-          cur = 0;
-        }
-      } else {
-        cur++;
-      }
-    }
-    if (cur > 0) stones.push_back(cur);
-    sort(ALL(stones));
-    return stones;
-  };
-
-  map<int, int> memo;
-
-  auto nimber = [&](auto &rec, vector<int> stones) -> int {
-    if (stones.empty()) return 0;
-    if (ssize(stones) > 1) {
-      int res = 0;
-      for (auto x : stones) {
-        assert(x > 0);
-        res ^= rec(rec, vector<int>(1, x));
-      }
-      return res;
-    }
-    const int x = stones[0];
-    if (x == 1) return 1;
-    if (x == 2) return 2;
-    assert(x > 2);
-
-    auto it = memo.find(x);
-    if (it != memo.end()) return it->second;
-    set<int> s;
-    s.insert(rec(rec, vector<int>(1, x - 1)));
-    s.insert(rec(rec, vector<int>(1, x - 2)));
-    {
-      vector<int> v = {x - 2, 1};
-      while (v[0] > 0 and v[0] >= v[1]) {
-        s.insert(rec(rec, v));
-        v[0]--, v[1]++;
-      }
-    }
-    {
-      vector<int> v = {x - 3, 1};
-      while (v[0] > 0 and v[0] >= v[1]) {
-        s.insert(rec(rec, v));
-        v[0]--, v[1]++;
-      }
-    }
-    // Return the MEX.
-    for (int i = 0;; ++i) {
-      if (not s.count(i)) {
-        memo[x] = i;
-        return i;
-      }
-    }
-    assert(false);
-  };
-
-  auto next_move = [&]() -> pair<int, int> {
-    // Take one.
-    REP(i, n) {
-      if (board[i]) continue;
-      board[i] = true;
-      int val = nimber(nimber, scan());
-      if (val == 0) {
-        return {1, i + 1};
-      }
-      board[i] = false;
-    }
-
-    // Take two.
-    REP(i, n - 1) {
-      if (board[i] or board[i + 1]) continue;
-      board[i] = board[i + 1] = true;
-      int val = nimber(nimber, scan());
-      if (val == 0) {
-        return {2, i + 1};
-      }
-      board[i] = board[i + 1] = false;
-    }
-
-    assert(false);
-  };
-
-  auto query = [&]() -> void {
-    int k, x;
-    tie(k, x) = next_move();
-    cout << k << ' ' << x << endl;
-    int t;
-    cin >> t;
-    if (t == 0 or t == 1) {
-      exit(0);
-    }
-    assert(t == 3);
-    cin >> k >> x;
-    REP(i, k) {
-      int p = x - 1 + i;
-      assert(not board[p]);
-      board[p] = true;
-    }
-  };
-
+  i64 ans = -1e17;
+  int x = s, y = t;
   while (true) {
-    query();
+    int x2 = (x - 1 + n) % n;
+    if (x2 == y) break;
+    x = x2;
+    int y2 = (y + 1) % n;
+    if (x == y2) break;
+    y = y2;
   }
+  const int lb = x;
+
+  x = s, y = t;
+  while (true) {
+    int x2 = (x + 1) % n;
+    if (x2 == y) break;
+    x = x2;
+    int y2 = (y - 1 + n) % n;
+    if (x == y2) break;
+    y = y2;
+  }
+  const int ub = (x + 1) % n;
+
+  i64 sum = 0;
+  x = lb;
+  REP(i, m) {
+    sum += a[x];
+    x = (x + 1) % n;
+  }
+  chmax(ans, sum - (total - sum));
+  int l = lb;
+  while (x != ub) {
+    sum += a[x];
+    sum -= a[l];
+    chmax(ans, sum - (total - sum));
+    x = (x + 1) % n;
+    l = (l + 1) % n;
+  }
+  return ans;
+}
+
+int main() {
+  ios_base::sync_with_stdio(false), cin.tie(nullptr);
+  cout << solve() << "\n";
 }
