@@ -92,7 +92,6 @@ Float solve() {
   DEBUG(pow3);
 
   vector dp(pow3[n], vector(2, (Float)0));
-  vector dp2(pow3[n], vector(2, vector(n, vector(n, (Float)0))));
 
   const unsigned full = (1 << n) - 1;
   for (unsigned sub = full;; sub = (sub - 1) & full) {
@@ -122,18 +121,19 @@ Float solve() {
           state += pow3[j] * 2;
         }
       }
+      vector dp2(vector(2, vector(n, vector(n, (Float)0))));
       REP(i, n) {
         if (taken & (1 << i)) continue;
         REP(j, n) {
           if (taken & (1 << j)) continue;
           Float qi = 1.0 / a[i], qj = 1.0 / a[j];
           const Float denom = 1.0 - (1.0 - qi) * (1.0 - qj);
-          dp2[state][0][i][j] = (qi * dp[state + pow3[i]][1] +
-                                 (1.0 - qi) * qj * dp[state + pow3[j] * 2][0]) /
-                                denom;
-          dp2[state][1][i][j] = (qj * dp[state + pow3[j] * 2][0] +
-                                 (1.0 - qj) * qi * dp[state + pow3[i]][1]) /
-                                denom;
+          dp2[0][i][j] = (qi * dp[state + pow3[i]][1] +
+                          (1.0 - qi) * qj * dp[state + pow3[j] * 2][0]) /
+                         denom;
+          dp2[1][i][j] = (qj * dp[state + pow3[j] * 2][0] +
+                          (1.0 - qj) * qi * dp[state + pow3[i]][1]) /
+                         denom;
         }
       }
       dp[state][0] = 0.0;
@@ -143,8 +143,8 @@ Float solve() {
         Float minp = 1.0, maxp = 0.0;
         REP(j, n) {
           if (taken & (1 << j)) continue;
-          chmin(minp, dp2[state][0][i][j]);
-          chmax(maxp, dp2[state][1][j][i]);
+          chmin(minp, dp2[0][i][j]);
+          chmax(maxp, dp2[1][j][i]);
         }
         chmax(dp[state][0], minp);
         chmin(dp[state][1], maxp);
