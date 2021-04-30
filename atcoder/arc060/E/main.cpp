@@ -102,8 +102,8 @@ struct SimpleFunctionalGraph {
 
   // Builds the transition table.
   void build() {
-    for (int d = 0; d + 1 < kMaxBits; d++) {
-      for (int i = 0; i < size; i++) {
+    for (int d = 0; d + 1 < kMaxBits; ++d) {
+      for (int i = 0; i < size; ++i) {
         if (int p = next_pos[d][i]; p != -1) {
           next_pos[d + 1][i] = next_pos[d][p];
         }
@@ -120,12 +120,24 @@ struct SimpleFunctionalGraph {
     assert(steps < (1LL << kMaxBits));
 
     int i = start;
-    for (int d = kMaxBits - 1; d >= 0; d--) {
+    for (int d = kMaxBits - 1; d >= 0; --d) {
       if ((steps >> d) & 1) {
         i = next_pos[d][i];
       }
     }
     return i;
+  }
+
+  long long min_steps(int start, std::function<bool(int)> pred) const {
+    long long max_false = 0;
+    int i = start;
+    for (int d = kMaxBits - 1; d >= 0; --d) {
+      int j = next_pos[d][i];
+      if (pred(j)) continue;
+      max_false += 1LL << d;
+      i = j;
+    }
+    return max_false + 1;
   }
 };
 
@@ -137,7 +149,7 @@ int main() {
   cin >> X;
   i64 L;
   cin >> L;
-  FunctionalGraph g(n);
+  SimpleFunctionalGraph g(n);
   REP(i, n) {
     auto it = upper_bound(ALL(X), X[i] + L);
     --it;
@@ -153,16 +165,7 @@ int main() {
     cin >> a >> b;
     --a, --b;
     if (a > b) swap(a, b);
-    i64 fv = 0, tv = b - a;
-    while (tv - fv > 1) {
-      i64 mid = (fv + tv) / 2;
-      int x = g.go(a, mid);
-      if (x >= b) {
-        tv = mid;
-      } else {
-        fv = mid;
-      }
-    }
-    cout << tv << "\n";
+    int ans = g.min_steps(a, [&](int x) { return x >= b; });
+    cout << ans << "\n";
   }
 }
