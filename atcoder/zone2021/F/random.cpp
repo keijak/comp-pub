@@ -81,56 +81,58 @@ void pdebug(const T &value, const Ts &...args) {
 using namespace std;
 
 bool solve() {
+  auto start = std::chrono::system_clock::now();
+
+  // std::random_device seed_gen;
+  std::mt19937_64 engine((u64)(std::time(0)));
+
   // n <= 2^18 (=262,144)
   int n, m;
   cin >> n >> m;
-  int p = 0;
-  while ((1LL << p) != n) ++p;
-
   vector<u32> a(m);
   cin >> a;
-  vector<bool> bset(n, true);
-  for (auto x : a) {
-    bset[x] = false;
-  }
-  bset[0] = false;
-  vector<u32> b;
-  REP(x, n) if (bset[x]) b.push_back(x);
+  vector<bool> aset(n, false);
+  for (auto x : a) aset[x] = true;
 
-  vector<optional<pair<u32, int>>> basis(p);
-  int basis_count = 0;
-  REP(j, ssize(b)) {
-    u32 x = b[j];
-    REP(i, p) {
-      if (~x & (1 << i)) continue;
-      if (basis[i].has_value()) {
-        x ^= basis[i]->first;
-      } else {
-        basis[i] = pair(x, j);
-        ++basis_count;
-        break;
+  set<u32> yet;
+  REP(i, 1, n) { yet.insert(i); }
+  vector<pair<int, int>> edges;
+  vector<u32> expand;
+  expand.push_back(0);
+  vector<u32> to_erase;
+  to_erase.reserve(n);
+  const u32 tl_mask = 31;
+  for (u32 iter = 0; not yet.empty(); ++iter) {
+    if (not(iter & tl_mask)) {
+      auto now = chrono::system_clock::now();
+      auto dur = chrono::duration_cast<chrono::milliseconds>(now - start);
+      if (dur.count() >= 1900) return false;
+    }
+    if (expand.empty()) return false;
+    std::uniform_int_distribution<int> rand(0, ssize(expand) - 1);
+    int k = rand(engine);
+    u32 v = expand[k];
+    DEBUG(expand);
+    DEBUG(ssize(expand), k, v);
+    if (int last = ssize(expand) - 1; k != last) {
+      swap(expand[k], expand[last]);
+    }
+    expand.pop_back();
+
+    to_erase.clear();
+    for (auto u : yet) {
+      if (not aset[u ^ v]) {
+        edges.emplace_back(v, u);
+        to_erase.push_back(u);
+        expand.push_back(u);
       }
     }
-  }
-  if (basis_count != p) return false;
-
-  set<u32> nodes = {0};
-  vector<pair<int, int>> edges;
-  auto dfs = [&](auto &dfs, int i, u32 v) {
-    if (i == p) return;
-    u32 x = b[basis[i]->second];
-    u32 u = v ^ x;
-    if (not nodes.count(u)) {
-      nodes.insert(u);
-      edges.emplace_back(v, u);
-      dfs(dfs, i + 1, u);
+    for (auto u : to_erase) {
+      yet.erase(u);
     }
-    dfs(dfs, i + 1, v);
-  };
-  dfs(dfs, 0, 0);
-  DEBUG(ssize(edges));
-  if (ssize(edges) != n - 1) return false;
-  for (auto [u, v] : edges) {
+  }
+
+  for (const auto &[u, v] : edges) {
     cout << u << " " << v << "\n";
   }
   return true;
