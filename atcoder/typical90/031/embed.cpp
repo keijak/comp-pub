@@ -137,12 +137,10 @@ int main() {
 
   cout << "{";
   REP(i, 51) {
-    cout << "{";
     REP(j, 51) {
-      if (j > 0) cout << ",";
+      if (i > 0 or j > 0) cout << ",";
       cout << G[i][j];
     }
-    cout << "},\n";
   }
   cout << "};\n";
 
