@@ -77,8 +77,10 @@ int solve() {
       auto& dp_nxt = dp[bits | (1 << nxt)][nxt];
       const int cost = a[nxt][pc];
       REP(cur, n) {
-        if (bad[cur][nxt]) continue;
-        chmin(dp_nxt, dp_cur[cur] + cost);
+        if ((~bits >> cur & 1) | bad[cur][nxt]) continue;
+        if (auto z = dp_cur[cur] + cost; dp_nxt > z) {
+          dp_nxt = z;
+        }
       }
     }
   }
