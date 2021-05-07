@@ -24,6 +24,10 @@ std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
+template <typename T, typename U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
+  return os << "(" << a.first << ", " << a.second << ")";
+}
 template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
@@ -48,10 +52,6 @@ template <typename T, typename = std::enable_if_t<
                           !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
 }
 
 #ifdef ENABLE_DEBUG
