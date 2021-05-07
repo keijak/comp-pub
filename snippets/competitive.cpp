@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
 #define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), _Z_##i = (b); i < _Z_##i; ++i)
+  for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
@@ -55,26 +55,9 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
 }
 
 #ifdef ENABLE_DEBUG
-template <typename T>
-void pdebug(const T &value) {
-  std::cerr << value;
-}
-template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
-  pdebug(value);
-  std::cerr << ", ";
-  pdebug(args...);
-}
-#define DEBUG(...)                                   \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    pdebug(__VA_ARGS__);                             \
-    std::cerr << std::endl;                          \
-  } while (0)
+#include "debug_dump.hpp"
 #else
-#define pdebug(...)
-#define DEBUG(...)
+#define DUMP(...)
 #endif
 
 using namespace std;
