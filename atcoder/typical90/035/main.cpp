@@ -1,15 +1,50 @@
-#include <bits/stdc++.h>
+#pragma GCC target("avx2")
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <limits>
+#include <type_traits>
+#include <vector>
+
+struct Input {
+  inline operator int() { return read_int<int>(); }
+  inline operator long long() { return read_int<long long>(); }
+  inline operator unsigned() { return read_int<unsigned>(); }
+
+ private:
+  template <typename T>
+  static T read_int() {
+    T ret = 0, sgn = 1;
+    int ch = getchar_unlocked();
+    while (isspace(ch)) {
+      ch = getchar_unlocked();
+    }
+    if constexpr (!std::is_unsigned<T>::value) {
+      if (ch == '-') {
+        sgn = -1;
+        ch = getchar_unlocked();
+      }
+    }
+    for (; ('0' <= ch) & (ch <= '9'); ch = getchar_unlocked()) {
+      ret = (ret * 10) + (ch - '0');
+    }
+    ungetc(ch, stdin);
+    if constexpr (std::is_unsigned<T>::value) {
+      return ret;
+    } else {
+      return ret * sgn;
+    }
+  }
+} input;
+
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using i64 = long long;
-
-#ifdef ENABLE_DEBUG
-#include "debug_dump.hpp"
-#else
-#define DUMP(...)
-#endif
 
 using namespace std;
 
@@ -104,15 +139,11 @@ struct EulerTour {
 };
 
 int main() {
-  ios_base::sync_with_stdio(false), cin.tie(nullptr);
-
-  int n;
-  cin >> n;
+  const int n = input;
   vector<vector<int>> g(n);
   REP(i, n - 1) {
-    int a, b;
-    cin >> a >> b;
-    --a, --b;
+    const int a = int(input) - 1;
+    const int b = int(input) - 1;
     g[a].push_back(b);
     g[b].push_back(a);
   }
@@ -120,25 +151,21 @@ int main() {
   SparseTable<Min> st(et.tour);
   vector<int> ord;
   ord.reserve(200005);
-  int q;
-  cin >> q;
+  const int q = input;
   REP(_, q) {
-    int k;
-    cin >> k;
+    const int k = input;
     ord.resize(k);
     REP(i, k) {
-      int v;
-      cin >> v;
-      --v;
+      const int v = int(input) - 1;
       ord[i] = et.begin[v];
     }
     sort(ALL(ord));
     const auto lca_depth = st.fold(ord.front(), ord.back() + 1);
-    i64 res = et.tour[ord[0]] - lca_depth;
+    int res = et.tour[ord[0]] - lca_depth;
     for (int i = 1; i < k; ++i) {
       const auto ld = st.fold(ord[i - 1], ord[i] + 1);
       res += et.tour[ord[i]] - ld;
     }
-    cout << res << "\n";
+    printf("%d\n", res);
   }
 }
