@@ -3,8 +3,9 @@
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using i64 = long long;
-using u64 = unsigned long long;
+using Int = long long;
+using Uint = unsigned long long;
+using Float = long double;
 
 template <typename T, typename U>
 inline bool chmax(T &a, U b) {
@@ -62,7 +63,7 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 
 using namespace std;
 
-i64 solve() {
+Int solve() {
   //
   return -42;
 }
