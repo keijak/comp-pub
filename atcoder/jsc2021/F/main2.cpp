@@ -1,7 +1,5 @@
 #include <bits/stdc++.h>
 
-#include <atcoder/fenwicktree>
-
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
