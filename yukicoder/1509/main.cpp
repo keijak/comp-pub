@@ -1,7 +1,5 @@
 #include <bits/stdc++.h>
 
-#include <optional>
-
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
@@ -68,7 +66,6 @@ auto solve() {
   i64 n, a, b;
   cin >> n >> a >> b;
   if (gcd(a, b) != 1) return false;
-  if (a < b) swap(a, b);
   return n >= a + b - 1;
 }
 
