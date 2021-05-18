@@ -1,17 +1,13 @@
 #!/bin/bash
 
 URL="https://atcoder.jp/contests/typical90/tasks/typical90_aq"
+CMD="./a.out"
 SRC="main.cpp"
 
 while :
 do
   date
-  if [[ -e DONE ]]; then
-    echo 'Already done.'
-    exit
-  else
-    oj submit --yes --wait=0 "$URL" "$SRC" && echo "ok" > DONE
-  fi
+  atcoder_dl_test_submit.py "$URL" --cmd="$CMD" --src="$SRC" && exit
   echo '.'
   echo '.'
   sleep $(($RANDOM % 5 + 5))
