@@ -1,8 +1,3 @@
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize("inline")
-#pragma GCC optimize("omit-frame-pointer")
-#pragma GCC optimize("unroll-loops")
-
 #include <atcoder/modint>
 #include <cctype>
 #include <cstdio>
