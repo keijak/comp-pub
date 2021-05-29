@@ -61,9 +61,9 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 
 using namespace std;
 
-template <class T = i64, class Compare = std::less<T>,
+template <class T, class Compare = std::less<T>,
           class F = std::function<T(i64)>>
-i64 find_max_golden_section_search(i64 low, i64 high, F f) {
+i64 golden_section_search(i64 low, i64 high, F f) {
   Compare compare;
   --low;             // Make it an open interval: (low, high).
   i64 l = 1, r = 1;  // Left and right offsets from `low`.
@@ -99,8 +99,8 @@ i64 query(i64 i) {
   if (auto it = cache.find(i); it != cache.end()) {
     return it->second;
   }
-  cout << "? " << i + 1 << endl;
-  int res;
+  cout << "? " << i << endl;
+  i64 res;
   cin >> res;
   assert(res >= 0);
   cache[i] = res;
@@ -111,8 +111,9 @@ void solve() {
   cache.clear();
   int N;
   cin >> N;
-  i64 j = find_max_golden_section_search<i64, greater<i64>>(0, N, query);
-  cout << "! " << query(j) << endl;
+  i64 j = golden_section_search<i64, greater<i64>>(1, N + 1, query);
+  i64 ans = query(j);
+  cout << "! " << ans << endl;
 }
 
 int main() {
