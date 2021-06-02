@@ -61,36 +61,43 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 #endif
 
 using namespace std;
-const int L = 28;
+const int L = 30;
 
-i64 solve() {
+u32 solve() {
   u32 n;
   cin >> n;
   vector<u32> a(n), b(n);
   cin >> a >> b;
-  auto bit_counts = vector<u32>(L, 0);
-  REP(i, L) {
-    u32 count = 0;
-    REP(j, n) {
-      if (b[j] >> i & 1) count ^= 1;
-    }
-    bit_counts[i] = count;
-  }
   u32 ans = 0;
-  u32 carry = 0;
   REP(i, L) {
-    u32 a1 = 0;
+    const u32 mask = (1LL << (i + 1)) - 1;
+    vector<u32> as(n);
     REP(j, n) {
-      if (a[j] >> i & 1) a1 ^= 1;
+      u32 ax = a[j] & mask;
+      as[j] = ax;
     }
-    u32 a0 = (n - a1) & 1;
-    u32 b1 = bit_counts[i];
-    u32 b0 = (n - b1) & 1;
-    ones *z
+    sort(ALL(as));
+    i64 count = 0;
+    REP(j, n) {
+      i64 bx = b[j] & mask;
+      {
+        i64 y = (1LL << (i + 1)) - bx;
+        int p = lower_bound(ALL(as), y) - as.begin();
+        i64 z = (1LL << i) - bx;
+        int q = lower_bound(ALL(as), z) - as.begin();
+        count += p - q;
+      }
+      {
+        i64 z = (1 << (i + 1)) + (1 << i) - bx;
+        int p = lower_bound(ALL(as), z) - as.begin();
+        count += n - p;
+      }
+    }
+    if (count % 2 == 1) {
+      ans |= (1 << i);
+    }
   }
-}
-//
-return -42;
+  return ans;
 }
 
 int main() {
