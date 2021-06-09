@@ -62,24 +62,6 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 using namespace std;
 using Float = long double;
 
-template <class T, class Compare = std::less<T>,
-          class F = std::function<T(i64)>>
-Float find_min_ternary_search(Float low, Float high, F f) {
-  Compare compare;
-  --low;  // Make it an open interval: (low, high).
-  Float l = low, r = high;
-  REP(iter, 80) {
-    auto ll = (l + l + r) / 3.0;
-    auto rr = (l + r + r) / 3.0;
-    if (compare(f(ll), f(rr))) {
-      r = rr;
-    } else {
-      l = ll;
-    }
-  }
-  return (l + r) / 2.0;
-}
-
 #include <boost/multiprecision/cpp_int.hpp>
 using i128 = boost::multiprecision::int128_t;
 using i256 = boost::multiprecision::int256_t;
@@ -116,6 +98,25 @@ i64 floor_sqrt(i64 x) {
   while (r * r < x) ++r;
   while (r * r > x) --r;
   return r;
+}
+
+template <class F, class T = std::invoke_result_t<F, Float>,
+          class Compare = std::less<T>>
+Float find_min_ternary_search(Float low, Float high, F f) {
+  static_assert(std::is_invocable_v<F, Float>);
+  Compare compare;
+  --low;  // Make it an open interval: (low, high).
+  Float l = low, r = high;
+  REP(iter, 80) {
+    auto ll = (l + l + r) / 3.0;
+    auto rr = (l + r + r) / 3.0;
+    if (compare(f(ll), f(rr))) {
+      r = rr;
+    } else {
+      l = ll;
+    }
+  }
+  return (l + r) / 2.0;
 }
 
 using Int = boost::multiprecision::int128_t;
@@ -165,7 +166,7 @@ Int search(const vector<vector<Edge>> &g, int source, int goal) {
       };
       Int new_cost = f(0);  // no wait.
       Int wmax = e.d / (cur.cost + 1);
-      Int xm = (Int)find_min_ternary_search<Float>(0, Float(wmax + 1), ff);
+      Int xm = (Int)find_min_ternary_search(0, Float(wmax + 1), ff);
       if (xm > 0) {
         chmin(new_cost, f(xm));
       }
