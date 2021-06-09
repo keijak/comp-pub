@@ -61,10 +61,10 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 
 using namespace std;
 
-template <class T, class Compare = std::less<T>,
-          class F = std::function<T(i64)>>
+template <class F, class T = std::invoke_result_t<F, i64>>
 i64 golden_section_search(i64 low, i64 high, F f) {
-  Compare compare;
+  static_assert(std::is_invocable_v<F, i64>);
+  std::greater<T> compare;
   --low;             // Make it an open interval: (low, high).
   i64 l = 1, r = 1;  // Left and right offsets from `low`.
   while (l + r < high - low) {
@@ -111,7 +111,7 @@ void solve() {
   cache.clear();
   int N;
   cin >> N;
-  i64 j = golden_section_search<i64, greater<i64>>(1, N + 1, query);
+  i64 j = golden_section_search(1, N + 1, query);
   i64 ans = query(j);
   cout << "! " << ans << endl;
 }

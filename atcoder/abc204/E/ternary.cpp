@@ -100,11 +100,10 @@ i64 floor_sqrt(i64 x) {
   return r;
 }
 
-template <class F, class T = std::invoke_result_t<F, Float>,
-          class Compare = std::less<T>>
+template <class F, class T = std::invoke_result_t<F, Float>>
 Float find_min_ternary_search(Float low, Float high, F f) {
   static_assert(std::is_invocable_v<F, Float>);
-  Compare compare;
+  std::less<T> compare;
   --low;  // Make it an open interval: (low, high).
   Float l = low, r = high;
   REP(iter, 80) {
