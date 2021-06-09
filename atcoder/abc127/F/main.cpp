@@ -55,7 +55,7 @@ void pdebug(const T &value) {
   std::cerr << value;
 }
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
+void pdebug(const T &value, const Ts &...args) {
   pdebug(value);
   std::cerr << ", ";
   pdebug(args...);
@@ -94,7 +94,7 @@ template <typename Monoid>
 struct SegTree {
   using T = typename Monoid::T;
 
-  inline int n() const { return n_; }
+  inline int size() const { return n_; }
   inline int offset() const { return offset_; }
 
   explicit SegTree(int n) : n_(n) {
@@ -145,7 +145,7 @@ struct SegTree {
 
   friend std::ostream &operator<<(std::ostream &os, const SegTree &st) {
     os << "[";
-    for (int i = 0; i < st.n(); ++i) {
+    for (int i = 0; i < st.size(); ++i) {
       if (i != 0) os << ", ";
       const auto &x = st[i];
       os << x;
@@ -153,69 +153,41 @@ struct SegTree {
     return os << "]";
   }
 
-  template <bool (*pred)(const T &)>
-  int max_right(int l) {
-    return max_right(l, [](const T &x) -> bool { return pred(x); });
-  }
-  template <class Predicate>
-  int max_right(int l, Predicate pred) {
-    assert(0 <= l && l <= n_);
-    assert(pred(Monoid::id()));
-    if (l == n_) return n_;
-    l += offset_;
-    T sm = Monoid::id();
-    do {
-      while (l % 2 == 0) l >>= 1;
-      if (!pred(Monoid::op(sm, data_[l]))) {
-        while (l < offset_) {
-          l = (2 * l);
-          if (pred(Monoid::op(sm, data_[l]))) {
-            sm = Monoid::op(sm, data_[l]);
-            l++;
-          }
-        }
-        return l - offset_;
-      }
-      sm = Monoid::op(sm, data_[l]);
-      l++;
-    } while ((l & -l) != l);
-    return n_;
-  }
-
-  template <bool (*pred)(const T &)>
-  int min_left(int k) {
-    return min_left(k, [](const T &x) -> bool { return pred(x); });
-  }
-  template <class Predicate>
-  int min_left(int k, Predicate pred) {
-    assert(0 <= k && k <= n_);
-    assert(pred(Monoid::id()));
-    if (k == 0) return 0;
-    k += offset_;
-    T sm = Monoid::id();
-    do {
-      k--;
-      while (k > 1 && (k % 2)) k >>= 1;
-      if (!pred(Monoid::op(data_[k], sm))) {
-        while (k < offset_) {
-          k = (2 * k + 1);
-          if (pred(Monoid::op(data_[k], sm))) {
-            sm = Monoid::op(data_[k], sm);
-            k--;
-          }
-        }
-        return k + 1 - offset_;
-      }
-      sm = Monoid::op(data_[k], sm);
-    } while ((k & -k) != k);
-    return 0;
-  }
+  template <class M, class F>
+  friend int max_right(const SegTree<M> &seg, int l, F pred);
 
  private:
   int n_;                // number of valid leaves.
   int offset_;           // where leaves start
   std::vector<T> data_;  // data size: 2*offset_
 };
+
+template <class M, class F>
+int max_right(const SegTree<M> &seg, int l, F pred) {
+  static_assert(std::is_invocable_r_v<bool, F, typename M::T>,
+                "predicate must be invocable on the value type");
+  assert(0 <= l && l <= seg.size());
+  assert(pred(M::id()));
+  if (l == seg.size()) return seg.size();
+  l += seg.offset_;
+  auto sm = M::id();
+  do {
+    while (l % 2 == 0) l >>= 1;
+    if (!pred(M::op(sm, seg.data_[l]))) {
+      while (l < seg.offset_) {
+        l <<= 1;
+        if (pred(M::op(sm, seg.data_[l]))) {
+          sm = M::op(sm, seg.data_[l]);
+          ++l;
+        }
+      }
+      return l - seg.offset_;
+    }
+    sm = M::op(sm, seg.data_[l]);
+    ++l;
+  } while ((l & -l) != l);
+  return seg.size();
+}
 
 struct Sum {
   using T = long long;
@@ -267,8 +239,8 @@ int main() {
       count_seg.set(k, count_seg[k] + 1);
       sum_seg.set(k, sum_seg[k] + queries[i].a);
     } else {
-      int k = count_seg.max_right(
-          0, [&](const i64 &c) -> bool { return 2 * c < total_count; });
+      int k = max_right(count_seg, 0,
+                        [&](const i64 &c) { return 2 * c < total_count; });
       i64 left_sum = sum_seg.fold(0, k);
       i64 right_sum = asum - left_sum;
       i64 left_count = count_seg.fold(0, k);

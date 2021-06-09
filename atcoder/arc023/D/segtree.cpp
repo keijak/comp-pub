@@ -89,7 +89,7 @@ struct SegTree {
   std::vector<T> data_;  // data size: 2*offset_
 
  public:
-  inline int n() const { return n_; }
+  inline int size() const { return n_; }
   inline int offset() const { return offset_; }
 
   explicit SegTree(int n) : n_(n) {
@@ -140,7 +140,7 @@ struct SegTree {
 
   friend std::ostream &operator<<(std::ostream &os, const SegTree &st) {
     os << "[";
-    for (int i = 0; i < st.n(); ++i) {
+    for (int i = 0; i < st.size(); ++i) {
       if (i != 0) os << ", ";
       const auto &x = st[i];
       os << x;
@@ -148,64 +148,35 @@ struct SegTree {
     return os << "]";
   }
 
-  template <bool (*pred)(const T &)>
-  int max_right(int l) {
-    return max_right(l, [](const T &x) -> bool { return pred(x); });
-  }
-  template <class Predicate>
-  int max_right(int l, Predicate pred) {
-    assert(0 <= l && l <= n_);
-    assert(pred(Monoid::id()));
-    if (l == n_) return n_;
-    l += offset_;
-    T sm = Monoid::id();
-    do {
-      while (l % 2 == 0) l >>= 1;
-      if (!pred(Monoid::op(sm, data_[l]))) {
-        while (l < offset_) {
-          l = (2 * l);
-          if (pred(Monoid::op(sm, data_[l]))) {
-            sm = Monoid::op(sm, data_[l]);
-            l++;
-          }
-        }
-        return l - offset_;
-      }
-      sm = Monoid::op(sm, data_[l]);
-      l++;
-    } while ((l & -l) != l);
-    return n_;
-  }
-
-  template <bool (*pred)(const T &)>
-  int min_left(int r) {
-    return min_left(r, [](const T &x) -> bool { return pred(x); });
-  }
-  template <class Predicate>
-  int min_left(int r, Predicate pred) {
-    assert(0 <= r && r <= n_);
-    assert(pred(Monoid::id()));
-    if (r == 0) return 0;
-    r += offset_;
-    T sm = Monoid::id();
-    do {
-      r--;
-      while (r > 1 && (r % 2)) r >>= 1;
-      if (!pred(Monoid::op(data_[r], sm))) {
-        while (r < offset_) {
-          r = (2 * r + 1);
-          if (pred(Monoid::op(data_[r], sm))) {
-            sm = Monoid::op(data_[r], sm);
-            r--;
-          }
-        }
-        return r + 1 - offset_;
-      }
-      sm = Monoid::op(data_[r], sm);
-    } while ((r & -r) != r);
-    return 0;
-  }
+  template <class M, class F>
+  friend int min_left(const SegTree<M> &seg, int r, F pred);
 };
+
+template <class M, class F>
+int min_left(const SegTree<M> &seg, int r, F pred) {
+  static_assert(std::is_invocable_r_v<bool, F, typename M::T>,
+                "F must be invocable on the value type");
+  assert(0 <= r && r <= seg.size());
+  assert(pred(M::id()));
+  r += seg.offset_;
+  auto sm = M::id();
+  do {
+    --r;
+    while (r > 1 && (r % 2)) r >>= 1;
+    if (!pred(M::op(seg.data_[r], sm))) {
+      while (r < seg.offset_) {
+        r = 2 * r + 1;
+        if (pred(M::op(seg.data_[r], sm))) {
+          sm = M::op(seg.data_[r], sm);
+          --r;
+        }
+      }
+      return r + 1 - seg.offset_;
+    }
+    sm = M::op(seg.data_[r], sm);
+  } while ((r & -r) != r);
+  return 0;
+}
 
 struct GCD {
   using T = int;
@@ -230,7 +201,7 @@ int main() {
     int j = i;
     int gj = a[i];
     while (j >= 0) {
-      int l = st.min_left(i + 1, [&gj](int g) { return g == -1 or g >= gj; });
+      int l = min_left(st, i + 1, [&gj](int g) { return g == -1 or g >= gj; });
       freq[gj] += j + 1 - l;
       if (l == 0) break;
       gj = st.fold(l - 1, i + 1);
