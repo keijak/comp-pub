@@ -28,15 +28,15 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
 
-void println() { std::cout << "\n"; }
+void print() { std::cout << "\n"; }
 template <class T>
-void println(const T &x) {
+void print(const T &x) {
   std::cout << x << "\n";
 }
 template <typename Head, typename... Tail>
-void println(const Head &head, Tail... tail) {
+void print(const Head &head, Tail... tail) {
   std::cout << head << " ";
-  println(tail...);
+  print(tail...);
 }
 
 template <typename Container>
