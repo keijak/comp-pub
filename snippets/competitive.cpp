@@ -3,9 +3,7 @@
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using Int = long long;
-using Uint = unsigned long long;
-using Float = long double;
+using i64 = long long;
 
 template <typename T, typename U>
 inline bool chmax(T &a, U b) {
@@ -55,6 +53,17 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
+void print() { std::cout << "\n"; }
+template <class T>
+void print(const T &x) {
+  std::cout << x << "\n";
+}
+template <typename Head, typename... Tail>
+void print(const Head &head, Tail... tail) {
+  std::cout << head << " ";
+  print(tail...);
+}
+
 #ifdef ENABLE_DEBUG
 #include "debug_dump.hpp"
 #else
@@ -63,12 +72,17 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 
 using namespace std;
 
-Int solve() {
+auto solve() {
   //
   return -42;
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << solve() << "\n";
+  cout << std::fixed << std::setprecision(15);
+  int t = 1;
+  REP(test_case, t) {
+    auto ans = solve();
+    print(ans);
+  }
 }
