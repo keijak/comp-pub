@@ -24,6 +24,10 @@ std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
+template <typename T, typename U>
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
+  return os << "(" << a.first << ", " << a.second << ")";
+}
 template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
@@ -49,55 +53,73 @@ template <typename T, typename = std::enable_if_t<
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
+
+void print() { std::cout << "\n"; }
+template <class T>
+void print(const T &x) {
+  std::cout << x << "\n";
+}
+template <typename Head, typename... Tail>
+void print(const Head &head, Tail... tail) {
+  std::cout << head << " ";
+  print(tail...);
 }
 
-#ifdef ENABLE_DEBUG
-template <typename T>
-void pdebug(const T &value) {
-  std::cerr << value;
-}
+void read_from_cin() {}
 template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &...args) {
-  pdebug(value);
-  std::cerr << ", ";
-  pdebug(args...);
+void read_from_cin(T &value, Ts &...args) {
+  std::cin >> value;
+  read_from_cin(args...);
 }
-#define DEBUG(...)                                   \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    pdebug(__VA_ARGS__);                             \
-    std::cerr << std::endl;                          \
-  } while (0)
+#define VAR(type, ...) \
+  type __VA_ARGS__;    \
+  read_from_cin(__VA_ARGS__);
+
+#ifdef ENABLE_DEBUG
+#include "debug_dump.hpp"
 #else
-#define pdebug(...)
-#define DEBUG(...)
+#define DUMP(...)
 #endif
 
 using namespace std;
+
+// Most Significant Set Bit (Highest One Bit) = std::bit_floor(x)
+int mssb_pos(unsigned x) {
+  static const int CLZ_WIDTH = __builtin_clz(1);
+  assert(x != 0);
+  return CLZ_WIDTH - __builtin_clz(x);
+}
+int mssb_pos(u64 x) {
+  static const int CLZLL_WIDTH = __builtin_clzll(1LL);
+  assert(x != 0);
+  return CLZLL_WIDTH - __builtin_clzll(x);
+}
+template <typename U>
+inline U bit_floor(U x) {
+  if (x == 0) return 0;
+  return U(1) << mssb_pos(x);
+}
 
 struct Edge {
   int to;
 };
 
 template <typename Task>
-class ReRooting {
+class InplaceRerooting {
  private:
   using NV = typename Task::NodeValue;
   using EV = typename Task::EdgeValue;
 
   Task task;
-  int n;                   // number of nodes
-  vector<vector<Edge>> g;  // graph (tree)
-  vector<NV> sub;          // values for each subtree rooted at i
-  vector<NV> full;         // values for each entire tree rooted at i
-  int base_root;           // base root node where we start DFS
+  int n;                             // number of nodes
+  std::vector<std::vector<Edge>> g;  // graph (tree)
+  std::vector<NV> sub;               // values for each subtree rooted at i
+  std::vector<NV> full;              // values for each entire tree rooted at i
+  int base_root;                     // base root node where we start DFS
 
  public:
-  explicit ReRooting(Task task, vector<vector<Edge>> g, int r = 0)
+  explicit InplaceRerooting(Task task, std::vector<std::vector<Edge>> g,
+                            int r = 0)
       : task(move(task)),
         n((int)g.size()),
         g(move(g)),
@@ -105,9 +127,9 @@ class ReRooting {
         full(n),
         base_root(r) {}
 
-  const vector<NV> &run() {
+  const std::vector<NV> &run() {
     pull_up(base_root, -1);
-    push_down(base_root, -1, task.id());
+    push_down(base_root, -1, std::nullopt);
     return full;
   }
 
@@ -117,71 +139,105 @@ class ReRooting {
     for (auto &e : g[v]) {
       int u = e.to;
       if (u == par) continue;
-      i64 sub = pull_up(u, v);
-      res = task.merge(res, task.add_edge(sub, e));
+      auto sub = task.add_edge(pull_up(u, v), e);
+      task.merge_inplace(res, std::move(sub));
     }
     return (sub[v] = task.add_node(res, v));
   }
 
-  void push_down(int v, int par, NV upper_sub) {
+  void push_down(int v, int par, std::optional<NV> upper_sub) {
     int m = g[v].size();
-    vector<EV> cuml(m + 1, task.id()), cumr(m + 1, task.id());
+    EV agg = task.id();
 
     for (int i = 0; i < m; ++i) {
       auto &e = g[v][i];
       int u = e.to;
       if (u == par) {
-        cuml[i + 1] = task.merge(cuml[i], task.add_edge(upper_sub, e));
+        assert(upper_sub.has_value());
+        task.merge_inplace(agg, task.add_edge(std::move(*upper_sub), e));
       } else {
-        cuml[i + 1] = task.merge(cuml[i], task.add_edge(sub[u], e));
+        task.merge_inplace(agg, task.add_edge(sub[u], e));
       }
     }
-
-    for (int i = m - 1; i >= 0; --i) {
-      auto &e = g[v][i];
-      int u = e.to;
-      if (u == par) {
-        cumr[i] = task.merge(task.add_edge(upper_sub, e), cumr[i + 1]);
-      } else {
-        cumr[i] = task.merge(task.add_edge(sub[u], e), cumr[i + 1]);
-      }
-    }
-
-    full[v] = task.add_node(cuml[m], v);
+    full[v] = task.add_node(agg, v);
 
     for (int i = 0; i < m; ++i) {
       auto &e = g[v][i];
       int u = e.to;
       if (u == par) continue;
-      NV next_upper_sub = task.add_node(task.merge(cuml[i], cumr[i + 1]), v);
-      push_down(u, v, next_upper_sub);
+      EV edge_value = task.add_edge(sub[u], e);
+      task.subtract_inplace(agg, edge_value);
+      push_down(u, v, std::optional<NV>{task.add_node(agg, v)});
+      task.merge_inplace(agg, std::move(edge_value));
     }
   }
 };
 
-struct Task {
+struct InplaceTask {
   struct NodeValue {
-    int nimber;
-    int to;
+    unsigned nimber;
+    map<unsigned, set<int>> nexts;
   };
-  using EdgeValue = NodeValue;
+  struct EdgeValue {
+    map<unsigned, set<int>> nimbers;
+  };
 
-  EdgeValue id() const { return {0, -1}; }
+  EdgeValue id() const { return {}; }
 
-  NodeValue add_node(EdgeValue val, int node) const { return val; }
+  NodeValue add_node(const EdgeValue &e, int node) const {
+    NodeValue res;
+    unsigned mex = 0;
+    for (auto &[g, tos] : e.nimbers) {
+      if (g == mex) {
+        auto &nex = res.nexts[g];
+        for (auto &to : tos) {
+          if (ssize(nex) >= 2) break;
+          nex.insert(to);
+        }
+        mex++;
+      } else if (g > mex) {
+        break;
+      }
+    }
+    res.nimber = mex;
+    return res;
+  }
 
-  EdgeValue add_edge(NodeValue val, const Edge &edge) const { return val; }
+  EdgeValue add_edge(const NodeValue &val, const Edge &edge) const {
+    EdgeValue res;
+    res.nimbers[val.nimber].insert(edge.to);
+    return res;
+  }
 
-  EdgeValue merge(const EdgeValue &x, const EdgeValue &y) const {
-    return std::max(x, y);
+  void merge_inplace(EdgeValue &agg, const EdgeValue &x) const {
+    for (auto &[g, tos] : x.nimbers) {
+      agg.nimbers[g].insert(ALL(tos));
+      auto &nex = agg.nimbers[g];
+      for (auto &to : tos) {
+        if (ssize(nex) >= 2) break;
+        nex.insert(to);
+      }
+    }
+  }
+
+  void subtract_inplace(EdgeValue &agg, const EdgeValue &x) const {
+    for (auto &[g, tos] : x.nimbers) {
+      auto &nimg = agg.nimbers[g];
+      for (auto to : tos) {
+        nimg.erase(to);
+        if (nimg.empty()) {
+          agg.nimbers.erase(g);
+        }
+      }
+    }
   }
 };
 
 pair<int, int> solve() {
   int n, m;
   cin >> n >> m;
-  vector<int> a(n);
-  REP(i, n) {
+  vector<int> a(m);
+  REP(i, m) {
     cin >> a[i];
     --a[i];
   }
@@ -194,26 +250,41 @@ pair<int, int> solve() {
     g[v].push_back({u});
   }
 
-  Task task;
-  ReRooting<Task> solver(task, g);
+  InplaceTask task;
+  InplaceRerooting<InplaceTask> solver(task, g);
   auto res = solver.run();
 
-  u64 ag = 0;
-  u64 maxg = 0;
-  int mi = -1, mv = -1;
-  REP(i, n) {
-    auto node = res[a[i]];
+  unsigned ag = 0;
+  REP(i, m) {
+    const auto &node = res[a[i]];
     ag ^= node.nimber;
-    if (chmax(maxg, node.nimber)) {
-      mi = i + 1;
-      mv = node.next_v + 1;
+  }
+  if (ag == 0) {
+    return {-1, -1};
+  }
+
+  unsigned ag_mssb = bit_floor(ag);
+  int mi = -1;
+  REP(i, m) {
+    const auto &node = res[a[i]];
+    if (node.nimber & ag_mssb) {
+      mi = i;
+      break;
     }
   }
-  return {mi, mv};
+  DUMP(mi);
+  assert(mi >= 0);
+  const auto &nv = res[a.at(mi)];
+  unsigned tg = (nv.nimber ^ ag);
+  auto it = nv.nexts.find(tg);
+  assert(it != nv.nexts.end());
+  assert(not it->second.empty());
+  int to = *it->second.begin();
+  return {mi + 1, to + 1};
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
   auto [i, v] = solve();
-  cout << i << " " << v << "\n";
+  print(i, v);
 }
