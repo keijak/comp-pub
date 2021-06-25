@@ -1,7 +1,13 @@
 # Ignore everywhere
 __pycache__
 a.out
+a.out.dSYM
 poetry.lock
+
+# clion
+.idea
+.run
+cmake-build-debug
 
 # Ignore at the toplevel.
 /.python-version
