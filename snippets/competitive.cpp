@@ -64,6 +64,16 @@ void print(const Head &head, Tail... tail) {
   print(tail...);
 }
 
+void read_from_cin() {}
+template <typename T, typename... Ts>
+void read_from_cin(T &value, Ts &...args) {
+  std::cin >> value;
+  read_from_cin(args...);
+}
+#define INPUT(type, ...) \
+  type __VA_ARGS__;      \
+  read_from_cin(__VA_ARGS__);
+
 #ifdef ENABLE_DEBUG
 #include "debug_dump.hpp"
 #else
