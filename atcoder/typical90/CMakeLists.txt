@@ -3,4 +3,4 @@ project(typical90)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(t076 076/main.cpp)
+add_executable(t077 077/main.cpp)
