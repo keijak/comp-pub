@@ -3,7 +3,7 @@
         {
             "type": "shell",
             "label": "g++ build active file",
-            "command": "/usr/local/bin/g++-10",
+            "command": "/usr/local/bin/g++-11",
             "args": [
                 "-std=c++17",
                 "-g",
@@ -12,7 +12,7 @@
                 "-fsanitize=undefined",
                 "-Wall",
                 "-Wextra",
-                "-pedantic"
+                "-Wfatal-errors"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -32,6 +32,7 @@
             "args": [
                 "-std=c++17",
                 "-stdlib=libc++",
+                "-g",
                 "-x",
                 "c++",
                 "${file}",
@@ -39,7 +40,7 @@
                 "-fsanitize=undefined",
                 "-Wall",
                 "-Wextra",
-                "-pedantic",
+                "-Wfatal-errors",
                 "--debug"
             ],
             "group": "build"
@@ -47,7 +48,7 @@
         {
             "label": "CheckTestCase",
             "type": "shell",
-            "command": "cd ${fileDirname} && rm -f ${fileDirname}/a.out && g++-10 -std=c++17 -g -O0 -Wall -Wextra -Wl,-stack_size,0x10000000 -fsanitize=address,undefined -DENABLE_DEBUG ${fileBasename} && oj test -c \"${fileDirname}/a.out -d ${fileDirname}/tests/\"",
+            "command": "cd ${fileDirname} && g++-11 -std=c++17 -g3 -O0 -Wall -Wextra -Wfatal-errors -Wl,-stack_size,0x10000000 -fsanitize=address,undefined -DENABLE_DEBUG ${fileBasename} && oj test -c ./a.out -d ./test",
             "presentation": {
                 "reveal": "always",
                 "focus": true,

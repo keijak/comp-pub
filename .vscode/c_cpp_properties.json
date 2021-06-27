@@ -4,14 +4,14 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/Users/keiji/include/cpp_precompiled_headers",
+                "/Users/keiji/include",
                 "/Users/keiji/workspace/src/github.com/atcoder/ac-library",
                 "/usr/local/opt/boost/include",
                 "${default}"
             ],
             "defines": [],
             "macFrameworkPath": [],
-            "compilerPath": "/usr/local/bin/g++-10",
+            "compilerPath": "/usr/local/bin/g++-11",
             "intelliSenseMode": "macos-gcc-x64",
             "compilerArgs": [
                 "-std=c++17"
