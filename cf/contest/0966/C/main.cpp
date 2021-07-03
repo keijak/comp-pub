@@ -117,10 +117,10 @@ struct BinaryTrie {
   T min_element(T xor_mask = 0) const { return get_min(root_, xor_mask); }
 
   // Returns the minimum index i s.t. trie[i] >= val.
-  int lower_bound(T val) { return count_less(root_, val); }
+  int lower_bound(T val) const { return count_less(root_, val); }
 
   // Returns the minimum index i s.t. trie[i] > val.
-  int upper_bound(T val) { return count_less(root_, val + 1); }
+  int upper_bound(T val) const { return count_less(root_, val + 1); }
 
   // Returns k-th (0-indexed) smallest value.
   T operator[](int k) const {
@@ -200,7 +200,7 @@ struct BinaryTrie {
                  : get_internal(t->child[1], k - m, b - 1) | (T(1) << b);
   }
 
-  int count_less(NodePtr t, T val, int b = kBitWidth - 1) {
+  int count_less(NodePtr t, T val, int b = kBitWidth - 1) const {
     if (!t || b < 0) return 0;
     push_down(t, b);
     bool f = (val >> b) & 1;
