@@ -1,6 +1,6 @@
 #!/bin/bash
 
-URL="https://atcoder.jp/contests/typical90/tasks/typical90_aq"
+URL="https://atcoder.jp/contests/typical90/tasks/typical90_ca"
 SRC="main.cpp"
 
 while :
