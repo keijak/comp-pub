@@ -1,0 +1,12 @@
+project(abc154)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DENABLE_DEBUG")
+add_executable(A A/main.cpp)
+add_executable(B B/main.cpp)
+add_executable(C C/main.cpp)
+add_executable(D D/main.cpp)
+add_executable(E E/main.cpp)
+add_executable(F F/main.cpp)
+
+add_executable(digitdp E/digitdp.cpp)
+add_executable(rec E/rec.cpp)
