@@ -7,3 +7,4 @@ set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -fno-sani
 add_executable(083 083/main.cpp)
 add_executable(084 084/main.cpp)
 add_executable(085 085/main.cpp)
+add_executable(086 086/main.cpp)
