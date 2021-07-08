@@ -199,17 +199,41 @@ using Rat = Rational<long long>;
 // using Rat = Rational<__int128_t>;
 // using Rat = Rational<multip::checked_int128_t>; // for testing overflow
 
+// Reads a rational number from the input parsing decimal representation.
+// (e.g. "0.2029" => 2029/10000 )
+std::istream &operator>>(std::istream &is, Rat &x) {
+  long long nume = 0, deno = 1;
+  char ch;
+  while (is.get(ch)) {
+    if (not std::isspace(ch)) break;
+  }
+  int sgn = 1;
+  if (ch == '-') {
+    sgn = -1;
+    is.get(ch);
+  }
+  bool in_frac = false;
+  while (true) {
+    if (not std::isdigit(ch)) {
+      is.unget();
+      break;
+    }
+    nume = (nume * 10) + int(ch - '0');
+    if (in_frac) deno *= 10;
+    if (not(is.get(ch))) break;
+    if (ch == '.') {
+      in_frac = true;
+      if (not(is.get(ch))) break;
+    }
+  }
+  x = Rat(nume * sgn, deno);
+  return is;
+}
+
 auto solve() {
-  INPUT(Real, xc, xm, xp, xv);
-  xc *= 10000;
-  xm *= 10000;
-  xp *= 10000;
-  xv *= 10000;
-  Rat c(llround(xc), 10000LL);
-  Rat m(llround(xm), 10000LL);
-  Rat p(llround(xp), 10000LL);
-  Rat v(llround(xv), 10000LL);
+  INPUT(Rat, c, m, p, v);
   assert(c + m + p == Rat(1));
+  DUMP(c, m, p, v);
   map<pair<Rat, Rat>, Real> memo;
 
   auto f = [&](auto &f, const Rat &a, const Rat &b) -> Real {
