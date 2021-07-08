@@ -4,37 +4,37 @@
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
-#include <boost/multiprecision/cpp_int.hpp>
+// #include <boost/multiprecision/cpp_int.hpp>
 // using i128 = boost::multiprecision::checked_int128_t;
 // using i512 = boost::multiprecision::checked_int512_t;
 // using u128 = boost::multiprecision::checked_uint128_t;
 // using Int = boost::multiprecision::checked_cpp_int;
 // using Rat = boost::multiprecision::checked_cpp_rational;
-namespace multip = boost::multiprecision;
+// namespace multip = boost::multiprecision;
 
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template<typename T>
+template <typename T>
 inline int ssize(const T &a) {
-  return (int) std::size(a);
+  return (int)std::size(a);
 }
 
-template<typename T>
+template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
-template<typename T, typename U>
+template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
-template<typename Container>
+template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -45,35 +45,34 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   }
   return os << ends;
 }
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value &&
-        !std::is_same<T, std::string_view>::value &&
-        !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 void print() { std::cout << "\n"; }
-template<class T>
+template <class T>
 void print(const T &x) {
   std::cout << x << "\n";
 }
-template<typename Head, typename... Tail>
+template <typename Head, typename... Tail>
 void print(const Head &head, Tail... tail) {
   std::cout << head << " ";
   print(tail...);
 }
 
 void read_from_cin() {}
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 void read_from_cin(T &value, Ts &...args) {
   std::cin >> value;
   read_from_cin(args...);
@@ -91,7 +90,7 @@ void read_from_cin(T &value, Ts &...args) {
 using namespace std;
 using Real = long double;
 
-template<typename T>
+template <typename T>
 struct Rational {
  public:
   using BigInt = __int128_t;
@@ -129,8 +128,10 @@ struct Rational {
   Rational &operator=(const Rational &x) = default;
   Rational &operator=(Rational &&x) = default;
 
-  operator double() { return (double) (nume) / (double) (deno); }
-  operator long double() { return (long double) (nume) / (long double) (deno); }
+  operator double() const { return (double)(nume) / (double)(deno); }
+  operator long double() const {
+    return (long double)(nume) / (long double)(deno);
+  }
 
   Rational operator+() const { return *this; }
   Rational operator-() const { return Rational(-nume, deno); }
@@ -143,7 +144,7 @@ struct Rational {
   }
   friend bool operator<(const Rational &x, const Rational &y) {
     return static_cast<BigInt>(x.nume) * y.deno <
-        static_cast<BigInt>(y.nume) * x.deno;
+           static_cast<BigInt>(y.nume) * x.deno;
   }
   friend bool operator>(const Rational &x, const Rational &y) { return y < x; }
   friend bool operator<=(const Rational &x, const Rational &y) {
@@ -156,7 +157,7 @@ struct Rational {
   friend Rational operator+(const Rational &x, const Rational &y) {
     auto g = gcd_(x.deno, y.deno);
     auto zn = (static_cast<BigInt>(x.nume) * (y.deno / g)) +
-        (static_cast<BigInt>(y.nume) * (x.deno / g));
+              (static_cast<BigInt>(y.nume) * (x.deno / g));
     auto zd = static_cast<BigInt>(x.deno / g) * y.deno;
     return Rational(std::move(zn), std::move(zd));
   }
@@ -209,23 +210,22 @@ auto solve() {
   Rat p(llround(xp), 10000LL);
   Rat v(llround(xv), 10000LL);
   assert(c + m + p == Rat(1));
+  map<pair<Rat, Rat>, Real> memo;
 
-  map<pair<Rat, Rat>, Rat> memo;
+  auto f = [&](auto &f, const Rat &a, const Rat &b) -> Real {
+    pair<Rat, Rat> mkey = {a, b};
+    if (auto it = memo.find(mkey); it != memo.end()) {
+      return it->second;
+    }
 
-  auto f = [&](auto &f, const Rat &a, const Rat &b) -> Rat {
-//    pair<Rat, Rat> mkey = {a, b};
-//    if (auto it = memo.find(mkey); it != memo.end()) {
-//      return it->second;
-//    }
-
-    Rat res(1);
+    Real res = 1.0;
     if (a > Rat(0)) {
       Rat na = (a <= v) ? Rat(0) : (a - v);
       Rat nb(0);
       if (b > Rat(0)) {
         nb = (a <= v) ? (b + a / Rat(2)) : (b + v / Rat(2));
       }
-      res += a * f(f, na, nb);
+      res += Real(a) * f(f, na, nb);
     }
     if (b > Rat(0)) {
       Rat nb = (b <= v) ? Rat(0) : (b - v);
@@ -233,12 +233,13 @@ auto solve() {
       if (a > Rat(0)) {
         na = (b <= v) ? (a + b / Rat(2)) : (a + v / Rat(2));
       }
-      res += b * f(f, na, nb);
+      res += Real(b) * f(f, na, nb);
     }
-    //memo[mkey] = res;
+
+    memo[mkey] = res;
     return res;
   };
-  return (Real) f(f, c, m);
+  return (Real)f(f, c, m);
 }
 
 int main() {
