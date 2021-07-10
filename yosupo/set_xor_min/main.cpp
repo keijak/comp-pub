@@ -92,11 +92,36 @@ struct BinaryTrie {
   struct Node {
     int leaf_count;
     std::array<NodePtr, 2> child;
-    Node() : leaf_count(0), child{nullptr, nullptr} {}
+    mutable T lazy_mask;
+    Node() : leaf_count(0), child{nullptr, nullptr}, lazy_mask(0) {}
   };
   NodePtr root_;  // The root node.
 
-  BinaryTrie() : root_(nullptr) {}
+  struct NodePool {
+    static constexpr size_t kInitBlockSize = 1u << 12;
+    std::vector<std::unique_ptr<Node[]>> blocks_;
+    size_t bsize_;
+    size_t bi_;
+    size_t ni_;
+
+    NodePool() : bsize_(kInitBlockSize), bi_(0), ni_(0) {
+      blocks_.emplace_back(new Node[kInitBlockSize]);
+    }
+
+    NodePtr new_node() {
+      if (ni_ == bsize_) {
+        bi_++;
+        ni_ = 0;
+        bsize_ *= 2;
+        blocks_.emplace_back(new Node[bsize_]);
+      }
+      return &blocks_[bi_][ni_++];
+    }
+  };
+  NodePool *pool_;
+
+  BinaryTrie() : root_(nullptr), pool_(NO_DELETE()) {}
+  BinaryTrie(NodePool &pool) : root_(nullptr), pool_(pool) {}
 
   int size() const { return root_ ? root_->leaf_count : 0; }
 
@@ -115,14 +140,14 @@ struct BinaryTrie {
   T min_element(T xor_mask = 0) const { return get_min(root_, xor_mask); }
 
   // Returns the minimum index i s.t. trie[i] >= val.
-  int lower_bound(T val) { return count_less(root_, val); }
+  int lower_bound(T val) const { return count_less(root_, val); }
 
   // Returns the minimum index i s.t. trie[i] > val.
-  int upper_bound(T val) { return count_less(root_, val + 1); }
+  int upper_bound(T val) const { return count_less(root_, val + 1); }
 
   // Returns k-th (0-indexed) smallest value.
   T operator[](int k) const {
-    assert(0 <= k && k < size());
+    assert(0 <= k and k < size());
     return get_internal(root_, k);
   }
 
@@ -144,12 +169,31 @@ struct BinaryTrie {
     return t->leaf_count;
   }
 
+  void xor_all(T xor_mask) {
+    if (root_) root_->lazy_mask ^= xor_mask;
+  }
+
+  std::vector<T> to_vec() const {
+    std::vector<T> res;
+    res.reserve(size());
+    to_vec_internal(root_, T(0), res);
+    return res;
+  }
+
  private:
+  void push_down(NodePtr t, int b) const {
+    if (t->lazy_mask == 0) return;
+    if ((t->lazy_mask >> b) & 1) std::swap(t->child[0], t->child[1]);
+    if (t->child[0]) t->child[0]->lazy_mask ^= t->lazy_mask;
+    if (t->child[1]) t->child[1]->lazy_mask ^= t->lazy_mask;
+    t->lazy_mask = 0;
+  }
 
   NodePtr insert_internal(NodePtr t, T val, int b = kBitWidth - 1) {
-    if (!t) t = new Node;
+    if (not t) t = pool_->new_node();
     t->leaf_count += 1;
     if (b < 0) return t;
+    push_down(t, b);
     bool f = (val >> b) & 1;
     t->child[f] = insert_internal(t->child[f], val, b - 1);
     return t;
@@ -158,11 +202,9 @@ struct BinaryTrie {
   NodePtr erase_internal(NodePtr t, T val, int b = kBitWidth - 1) {
     assert(t);
     t->leaf_count -= 1;
-    if (t->leaf_count == 0) {
-      delete t;
-      return nullptr;
-    }
+    if (t->leaf_count == 0) return nullptr;
     if (b < 0) return t;
+    push_down(t, b);
     bool f = (val >> b) & 1;
     t->child[f] = erase_internal(t->child[f], val, b - 1);
     return t;
@@ -171,25 +213,49 @@ struct BinaryTrie {
   T get_min(NodePtr t, T xor_mask, int b = kBitWidth - 1) const {
     assert(t);
     if (b < 0) return 0;
+    push_down(t, b);
     bool f = (xor_mask >> b) & 1;
-    f ^= !t->child[f];
+    f ^= not t->child[f];
     return get_min(t->child[f], xor_mask, b - 1) | (T(f) << b);
   }
 
   T get_internal(NodePtr t, int k, int b = kBitWidth - 1) const {
     if (b < 0) return 0;
+    push_down(t, b);
     int m = t->child[0] ? t->child[0]->leaf_count : 0;
     return k < m ? get_internal(t->child[0], k, b - 1)
                  : get_internal(t->child[1], k - m, b - 1) | (T(1) << b);
   }
 
-  int count_less(NodePtr t, T val, int b = kBitWidth - 1) {
-    if (!t || b < 0) return 0;
+  int count_less(NodePtr t, T val, int b = kBitWidth - 1) const {
+    if (not t or b < 0) return 0;
+    push_down(t, b);
     bool f = (val >> b) & 1;
-    return (f && t->child[0] ? t->child[0]->leaf_count : 0) +
+    return (f and t->child[0] ? t->child[0]->leaf_count : 0) +
         count_less(t->child[f], val, b - 1);
   }
+
+  void to_vec_internal(NodePtr t, T val, std::vector<T> &out,
+                       int b = kBitWidth - 1) const {
+    if (not t) return;
+    if (b < 0) {
+      out.push_back(val);
+      return;
+    }
+    if (t->child[0]) {
+      to_vec_internal(t->child[0], val, out, b - 1);
+    }
+    if (t->child[1]) {
+      to_vec_internal(t->child[1], val | (T(1) << b), out, b - 1);
+    }
+  }
+
+  static NodePool *NO_DELETE() {
+    static NodePool kNoDeletePool;
+    return &kNoDeletePool;
+  }
 };
+using Trie = BinaryTrie<>;
 
 using namespace std;
 
