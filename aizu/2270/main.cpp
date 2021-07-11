@@ -41,9 +41,9 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
 template<typename T, typename = void>
 struct is_iterable : std::false_type {};
 template<typename T>
-struct is_iterable<T, std::void_t < decltype(std::begin(std::declval<T>())),
-                   decltype(std::end(std::declval<T>()))>>
-: std::true_type {
+struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
+                                  decltype(std::end(std::declval<T>()))>>
+    : std::true_type {
 };
 
 template<typename T, typename = std::enable_if_t<
@@ -203,89 +203,116 @@ struct HLD {
   }
 };
 
-template<typename Monoid, int NODES = 20000000>
+template<typename Monoid>
 struct PersistentSegmentTree {
   using T = typename Monoid::T;
+  struct Node;
+  using NodePtr = Node *;
 
   struct Node {
     T data;
-    Node *l, *r;
+    NodePtr l, r;
     Node() {}
     Node(const T &_data) : data(_data), l(nullptr), r(nullptr) {}
   };
 
-  Node *pool;
-  int pid;
-  i64 N;
-  Node *nil;
-  std::vector<Node *> roots;
+  struct NodePool {
+    static constexpr size_t kInitBlockSize = 1u << 12;
+    static constexpr double kBlockSizeGrowthRate = 1.5;  // Decrease if MLE.
 
-  explicit PersistentSegmentTree(const std::vector<T> &v)
-      : pid(0), nil(nullptr) {
-    pool = new Node[NODES];
-    nil = my_new(Monoid::id());
-    nil->l = nil->r = nil;
-    roots.reserve(262144);
-    roots.push_back(build(v));
+    std::vector<std::unique_ptr<Node[]>> blocks_;
+    size_t bsize_;
+    size_t bi_;
+    size_t ni_;
+
+    NodePool() : bsize_(kInitBlockSize), bi_(0), ni_(0) {
+      blocks_.emplace_back(new Node[kInitBlockSize]);
+    }
+
+    NodePtr new_node() {
+      if (ni_ == bsize_) {
+        bi_++;
+        ni_ = 0;
+        bsize_ *= kBlockSizeGrowthRate;
+        blocks_.emplace_back(new Node[bsize_]);
+      }
+      return &blocks_[bi_][ni_++];
+    }
+  };
+
+  NodePtr nil_;
+  NodePtr root_;
+  i64 size_;
+  NodePool *pool_;
+
+  explicit PersistentSegmentTree(const std::vector<T> &v,
+                                 NodePool *pool = NO_DELETE())
+      : nil_(make_nil()), size_((i64) v.size()), pool_(pool) {
+    root_ = build(v);
   }
 
-  explicit PersistentSegmentTree(i64 N_) : pid(0), N(N_), nil(nullptr) {
-    pool = new Node[NODES];
-    nil = my_new(Monoid::id());
-    nil->l = nil->r = nil;
-    roots.reserve(262144);
-    roots.push_back(nil);
+  explicit PersistentSegmentTree(i64 n, NodePool *pool = NO_DELETE())
+      : nil_(make_nil()), root_(nil_), size_(n), pool_(pool) {}
+
+  PersistentSegmentTree set(i64 k, T x) const {
+    NodePtr new_root = set_(k, std::move(x), root_, 0, size_);
+    return {new_root, size_, pool_};
   }
 
-  Node *my_new(const T &data) {
-    pool[pid].data = data;
-    pool[pid].l = pool[pid].r = nil;
-    return &(pool[pid++]);
-  }
+  T fold(i64 kl, i64 kr) const { return fold_(kl, kr, root_, 0, size_); }
+  T operator[](i64 k) const { return fold_(k, k + 1, root_, 0, size_); }
 
-  Node *merge(Node *l, Node *r) {
-    pool[pid].data = Monoid::op(l->data, r->data);
-    pool[pid].l = l;
-    pool[pid].r = r;
-    return &(pool[pid++]);
-  }
+ private:
+  PersistentSegmentTree(NodePtr root, i64 n, NodePool *pool)
+      : nil_(make_nil()), root_(root), size_(n), pool_(pool) {}
 
-  Node *build(const std::vector<T> &v) {
-    N = (i64) v.size();
-    return build(0, (i64) v.size(), v);
-  }
+  NodePtr build(const std::vector<T> &v) { return build(0, (i64) v.size(), v); }
 
-  Node *build(i64 l, i64 r, const std::vector<T> &v) {
+  NodePtr build(i64 l, i64 r, const std::vector<T> &v) {
     if (l + 1 == r) return my_new(v[l]);
     i64 m = (l + r) >> 1;
     return merge(build(l, m, v), build(m, r, v));
   }
 
-  Node *set(Node *n, i64 k, const T &x) {
-    Node *root = set_(k, x, n, 0, N);
-    roots.push_back(root);
-    return root;
+  static NodePtr make_nil() {
+    static Node nil_node(Monoid::id());
+    nil_node.l = nil_node.r = &nil_node;
+    return &nil_node;
   }
 
-  T fold(Node *n, i64 a, i64 b) { return fold_(a, b, n, 0, N); }
-  T get(Node *n, i64 k) { return fold_(k, k + 1, n, 0, N); }
-
-  Node *new_tree() { return nil; }
-
- private:
-  Node *set_(i64 a, const T &x, Node *n, i64 l, i64 r) {
-    if (l + 1 == r) return my_new(x);
-    i64 m = (l + r) >> 1;
-    if (a < m) return merge(set_(a, x, n->l, l, m), n->r);
-    return merge(n->l, set_(a, x, n->r, m, r));
+  NodePtr make_leaf(T data) const {
+    NodePtr p = pool_->new_node();
+    p->data = std::move(data);
+    p->l = p->r = nil_;
+    return p;
   }
 
-  T fold_(i64 a, i64 b, Node *n, i64 l, i64 r) {
-    if (n == nil) return Monoid::id();
-    if (r <= a or b <= l) return Monoid::id();
-    if (a <= l and r <= b) return n->data;
+  NodePtr merge(NodePtr l, NodePtr r) const {
+    NodePtr p = pool_->new_node();
+    p->data = Monoid::op(l->data, r->data);
+    p->l = l;
+    p->r = r;
+    return p;
+  }
+
+  NodePtr set_(i64 k, T val, NodePtr p, i64 l, i64 r) const {
+    if (l + 1 == r) return make_leaf(std::move(val));
     i64 m = (l + r) >> 1;
-    return Monoid::op(fold_(a, b, n->l, l, m), fold_(a, b, n->r, m, r));
+    if (k < m) return merge(set_(k, std::move(val), p->l, l, m), p->r);
+    return merge(p->l, set_(k, std::move(val), p->r, m, r));
+  }
+
+  T fold_(i64 kl, i64 kr, NodePtr p, i64 l, i64 r) const {
+    if (p == nil_) return Monoid::id();
+    if (r <= kl or kr <= l) return Monoid::id();
+    if (kl <= l and r <= kr) return p->data;
+    i64 m = (l + r) >> 1;
+    return Monoid::op(fold_(kl, kr, p->l, l, m), fold_(kl, kr, p->r, m, r));
+  }
+
+  static NodePool *NO_DELETE() {
+    static NodePool kNoDeletePool;
+    return &kNoDeletePool;
   }
 };
 
@@ -296,6 +323,8 @@ struct SumOp {
   id() { return 0; }
 };
 
+using SegTree = PersistentSegmentTree<SumOp>;
+
 // Binary search.
 // Returns the boundary argument which satisfies pred(x).
 //
@@ -303,7 +332,7 @@ struct SumOp {
 //   auto ok_bound = bisect(ok, ng, [&](i64 x) -> bool { return ...; });
 template<class F>
 i64 bisect(i64 true_x, i64 false_x, F pred) {
-  static_assert(std::is_invocable_r_v < bool, F, i64 > , "F must be: i64 -> bool");
+  static_assert(std::is_invocable_r_v<bool, F, i64>, "F must be: i64 -> bool");
   while (std::abs(true_x - false_x) > 1) {
     i64 mid = (true_x + false_x) / 2;
     if (pred(mid)) {
@@ -313,10 +342,6 @@ i64 bisect(i64 true_x, i64 false_x, F pred) {
     }
   }
   return true_x;
-}
-
-unsigned f(unsigned x, unsigned y) {
-  return x + y;
 }
 
 int main() {
@@ -338,36 +363,31 @@ int main() {
     int j = hld.node_to_ord[i];
     sa[j] = a[i];
   }
-  using Tree = PersistentSegmentTree<SumOp>;
-  const unsigned amax = *max_element(ALL(a));
-  Tree tree(amax + 1);
-  vector < Tree::Node * > nodes(n);
+  const unsigned N = *max_element(ALL(a)) + 1;
+  SegTree empty_seq(N);
+  vector<SegTree> segs;
+  REP(i, n) segs.emplace_back(N);
 
-  auto dfs = [&](auto &rec, int v, int p, Tree::Node *pnode) -> void {
-    Tree::Node *cur_node = tree.set(pnode, a[v], tree.get(pnode, a[v]) + 1);
-    nodes[v] = cur_node;
+  auto dfs = [&](auto &rec, int v, int p, const SegTree &pseg) -> void {
+    auto cur = pseg.set(a[v], pseg[a[v]] + 1);
+    segs[v] = cur;
     for (auto u : g[v]) {
       if (u == p) continue;
-      rec(rec, u, v, cur_node);
+      rec(rec, u, v, cur);
     }
   };
-  dfs(dfs, 0, -1, tree.new_tree());
+  dfs(dfs, 0, -1, empty_seq);
 
   REP(q, Q) {
     INPUT(int, v, w, L);
     --v, --w;
-    int a1 = hld.lca(v, w);
-    int a2 = hld.parent[a1];
-
-    i64 res = bisect(amax + 1, 0, [&](unsigned x) -> bool {
-      int c1 = tree.fold(nodes[v], 0LL, x + 1);
-      int c2 = tree.fold(nodes[w], 0LL, x + 1);
-      int d1 = tree.fold(nodes[a1], 0LL, x + 1);
-      int d2 = 0;
-      if (a2 != -1) {
-        d2 = tree.fold(nodes[a2], 0LL, x + 1);
-      }
-      int count = c1 + c2 - d1 - d2;
+    const int a1 = hld.lca(v, w);
+    i64 res = bisect(N, 0, [&](unsigned x) -> bool {
+      int c1 = segs[v].fold(0LL, x + 1);
+      int c2 = segs[w].fold(0LL, x + 1);
+      int d1 = segs[a1].fold(0LL, x + 1);
+      int count = c1 + c2 - 2 * d1;
+      if (a[a1] <= x) ++count;
       return count >= L;
     });
     print(res);

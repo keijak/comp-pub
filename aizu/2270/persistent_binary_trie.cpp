@@ -5,29 +5,29 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template<typename T>
+template <typename T>
 inline int ssize(const T &a) {
-  return (int) std::size(a);
+  return (int)std::size(a);
 }
 
-template<typename T>
+template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
-template<typename T, typename U>
+template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
-template<typename Container>
+template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -38,35 +38,34 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   }
   return os << ends;
 }
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value &&
-        !std::is_same<T, std::string_view>::value &&
-        !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 void print() { std::cout << "\n"; }
-template<class T>
+template <class T>
 void print(const T &x) {
   std::cout << x << "\n";
 }
-template<typename Head, typename... Tail>
+template <typename Head, typename... Tail>
 void print(const Head &head, Tail... tail) {
   std::cout << head << " ";
   print(tail...);
 }
 
 void read_from_cin() {}
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 void read_from_cin(T &value, Ts &...args) {
   std::cin >> value;
   read_from_cin(args...);
@@ -168,7 +167,7 @@ struct HLD {
   // Distance (= number of edges) of the path between two nodes.
   int distance(NodeID u, NodeID v) const {
     int cost = 0;
-    for (auto[l, r] : edge_ranges_on_path(u, v)) {
+    for (auto [l, r] : edge_ranges_on_path(u, v)) {
       cost += r - l;
     }
     return cost;
@@ -203,7 +202,7 @@ struct HLD {
   }
 };
 
-template<typename T = unsigned, int kBitWidth = std::numeric_limits<T>::digits>
+template <typename T = unsigned, int kBitWidth = std::numeric_limits<T>::digits>
 struct PersistentBinaryTrie {
   static_assert(std::is_unsigned<T>::value, "Requires unsigned type");
 
@@ -218,21 +217,47 @@ struct PersistentBinaryTrie {
   };
   NodePtr root_;  // The root node.
 
-  PersistentBinaryTrie() : root_(nullptr) {}
-  explicit PersistentBinaryTrie(NodePtr r) : root_(r) {}
+  struct NodePool {
+    static constexpr size_t kInitBlockSize = 1u << 12;
+    static constexpr double kBlockSizeGrowthRate = 1.5;  // Decrease if MLE.
+
+    std::vector<std::unique_ptr<Node[]>> blocks_;
+    size_t bsize_;
+    size_t bi_;
+    size_t ni_;
+
+    NodePool() : bsize_(kInitBlockSize), bi_(0), ni_(0) {
+      blocks_.emplace_back(new Node[kInitBlockSize]);
+    }
+
+    NodePtr new_node() {
+      if (ni_ == bsize_) {
+        bi_++;
+        ni_ = 0;
+        bsize_ *= kBlockSizeGrowthRate;
+        blocks_.emplace_back(new Node[bsize_]);
+      }
+      return &blocks_[bi_][ni_++];
+    }
+  };
+  NodePool *pool_;
+
+  PersistentBinaryTrie() : root_(nullptr), pool_(NO_DELETE()) {}
+  explicit PersistentBinaryTrie(NodePool *p) : root_(nullptr), pool_(p) {}
+  PersistentBinaryTrie(NodePtr r, NodePool *p) : root_(r), pool_(p) {}
 
   int size() const { return root_ ? root_->leaf_count : 0; }
 
   bool empty() const { return size() == 0; }
 
   PersistentBinaryTrie insert(T val) const {
-    return PersistentBinaryTrie(insert_internal(root_, val));
+    return PersistentBinaryTrie(insert_internal(root_, val), pool_);
   }
 
   // Removes one element of `val`.
   // At least one `val` must exist in the trie. Check `trie.count(val) > 0`.
   PersistentBinaryTrie erase_one(T val) const {
-    return PersistentBinaryTrie(erase_internal(root_, val));
+    return PersistentBinaryTrie(erase_internal(root_, val), pool_);
   }
 
   // Returns the element x in the trie that maximizes `x ^ xor_mask`.
@@ -241,15 +266,51 @@ struct PersistentBinaryTrie {
   // Returns the element x in the trie that minimizes `x ^ xor_mask`.
   T min_element(T xor_mask = 0) const { return get_min(root_, xor_mask); }
 
+  // Returns k-th (0-indexed) smallest value.
+  T operator[](int k) const {
+    assert(0 <= k and k < size());
+    return get_internal(root_, k);
+  }
+
+  // Returns k-th (0-indexed) largest value.
+  T kth_largest(int k) const {
+    const int i = size() - k - 1;
+    return (*this)[i];
+  }
+
   // Returns the minimum index i s.t. trie[i] >= val.
   int lower_bound(T val) const { return count_less(root_, val); }
 
   // Returns the minimum index i s.t. trie[i] > val.
   int upper_bound(T val) const { return count_less(root_, val + 1); }
 
+  // Counts the number of elements that are equal to `val`.
+  // Note: BinaryTrie is a multiset.
+  int count(T val) const {
+    if (not root_) return 0;
+    NodePtr t = root_;
+    for (int i = kBitWidth - 1; i >= 0; i--) {
+      t = t->child[val >> i & 1];
+      if (not t) return 0;
+    }
+    return t->leaf_count;
+  }
+
+  std::vector<T> to_vec() const {
+    std::vector<T> res;
+    res.reserve(size());
+    to_vec_internal(root_, T(0), res);
+    return res;
+  }
+
  private:
+  static NodePool *NO_DELETE() {
+    static NodePool kNoDeletePool;
+    return &kNoDeletePool;
+  }
+
   NodePtr insert_internal(NodePtr t, T val, int b = kBitWidth - 1) const {
-    NodePtr res = new Node();
+    NodePtr res = pool_->new_node();
     res->leaf_count = 1;
     if (t != nullptr) {
       res->leaf_count += t->leaf_count;
@@ -267,7 +328,7 @@ struct PersistentBinaryTrie {
     if (t->leaf_count == 1) {
       return nullptr;
     }
-    NodePtr res = new Node();
+    NodePtr res = pool_->new_node();
     res->leaf_count = t->leaf_count - 1;
     res->child[0] = t->child[0];
     res->child[1] = t->child[1];
@@ -281,24 +342,47 @@ struct PersistentBinaryTrie {
     assert(t != nullptr);
     if (b < 0) return 0;
     bool f = (xor_mask >> b) & 1;
-    f ^= !t->child[f];
+    f ^= not t->child[f];
     return get_min(t->child[f], xor_mask, b - 1) | (T(f) << b);
   }
 
+  T get_internal(NodePtr t, int k, int b = kBitWidth - 1) const {
+    if (b < 0) return 0;
+    int m = t->child[0] ? t->child[0]->leaf_count : 0;
+    return k < m ? get_internal(t->child[0], k, b - 1)
+                 : get_internal(t->child[1], k - m, b - 1) | (T(1) << b);
+  }
+
   int count_less(NodePtr t, T val, int b = kBitWidth - 1) const {
-    if (!t || b < 0) return 0;
+    if (not t or b < 0) return 0;
     bool f = (val >> b) & 1;
-    return (f && t->child[0] ? t->child[0]->leaf_count : 0) +
-        count_less(t->child[f], val, b - 1);
+    return (f and t->child[0] ? t->child[0]->leaf_count : 0) +
+           count_less(t->child[f], val, b - 1);
+  }
+
+  void to_vec_internal(NodePtr t, T val, std::vector<T> &out,
+                       int b = kBitWidth - 1) const {
+    if (not t) return;
+    if (b < 0) {
+      out.push_back(val);
+      return;
+    }
+    if (t->child[0]) {
+      to_vec_internal(t->child[0], val, out, b - 1);
+    }
+    if (t->child[1]) {
+      to_vec_internal(t->child[1], val | (T(1) << b), out, b - 1);
+    }
   }
 };
+using Trie = PersistentBinaryTrie<>;
 
 // Binary search.
 // Returns the boundary argument which satisfies pred(x).
 //
 // Usage:
 //   auto ok_bound = bisect(ok, ng, [&](i64 x) -> bool { return ...; });
-template<class F>
+template <class F>
 i64 bisect(i64 true_x, i64 false_x, F pred) {
   static_assert(std::is_invocable_r_v<bool, F, i64>, "F must be: i64 -> bool");
   while (std::abs(true_x - false_x) > 1) {
@@ -331,7 +415,6 @@ int main() {
     int j = hld.node_to_ord[i];
     sa[j] = a[i];
   }
-  using Trie = PersistentBinaryTrie<>;
   Trie empty;
   vector<Trie> trie(n);
 
