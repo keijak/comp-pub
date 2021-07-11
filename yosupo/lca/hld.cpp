@@ -6,20 +6,23 @@ template <typename T>
 using V = vector<T>;
 
 // Heavy-Light Decomposition
-struct HLD {
-  using NodeID = int;  // [0, n)
+struct HLDecomp {
+  using NodeID = int;                       // [0, n)
+  using G = std::vector<std::vector<int>>;  // undirected graph
+  // half-open intervals of preorder indices of nodes.
+  using IntervalVec = std::vector<std::pair<int, int>>;
 
-  int n;                                      // number of nodes in the tree
-  NodeID root;                                // root of the tree
-  std::vector<std::vector<NodeID>> child;     // children node ids
-  std::vector<std::optional<NodeID>> parent;  // parent node id (or -1)
-  std::vector<int> subsize;                   // subtree size
+  int n;                       // number of nodes in the tree
+  NodeID root;                 // root of the tree
+  G child;                     // children node ids
+  std::vector<NodeID> parent;  // parent node id (or -1 on the root node)
+  std::vector<int> subsize;    // subtree size
   // "ord" is preorder index in DFS traversal. [0, n)
   std::vector<int> node_to_ord;     // node id to preorder index
   std::vector<NodeID> ord_to_node;  // preorder index to node id
   std::vector<NodeID> comp_root;    // node id to its heavy path component
 
-  explicit HLD(std::vector<std::vector<int>> g, NodeID root = 0)
+  explicit HLDecomp(G g, NodeID root = 0)
       : n(int(g.size())),
         root(root),
         child(g),
@@ -35,53 +38,70 @@ struct HLD {
   }
 
   // Lowest Common Ancestor
-  NodeID lca(NodeID u, NodeID v) {
+  NodeID lca(NodeID u, NodeID v) const {
     for (;;) {
       if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       NodeID crv = comp_root[v];
       if (comp_root[u] == crv) return u;
-      assert(parent[crv].has_value());
-      v = parent[crv].value();
+      assert(parent[crv] != -1);
+      v = parent[crv];
     }
   }
 
-  // f: [l, r) -> void
-  // The intervals contain the preorder indices of the nodes in the
-  // u-v path, including both u and v.
-  void for_each(NodeID u, NodeID v, std::function<void(int, int)> f) {
+  // Returns the set of nodes on the u-v path, including both u and v.
+  //
+  // The return value is half-open intervals of the preorder indices of the
+  // nodes. One interval corresponds to one heavy path component.
+  IntervalVec node_ranges_on_path(NodeID u, NodeID v) const {
+    IntervalVec res;
     for (;;) {
       if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       NodeID crv = comp_root[v];
-      f(std::max(node_to_ord[crv], node_to_ord[u]), node_to_ord[v] + 1);
+      res.emplace_back(std::max(node_to_ord[crv], node_to_ord[u]),
+                       node_to_ord[v] + 1);
       if (comp_root[u] == crv) break;
-      assert(parent[crv].has_value());
-      v = parent[crv].value();
+      assert(parent[crv] != -1);
+      v = parent[crv];
     }
+    return res;
   }
 
-  // f: [l, r) -> void
-  // The intervals contain the preorder indices of nodes corresponding to the
-  // deeper end (closer to leaves) of edges in the u-v path.
-  void for_each_edge(NodeID u, NodeID v, std::function<void(int, int)> f) {
+  // Returns the set of edges in the u-v path.
+  //
+  // The return value is half-open intervals of the preorder indices of nodes
+  // corresponding to the deeper end (closer to leaves) of each edge in the
+  // path. Here we identify Edge(v, parent[v]) as v.
+  IntervalVec edge_ranges_on_path(NodeID u, NodeID v) const {
+    IntervalVec res;
     for (;;) {
       if (node_to_ord[u] > node_to_ord[v]) std::swap(u, v);
       NodeID crv = comp_root[v];
       if (comp_root[u] == crv) {
-        if (u != v) f(node_to_ord[u] + 1, node_to_ord[v] + 1);
+        if (u != v) res.emplace_back(node_to_ord[u] + 1, node_to_ord[v] + 1);
         break;
       }
-      f(node_to_ord[crv], node_to_ord[v] + 1);
-      assert(parent[crv].has_value());
-      v = parent[crv].value();
+      res.emplace_back(node_to_ord[crv], node_to_ord[v] + 1);
+      assert(parent[crv] != -1);
+      v = parent[crv];
     }
+    return res;
+  }
+
+  // Distance (= number of edges) of the path between two nodes.
+  int distance(NodeID u, NodeID v) const {
+    int cost = 0;
+    for (auto [l, r] : edge_ranges_on_path(u, v)) {
+      cost += r - l;
+    }
+    return cost;
   }
 
  private:
   // Fills `parent` and `subsize` and drops parent node ids from `child`.
   void dfs_subsize(NodeID v) {
     auto &edges = child[v];
-    if (parent[v].has_value()) {
-      auto it = std::find(edges.begin(), edges.end(), parent[v].value());
+    if (parent[v] != -1) {
+      auto it = std::find(edges.begin(), edges.end(), parent[v]);
       if (it != edges.end()) edges.erase(it);
     }
     for (NodeID &u : edges) {
@@ -118,7 +138,7 @@ int main() {
     g[p].push_back(i + 1);
   }
 
-  HLD hld(move(g));
+  HLDecomp hld(move(g));
   REP(i, Q) {
     int u, v;
     cin >> u >> v;
