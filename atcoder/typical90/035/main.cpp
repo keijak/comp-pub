@@ -1,50 +1,163 @@
-#pragma GCC target("avx2")
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("inline")
 
 #include <algorithm>
-#include <cassert>
 #include <cctype>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
-
-struct Input {
-  inline operator int() { return read_int<int>(); }
-  inline operator long long() { return read_int<long long>(); }
-  inline operator unsigned() { return read_int<unsigned>(); }
-
- private:
-  template <typename T>
-  static T read_int() {
-    T ret = 0, sgn = 1;
-    int ch = getchar_unlocked();
-    while (isspace(ch)) {
-      ch = getchar_unlocked();
-    }
-    if constexpr (!std::is_unsigned<T>::value) {
-      if (ch == '-') {
-        sgn = -1;
-        ch = getchar_unlocked();
-      }
-    }
-    for (; ('0' <= ch) & (ch <= '9'); ch = getchar_unlocked()) {
-      ret = (ret * 10) + (ch - '0');
-    }
-    ungetc(ch, stdin);
-    if constexpr (std::is_unsigned<T>::value) {
-      return ret;
-    } else {
-      return ret * sgn;
-    }
-  }
-} input;
 
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
+
+#if !HAVE_DECL_FREAD_UNLOCKED
+#define fread_unlocked fread
+#endif
+#if !HAVE_DECL_FWRITE_UNLOCKED
+#define fwrite_unlocked fwrite
+#endif
+
+namespace fastio {
+static constexpr int SZ = 1 << 17;
+char ibuf[SZ], obuf[SZ];
+int pil = 0, pir = 0, por = 0;
+
+inline void load() {
+  memcpy(ibuf, ibuf + pil, pir - pil);
+  pir = pir - pil + fread_unlocked(ibuf + pir - pil, 1, SZ - pir + pil, stdin);
+  pil = 0;
+}
+
+inline void rd(char &c) {
+  if (pil + 32 > pir) load();
+  c = ibuf[pil++];
+}
+template <typename T>
+inline void rd(T &x) {
+  if (pil + 32 > pir) load();
+  char c;
+  do c = ibuf[pil++];
+  while (c < '-');
+  [[maybe_unused]] bool minus = false;
+  if constexpr (std::is_signed<T>::value == true) {
+    if (c == '-') minus = true, c = ibuf[pil++];
+  }
+  x = 0;
+  while (c >= '0') {
+    x = x * 10 + (c & 15);
+    c = ibuf[pil++];
+  }
+  if constexpr (std::is_signed<T>::value == true) {
+    if (minus) x = -x;
+  }
+}
+inline void rd() {}
+template <typename Head, typename... Tail>
+inline void rd(Head &head, Tail &...tail) {
+  rd(head);
+  rd(tail...);
+}
+
+inline void skip_space() {
+  if (pil + 32 > pir) load();
+  while (ibuf[pil] <= ' ') pil++;
+}
+
+inline void flush() {
+  fwrite_unlocked(obuf, 1, por, stdout);
+  por = 0;
+}
+
+struct Pre {
+  char num[40000];
+  constexpr Pre() : num() {
+    for (int i = 0; i < 10000; i++) {
+      int n = i;
+      for (int j = 3; j >= 0; j--) {
+        num[i * 4 + j] = n % 10 + '0';
+        n /= 10;
+      }
+    }
+  }
+} constexpr pre;
+
+struct Post {
+  Post() { std::atexit(flush); }
+} post;
+
+inline void wt(char c) {
+  if (por > SZ - 32) flush();
+  obuf[por++] = c;
+}
+inline void wt(bool b) {
+  if (por > SZ - 32) flush();
+  obuf[por++] = b ? '1' : '0';
+}
+template <typename T>
+inline void wt(T x) {
+  if (por > SZ - 32) flush();
+  if (!x) {
+    obuf[por++] = '0';
+    return;
+  }
+  if constexpr (std::is_signed<T>::value == true) {
+    if (x < 0) obuf[por++] = '-', x = -x;
+  }
+  int i = 12;
+  char buf[16];
+  while (x >= 10000) {
+    memcpy(buf + i, pre.num + (x % 10000) * 4, 4);
+    x /= 10000;
+    i -= 4;
+  }
+  if (x < 100) {
+    if (x < 10) {
+      obuf[por] = '0' + x;
+      ++por;
+    } else {
+      uint32_t q = (uint32_t(x) * 205) >> 11;
+      uint32_t r = uint32_t(x) - q * 10;
+      obuf[por] = '0' + q;
+      obuf[por + 1] = '0' + r;
+      por += 2;
+    }
+  } else {
+    if (x < 1000) {
+      memcpy(obuf + por, pre.num + (x << 2) + 1, 3);
+      por += 3;
+    } else {
+      memcpy(obuf + por, pre.num + (x << 2), 4);
+      por += 4;
+    }
+  }
+  memcpy(obuf + por, buf + i + 4, 12 - i);
+  por += 12 - i;
+}
+
+inline void wt() {}
+template <typename Head, typename... Tail>
+inline void wt(Head &&head, Tail &&...tail) {
+  wt(head);
+  wt(std::forward<Tail>(tail)...);
+}
+template <typename... Args>
+inline void wtn(Args &&...x) {
+  wt(std::forward<Args>(x)...);
+  wt('\n');
+}
+
+}  // namespace fastio
+using fastio::rd;
+using fastio::wt;
+using fastio::wtn;
 
 using namespace std;
 
@@ -67,10 +180,7 @@ struct SparseTable {
   }
 
   // Returns i-th value (0-indexed).
-  T operator[](int i) const {
-    assert(0 <= i and i < n_);
-    return data_[height_[1]][i];
-  }
+  T operator[](int i) const { return data_[height_[1]][i]; }
 
  private:
   void init(const std::vector<T> &vec) {
@@ -139,11 +249,13 @@ struct EulerTour {
 };
 
 int main() {
-  const int n = input;
+  int n;
+  rd(n);
   vector<vector<int>> g(n);
   REP(i, n - 1) {
-    const int a = int(input) - 1;
-    const int b = int(input) - 1;
+    int a, b;
+    rd(a, b);
+    --a, --b;
     g[a].push_back(b);
     g[b].push_back(a);
   }
@@ -151,21 +263,23 @@ int main() {
   SparseTable<Min> st(et.tour);
   vector<int> ord;
   ord.reserve(200005);
-  const int q = input;
-  REP(_, q) {
-    const int k = input;
+  int Q;
+  rd(Q);
+  REP(_, Q) {
+    int k;
+    rd(k);
     ord.resize(k);
     REP(i, k) {
-      const int v = int(input) - 1;
+      int v;
+      rd(v);
+      --v;
       ord[i] = et.begin[v];
     }
     sort(ALL(ord));
-    const auto lca_depth = st.fold(ord.front(), ord.back() + 1);
-    int res = et.tour[ord[0]] - lca_depth;
+    int res = et.tour[ord[0]] - st.fold(ord.front(), ord.back() + 1);
     for (int i = 1; i < k; ++i) {
-      const auto ld = st.fold(ord[i - 1], ord[i] + 1);
-      res += et.tour[ord[i]] - ld;
+      res += et.tour[ord[i]] - st.fold(ord[i - 1], ord[i] + 1);
     }
-    printf("%d\n", res);
+    wtn(res);
   }
 }

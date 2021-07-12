@@ -2,41 +2,6 @@
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize("unroll-loops")
 
-#include <cctype>
-#include <cstdio>
-#include <type_traits>
-
-struct Input {
-  inline operator int() { return read_int<int>(); }
-  inline operator long long() { return read_int<long long>(); }
-  inline operator unsigned() { return read_int<unsigned>(); }
-
- private:
-  template <typename T>
-  static T read_int() {
-    T ret = 0, sgn = 1;
-    int ch = getchar_unlocked();
-    while (isspace(ch)) {
-      ch = getchar_unlocked();
-    }
-    if constexpr (!std::is_unsigned<T>::value) {
-      if (ch == '-') {
-        sgn = -1;
-        ch = getchar_unlocked();
-      }
-    }
-    for (; isdigit(ch); ch = getchar_unlocked()) {
-      ret = (ret * 10) + (ch - '0');
-    }
-    ungetc(ch, stdin);
-    if constexpr (std::is_unsigned<T>::value) {
-      return ret;
-    } else {
-      return ret * sgn;
-    }
-  }
-} input;
-
 unsigned G[51][51] = {
     {0,  0, 1,  0,  2,  1,  3,  0,  4,  2,  5,  1,  6,  3,  7,  0,  8,
      4,  9, 2,  10, 5,  11, 1,  12, 6,  13, 3,  14, 7,  15, 0,  16, 8,
@@ -193,20 +158,59 @@ unsigned G[51][51] = {
      17, 4, 18, 9,  19, 2,  20, 10, 21, 5,  22, 11, 23, 1,  24, 25, 12},
 };
 
+#include <cctype>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <type_traits>
+#include <utility>
+
+namespace fastio {
+static constexpr int SZ = 1 << 17;
+char ibuf[SZ], obuf[SZ];
+int pil = 0, pir = 0, por = 0;
+
+inline void load() {
+  memcpy(ibuf, ibuf + pil, pir - pil);
+  pir = pir - pil + fread(ibuf + pir - pil, 1, SZ - pir + pil, stdin);
+  pil = 0;
+}
+
+inline void rd(char& c) {
+  if (pil + 32 > pir) load();
+  c = ibuf[pil++];
+}
+template <typename T>
+inline void rd(T& x) {
+  if (pil + 32 > pir) load();
+  char c;
+  do c = ibuf[pil++];
+  while (c < '-');
+  x = 0;
+  while (c >= '0') {
+    x = x * 10 + (c & 15);
+    c = ibuf[pil++];
+  }
+}
+inline void rd() {}
+template <typename Head, typename... Tail>
+inline void rd(Head& head, Tail&... tail) {
+  rd(head);
+  rd(tail...);
+}
+}  // namespace fastio
+using fastio::rd;
+
 const unsigned NMAX = unsigned(1e5) + 1;
 unsigned W[NMAX], B[NMAX];
+unsigned n, gg;
+const char* ans[2] = {"Second\n", "First\n"};
 
 int main() {
-  unsigned n = input;
-  for (unsigned i = 0; i < n; ++i) W[i] = input;
-  for (unsigned i = 0; i < n; ++i) B[i] = input;
-  unsigned gg = 0;
-  for (unsigned i = 0; i < n; ++i) {
-    gg ^= G[W[i]][B[i]];
-  }
-  if (gg != 0) {
-    puts("First");
-  } else {
-    puts("Second");
-  }
+  rd(n);
+  for (unsigned i = 0; i < n; ++i) rd(W[i]);
+  for (unsigned i = 0; i < n; ++i) rd(B[i]);
+  for (unsigned i = 0; i < n; ++i) gg ^= G[W[i]][B[i]];
+  fputs(ans[bool(gg)], stdout);
 }
