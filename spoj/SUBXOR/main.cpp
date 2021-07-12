@@ -6,7 +6,7 @@
 using i64 = long long;
 
 void read_from_cin() {}
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 void read_from_cin(T &value, Ts &...args) {
   std::cin >> value;
   read_from_cin(args...);
@@ -21,7 +21,7 @@ void read_from_cin(T &value, Ts &...args) {
 #define DUMP(...)
 #endif
 
-template<typename T = unsigned, int kBitWidth = std::numeric_limits<T>::digits>
+template <typename T = unsigned, int kBitWidth = std::numeric_limits<T>::digits>
 struct BinaryTrie {
   static_assert(std::is_unsigned<T>::value, "Requires unsigned type");
 
@@ -38,19 +38,30 @@ struct BinaryTrie {
   NodePtr root_;  // The root node.
 
   struct NodePool {
-    std::vector<NodePtr> nodes_;
-    ~NodePool() {
-      for (NodePtr p : nodes_) delete p;
+    static constexpr size_t kInitBlockSize = 1u << 12;
+    std::vector<std::unique_ptr<Node[]>> blocks_;
+    size_t bsize_;
+    size_t bi_;
+    size_t ni_;
+
+    NodePool() : bsize_(kInitBlockSize), bi_(0), ni_(0) {
+      blocks_.emplace_back(new Node[kInitBlockSize]);
     }
+
     NodePtr new_node() {
-      nodes_.push_back(new Node);
-      return nodes_.back();
+      if (ni_ == bsize_) {
+        bi_++;
+        ni_ = 0;
+        bsize_ *= 2;
+        blocks_.emplace_back(new Node[bsize_]);
+      }
+      return &blocks_[bi_][ni_++];
     }
   };
-  NodePool &pool_;
+  NodePool *pool_;
 
   BinaryTrie() : root_(nullptr), pool_(NO_DELETE()) {}
-  BinaryTrie(NodePool &pool) : root_(nullptr), pool_(pool) {}
+  BinaryTrie(NodePool *pool) : root_(nullptr), pool_(pool) {}
 
   int size() const { return root_ ? root_->leaf_count : 0; }
 
@@ -110,11 +121,6 @@ struct BinaryTrie {
   }
 
  private:
-  static NodePool &NO_DELETE() {
-    static NodePool kNoDeletePool;
-    return &kNoDeletePool;
-  }
-
   void push_down(NodePtr t, int b) const {
     if (t->lazy_mask == 0) return;
     if ((t->lazy_mask >> b) & 1) std::swap(t->child[0], t->child[1]);
@@ -124,7 +130,7 @@ struct BinaryTrie {
   }
 
   NodePtr insert_internal(NodePtr t, T val, int b = kBitWidth - 1) {
-    if (not t) t = pool_.new_node();
+    if (not t) t = pool_->new_node();
     t->leaf_count += 1;
     if (b < 0) return t;
     push_down(t, b);
@@ -166,7 +172,7 @@ struct BinaryTrie {
     push_down(t, b);
     bool f = (val >> b) & 1;
     return (f and t->child[0] ? t->child[0]->leaf_count : 0) +
-        count_less(t->child[f], val, b - 1);
+           count_less(t->child[f], val, b - 1);
   }
 
   void to_vec_internal(NodePtr t, T val, std::vector<T> &out,
@@ -183,7 +189,13 @@ struct BinaryTrie {
       to_vec_internal(t->child[1], val | (T(1) << b), out, b - 1);
     }
   }
+
+  static NodePool *NO_DELETE() {
+    static NodePool kNoDeletePool;
+    return &kNoDeletePool;
+  }
 };
+using Trie = BinaryTrie<>;
 
 using namespace std;
 
@@ -192,7 +204,7 @@ auto solve() {
   vector<unsigned> A(n);
   for (auto &x : A) cin >> x;
   BinaryTrie<>::NodePool pool;
-  BinaryTrie<> trie(pool);
+  BinaryTrie<> trie(&pool);
   i64 ans = 0;
   REP(i, n) {
     trie.xor_all(A[i]);
