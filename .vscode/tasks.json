@@ -48,7 +48,7 @@
         {
             "label": "CheckTestCase",
             "type": "shell",
-            "command": "cd ${fileDirname} && g++-11 -std=c++17 -g3 -O0 -Wall -Wextra -Wfatal-errors -Wl,-stack_size,0x10000000 -fsanitize=address,undefined -DENABLE_DEBUG ${fileBasename} && oj test -c ./a.out -d ./test",
+            "command": "cd ${fileDirname} && g++-11 -std=c++17 -g3 -O0 -Wall -Wextra -Wfatal-errors -Wl,-stack_size,0x10000000 -fsanitize=address,undefined -DMY_DEBUG ${fileBasename} && oj test -c ./a.out -d ./test",
             "presentation": {
                 "reveal": "always",
                 "focus": true,
