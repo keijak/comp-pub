@@ -24,7 +24,7 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",

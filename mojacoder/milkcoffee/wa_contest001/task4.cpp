@@ -56,7 +56,7 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 #include <boost/multiprecision/cpp_int.hpp>
 using Int = boost::multiprecision::cpp_int;
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)

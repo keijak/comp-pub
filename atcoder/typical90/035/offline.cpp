@@ -5,7 +5,7 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)

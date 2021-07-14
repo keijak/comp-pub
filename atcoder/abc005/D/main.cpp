@@ -50,7 +50,7 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &l) {
   return os << "(" << l.first << ", " << l.second << ")";
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename T>
 void pdebug(const T &value) {
   std::cerr << value;

@@ -231,7 +231,7 @@ struct AddMin {
   static constexpr F f_id() { return 0; }
 };
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)

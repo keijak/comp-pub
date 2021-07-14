@@ -27,7 +27,7 @@ ostream &operator<<(ostream &os, const set<T> &v) {
   return os << ']';
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename T>
 void debug(T value) {
   cerr << value;

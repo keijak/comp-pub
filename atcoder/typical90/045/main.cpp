@@ -58,7 +58,7 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)

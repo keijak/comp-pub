@@ -84,7 +84,7 @@ void read_from_cin(T &value, Ts &...args) {
   type __VA_ARGS__;      \
   read_from_cin(__VA_ARGS__)
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)

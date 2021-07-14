@@ -41,7 +41,7 @@ std::ostream &pprint(const Container &a, std::string_view sep = " ",
   return *os << ends;
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename T, typename = void>
 struct is_iterable : std::false_type {};
 template <typename T>

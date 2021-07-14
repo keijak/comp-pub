@@ -56,7 +56,7 @@ ostream &operator<<(ostream &os, const pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename T>
 void debug(T value) {
   cerr << value;

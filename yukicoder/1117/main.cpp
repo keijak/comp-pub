@@ -8,7 +8,7 @@ using V = vector<T>;
 
 #define REP(i, n) for (int i = 0; (i64)(i) < (i64)(n); ++i)
 
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 template <typename T>
 void debug(T value) {
   cerr << value;

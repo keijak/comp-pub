@@ -26,7 +26,7 @@ using namespace std;
 using BS = std::bitset<88>;
 
 namespace fastio {
-#ifdef ENABLE_DEBUG
+#ifdef MY_DEBUG
 #define fread_unlocked fread
 #define fwrite_unlocked fwrite
 #endif
