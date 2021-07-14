@@ -1,9 +1,7 @@
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize("unroll-loops")
-#pragma GCC optimize("inline")
-
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -40,7 +38,7 @@ inline void rd(char &c) {
   if (pil + 32 > pir) load();
   c = ibuf[pil++];
 }
-template <typename T>
+template<typename T>
 inline void rd(T &x) {
   if (pil + 32 > pir) load();
   char c;
@@ -60,7 +58,7 @@ inline void rd(T &x) {
   }
 }
 inline void rd() {}
-template <typename Head, typename... Tail>
+template<typename Head, typename... Tail>
 inline void rd(Head &head, Tail &...tail) {
   rd(head);
   rd(tail...);
@@ -101,7 +99,7 @@ inline void wt(bool b) {
   if (por > SZ - 32) flush();
   obuf[por++] = b ? '1' : '0';
 }
-template <typename T>
+template<typename T>
 inline void wt(T x) {
   if (por > SZ - 32) flush();
   if (!x) {
@@ -143,12 +141,12 @@ inline void wt(T x) {
 }
 
 inline void wt() {}
-template <typename Head, typename... Tail>
+template<typename Head, typename... Tail>
 inline void wt(Head &&head, Tail &&...tail) {
   wt(head);
   wt(std::forward<Tail>(tail)...);
 }
-template <typename... Args>
+template<typename... Args>
 inline void wtn(Args &&...x) {
   wt(std::forward<Args>(x)...);
   wt('\n');
@@ -161,90 +159,146 @@ using fastio::wtn;
 
 using namespace std;
 
-template <class SemiLattice>
-struct SparseTable {
-  using T = typename SemiLattice::T;
+template<typename T>
+constexpr int num_bits = CHAR_BIT * sizeof(T);
 
-  explicit SparseTable(const std::vector<T> &vec) { init(vec); }
+// Log base 2 of the most significant bit which is set.
+inline int msb_log(unsigned x) {
+  // assert(x != 0);
+  return num_bits<unsigned> - __builtin_clz(x) - 1;
+}
 
-  // Queries by [l,r) range (0-indexed, half-open interval).
-  T fold(int l, int r) const {
-    l = std::max(l, 0);
-    r = std::min(r, n_);
-    if (l >= r) {
-      return SemiLattice::id();
+// Range Min/Max Query based on Fischer-Heun Structure.
+// - Initialization: O(n)
+// - Query: O(1)
+template<class BetterOp, class Mask = unsigned>
+struct RMQ {
+  static_assert(std::is_integral_v<Mask>, "Mask must be integral");
+  static_assert(std::is_unsigned_v<Mask>, "Mask must be unsigned");
+  static_assert(std::is_invocable_r_v<bool, BetterOp, int, int>);
+  static constexpr int block_size_ = num_bits<Mask>;
+
+  int n_;                 // sequence size
+  int block_count_;       // total number of blocks
+  BetterOp better_than_;  // checks if lhs is strictly better than rhs.
+  std::vector<Mask> indicator_;
+  std::vector<std::vector<int>> sparse_table_;
+
+  RMQ(int n, BetterOp better)
+      : n_(n),
+        block_count_((n_ + block_size_ - 1) / block_size_),
+        better_than_(std::move(better)),
+        indicator_(n_),
+        sparse_table_(
+            block_count_ == 0 ? 0 : msb_log(unsigned(block_count_)) + 1,
+            std::vector<int>(block_count_)) {
+    static constexpr int bufsize = block_size_ + 1;
+    static int buf[bufsize];       // ring buffer [lp,rp)
+    int lp = 1, rp = 1, rpm1 = 0;  // rpm1 = rp-1 (mod bufsize)
+
+    // Build the indicator table.
+    for (int r = 0; r < n_; ++r) {
+      while (lp != rp and r - buf[lp] >= block_size_) {
+        ++lp;
+        if (lp == bufsize) lp = 0;
+      }
+      while (lp != rp and not better_than_(buf[rpm1], r)) {
+        rp = rpm1--;
+        if (rp == 0) rpm1 = bufsize - 1;
+      }
+      indicator_[r] = 1;
+      if (lp != rp) {
+        const int p = buf[rpm1];
+        indicator_[r] |= (indicator_[p] << (r - p));
+      }
+      buf[rp] = r;
+      rpm1 = rp++;
+      if (rp == bufsize) rp = 0;
     }
-    const T &lval = data_[height_[r - l]][l];
-    const T &rval = data_[height_[r - l]][r - (1 << height_[r - l])];
-    return SemiLattice::op(lval, rval);
+
+    // Build the sparse table.
+    for (int i = 0; i < block_count_; ++i) {
+      sparse_table_[0][i] =
+          best_index_small(std::min(block_size_ * (i + 1), n_) - 1);
+    }
+    for (int i = 0, height = int(sparse_table_.size()) - 1; i < height; ++i) {
+      for (int j = 0; j < block_count_; ++j) {
+        sparse_table_[i + 1][j] = better_index(
+            sparse_table_[i][j],
+            sparse_table_[i][std::min(j + (1 << i), block_count_ - 1)]);
+      }
+    }
   }
 
-  // Returns i-th value (0-indexed).
-  T operator[](int i) const { return data_[height_[1]][i]; }
-
- private:
-  void init(const std::vector<T> &vec) {
-    int n = vec.size(), h = 0;
-    n_ = n;
-    while ((1 << h) <= n) ++h;
-    data_.assign(h, std::vector<T>(1 << h, SemiLattice::id()));
-    height_.assign(n + 1, 0);
-    for (int i = 2; i <= n; i++) {
-      height_[i] = height_[i >> 1] + 1;
-    }
-    for (int i = 0; i < n; ++i) {
-      data_[0][i] = vec[i];
-    }
-    for (int i = 1; i < h; ++i)
-      for (int j = 0; j < n; ++j)
-        data_[i][j] = SemiLattice::op(
-            data_[i - 1][j], data_[i - 1][std::min(j + (1 << (i - 1)), n - 1)]);
+  inline int better_index(int i, int j) const {
+    return better_than_(i, j) ? i : j;
   }
 
-  int n_;  // number of elements.
-  std::vector<std::vector<T>> data_;
-  std::vector<int> height_;
+  // Returns the in of the best value in [r - width, r] (closed interval).
+  inline int best_index_small(int r, int width = block_size_) const {
+    // assert(r < n_);
+    // assert(width > 0);
+    // assert(width <= block_size_);
+    Mask ind = indicator_[r];
+    if (width < block_size_) {
+      ind &= (Mask(1) << width) - 1;
+    }
+    return r - msb_log(ind);
+  }
+
+  // Returns the in of the best value in [l, r] (closed interval).
+  inline int fold(int l, int r) const {
+    const int width = r - l + 1;
+    if (width <= block_size_) {
+      return best_index_small(r, width);
+    }
+    const int al = best_index_small(std::min(l + block_size_, n_) - 1);
+    const int ar = best_index_small(r);
+    int ans = better_index(al, ar);
+
+    const int bl = l / block_size_ + 1;
+    const int br = r / block_size_ - 1;
+    if (bl <= br) {
+      const int k = msb_log(unsigned(br - bl + 1));
+      const int bl2 = br - (1 << k) + 1;
+      const int am = better_index(sparse_table_[k][bl], sparse_table_[k][bl2]);
+      ans = better_index(ans, am);
+    }
+    return ans;
+  }
 };
 
-struct Min {
-  using T = int;
-  static T op(const T &x, const T &y) { return std::min(x, y); }
-  static constexpr T id() { return std::numeric_limits<T>::max(); }
-};
-
-// tour: preorder node ids
-// The interval [begin[v], end[v]) represents a subtree whose
-// root is v.
 struct EulerTour {
   using G = vector<vector<int>>;
 
   const int n;  // number of nodes
-  G g;
-
+  const G &adj;
+  vector<int> in;
   // Euler Tour on nodes.
-  vector<int> tour;   // depth
-  vector<int> begin;  // index in the tour on entering the subtree of v
-  vector<int> end;    // index in the tour on exiting the subtree of v
-  vector<int> depth;
+  vector<int> depth_tour;
 
-  explicit EulerTour(G g, int root = 0)
-      : n((int)g.size()), g(move(g)), begin(n, -1), end(n, -1), depth(n, -1) {
-    tour.reserve(n * 2);
-    depth[root] = 0;
-    dfs(root, -1);
-  }
-
- private:
-  void dfs(int v, int p) {
-    begin[v] = int(tour.size());
-    if (p >= 0) depth[v] = depth[p] + 1;
-    tour.push_back(depth[v]);
-    for (auto u : g[v]) {
-      if (u == p) continue;
-      dfs(u, v);
-      tour.push_back(depth[v]);
+  explicit EulerTour(const G &g, int root = 0)
+      : n(g.size()), adj(g), in(n, -1) {
+    depth_tour.reserve(n * 2);
+    vector<array<int, 4>> stack;
+    stack.push_back({root, -1, -1, 0});
+    while (not stack.empty()) {
+      auto[v, p, d, back] = std::move(stack.back());
+      stack.pop_back();
+      if (back) {
+        depth_tour.push_back(d);
+        continue;
+      }
+      if (p != -1) {
+        stack.push_back({v, p, d, 1});
+      }
+      in[v] = int(depth_tour.size());
+      depth_tour.push_back(++d);
+      for (auto u : adj[v]) {
+        if (u == p) continue;
+        stack.push_back({u, v, d, 0});
+      }
     }
-    end[v] = int(tour.size());
   }
 };
 
@@ -260,25 +314,24 @@ int main() {
     g[b].push_back(a);
   }
   EulerTour et(g);
-  SparseTable<Min> st(et.tour);
-  vector<int> ord;
-  ord.reserve(200005);
-  int Q;
+  RMQ rmq(et.depth_tour.size(), [&](int i, int j) {
+    return et.depth_tour[i] < et.depth_tour[j];
+  });
+  vector<int> ord(n);
+  unsigned Q, k, v;
   rd(Q);
   REP(_, Q) {
-    int k;
     rd(k);
-    ord.resize(k);
     REP(i, k) {
-      int v;
       rd(v);
-      --v;
-      ord[i] = et.begin[v];
+      ord[i] = et.in[--v];
     }
-    sort(ALL(ord));
-    int res = et.tour[ord[0]] - st.fold(ord.front(), ord.back() + 1);
-    for (int i = 1; i < k; ++i) {
-      res += et.tour[ord[i]] - st.fold(ord[i - 1], ord[i] + 1);
+    sort(ord.begin(), ord.begin() + k);
+    int lca_ord = rmq.fold(ord[0], ord[k - 1]);
+    int res = et.depth_tour[ord[0]] - et.depth_tour[lca_ord];
+    for (unsigned i = 1; i < k; ++i) {
+      lca_ord = rmq.fold(ord[i - 1], ord[i]);
+      res += et.depth_tour[ord[i]] - et.depth_tour[lca_ord];
     }
     wtn(res);
   }

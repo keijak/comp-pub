@@ -8,3 +8,5 @@ add_executable(087 087/main.cpp)
 add_executable(088 088/main.cpp)
 add_executable(089 089/main.cpp)
 add_executable(090 090/main.cpp)
+
+add_executable(eulertour 035/eulertour.cpp)

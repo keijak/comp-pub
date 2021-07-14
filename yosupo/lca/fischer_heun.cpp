@@ -1,48 +1,50 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("inline")
+
 #include <bits/stdc++.h>
 using namespace std;
 
-template<typename T>
+template <typename T>
 constexpr int num_bits = CHAR_BIT * sizeof(T);
 
 // Log base 2 of the most significant bit which is set.
 inline int msb_log(unsigned x) {
-  //  assert(x != 0);
-  return std::numeric_limits<unsigned>::digits - __builtin_clz(x) - 1;
-}
-inline int msb_log(unsigned long long x) {
-  //  assert(x != 0);
-  return std::numeric_limits<unsigned long long>::digits - __builtin_clzll(x) -
-      1;
+  // assert(x != 0);
+  return num_bits<unsigned> - __builtin_clz(x) - 1;
 }
 
-template<class BetterOp, class mask_t = unsigned>
+// Range Min/Max Query based on Fischer-Heun Structure.
+// - Initialization: O(n)
+// - Query: O(1)
+template <class BetterOp, class Mask = unsigned>
 struct RMQ {
-  static_assert(std::is_integral<mask_t>::value, "mask_t must be integral");
-  static_assert(std::is_unsigned<mask_t>::value, "mask_t must be unsigned");
+  static_assert(std::is_integral_v<Mask>, "Mask must be integral");
+  static_assert(std::is_unsigned_v<Mask>, "Mask must be unsigned");
   static_assert(std::is_invocable_r_v<bool, BetterOp, int, int>);
-  static constexpr int block_size_ = num_bits<mask_t>;
+  static constexpr int block_size_ = num_bits<Mask>;
 
-  int n_;                       // sequence size
-  int block_count_;             // total number of blocks
-  std::vector<mask_t> indicator_;
-  std::vector<std::vector<int>> sparse_table_;
+  int n_;                 // sequence size
+  int block_count_;       // total number of blocks
   BetterOp better_than_;  // checks if lhs is strictly better than rhs.
+  std::vector<Mask> indicator_;
+  std::vector<std::vector<int>> sparse_table_;
 
   RMQ(int n, BetterOp better)
       : n_(n),
         block_count_((n_ + block_size_ - 1) / block_size_),
+        better_than_(std::move(better)),
         indicator_(n_),
         sparse_table_(
             block_count_ == 0 ? 0 : msb_log(unsigned(block_count_)) + 1,
-            std::vector<int>(block_count_)),
-        better_than_(std::move(better)) {
+            std::vector<int>(block_count_)) {
     static constexpr int bufsize = block_size_ + 1;
-    static int buf[bufsize];  // ring buffer [lp,rp)
+    static int buf[bufsize];       // ring buffer [lp,rp)
     int lp = 1, rp = 1, rpm1 = 0;  // rpm1 = rp-1 (mod bufsize)
 
     // Build the indicator table.
     for (int r = 0; r < n_; ++r) {
-      while (lp != rp and (r - buf[lp] >= block_size_)) {
+      while (lp != rp and r - buf[lp] >= block_size_) {
         ++lp;
         if (lp == bufsize) lp = 0;
       }
@@ -76,7 +78,8 @@ struct RMQ {
 
   // Returns the index of the best value in [l, r) (half-open interval).
   inline int fold(int l, int r) const {
-    // We internally use closed interval.
+    // assert(l < r);
+    // Internally use closed interval.
     return best_index(l, r - 1);
   }
 
@@ -85,44 +88,41 @@ struct RMQ {
     return better_than_(i, j) ? i : j;
   }
 
-  // Returns the index of the best value in [r - sz, r] (closed interval).
-  inline int best_index_small(int r, int sz = block_size_) const {
-//    assert(r < n_);
-//    assert(sz > 0);
-//    assert(sz <= block_size_);
-    mask_t ind = indicator_[r];
-    if (sz < block_size_) {
-      ind &= (mask_t(1) << sz) - 1;
+  // Returns the index of the best value in [r - width, r] (closed interval).
+  inline int best_index_small(int r, int width = block_size_) const {
+    // assert(r < n_);
+    // assert(width > 0);
+    // assert(width <= block_size_);
+    Mask ind = indicator_[r];
+    if (width < block_size_) {
+      ind &= (Mask(1) << width) - 1;
     }
     return r - msb_log(ind);
   }
 
   // Returns the index of the best value in [l, r] (closed interval).
   inline int best_index(int l, int r) const {
-    l = std::clamp(l, 0, n_ - 1);
-    r = std::clamp(r, 0, n_ - 1);
-    if (r - l + 1 <= block_size_) {
-      return best_index_small(r, r - l + 1);
+    // l = std::clamp(l, 0, n_ - 1);
+    // r = std::clamp(r, 0, n_ - 1);
+    const int width = r - l + 1;
+    if (width <= block_size_) {
+      return best_index_small(r, width);
     }
-    int ql = best_index_small(std::min(l + block_size_, n_) - 1);
-    int qr = best_index_small(r);
-    l = l / block_size_ + 1;
-    r = r / block_size_ - 1;
-    int ans = better_index(ql, qr);
-    if (l <= r) {
-      int i = msb_log(unsigned(r - l + 1));
-      int qs =
-          better_index(sparse_table_[i][l], sparse_table_[i][r - (1 << i) + 1]);
-      ans = better_index(ans, qs);
+    const int al = best_index_small(std::min(l + block_size_, n_) - 1);
+    const int ar = best_index_small(r);
+    int ans = better_index(al, ar);
+
+    const int bl = l / block_size_ + 1;
+    const int br = r / block_size_ - 1;
+    if (bl <= br) {
+      const int k = msb_log(unsigned(br - bl + 1));
+      const int bl2 = br - (1 << k) + 1;
+      const int am = better_index(sparse_table_[k][bl], sparse_table_[k][bl2]);
+      ans = better_index(ans, am);
     }
     return ans;
   }
 };
-
-template<class BetterOp>
-RMQ<BetterOp> create_rmq(int n, BetterOp better) {
-  return {n, std::move(better)};
-}
 
 struct EulerTour {
   using G = vector<vector<int>>;
@@ -139,34 +139,38 @@ struct EulerTour {
       : n(g.size()), adj(g), depth(n, 0), index(n, -1) {
     node_tour.reserve(n * 2);
     depth_tour.reserve(n * 2);
-    dfs(root, -1);
-  }
-
- private:
-  void dfs(int v, int p) {
-    index[v] = int(node_tour.size());
-    if (p != -1) {
-      depth[v] = depth[p] + 1;
-    }
-    node_tour.push_back(v);
-    depth_tour.push_back(depth[v]);
-    for (auto u : adj[v]) {
-      if (u == p) continue;
-      dfs(u, v);
+    vector<array<int, 4>> stack;
+    stack.push_back({root, -1, -1, 0});
+    while (not stack.empty()) {
+      auto [v, p, d, back] = std::move(stack.back());
+      stack.pop_back();
+      if (back) {
+        node_tour.push_back(p);
+        depth_tour.push_back(d);
+        continue;
+      }
+      if (p != -1) {
+        stack.push_back({v, p, d, 1});
+      }
+      index[v] = int(depth_tour.size());
       node_tour.push_back(v);
-      depth_tour.push_back(depth[v]);
+      depth_tour.push_back(++d);
+      for (auto u : adj[v]) {
+        if (u == p) continue;
+        stack.push_back({u, v, d, 0});
+      }
     }
   }
 };
 
 namespace fastio {
 
-//#if !HAVE_DECL_FREAD_UNLOCKED
-//#define fread_unlocked fread
-//#endif
-//#if !HAVE_DECL_FWRITE_UNLOCKED
-//#define fwrite_unlocked fwrite
-//#endif
+#if !HAVE_DECL_FREAD_UNLOCKED
+#define fread_unlocked fread
+#endif
+#if !HAVE_DECL_FWRITE_UNLOCKED
+#define fwrite_unlocked fwrite
+#endif
 
 static constexpr int SZ = 1 << 17;
 char ibuf[SZ], obuf[SZ];
@@ -182,7 +186,7 @@ inline void rd(char &c) {
   if (pil + 32 > pir) load();
   c = ibuf[pil++];
 }
-template<typename T>
+template <typename T>
 inline void rd(T &x) {
   if (pil + 32 > pir) load();
   char c;
@@ -202,8 +206,8 @@ inline void rd(T &x) {
   }
 }
 inline void rd() {}
-template<typename Head, typename... Tail>
-inline void rd(Head &head, Tail &... tail) {
+template <typename Head, typename... Tail>
+inline void rd(Head &head, Tail &...tail) {
   rd(head);
   rd(tail...);
 }
@@ -243,7 +247,7 @@ inline void wt(bool b) {
   if (por > SZ - 32) flush();
   obuf[por++] = b ? '1' : '0';
 }
-template<typename T>
+template <typename T>
 inline void wt(T x) {
   if (por > SZ - 32) flush();
   if (!x) {
@@ -285,13 +289,13 @@ inline void wt(T x) {
 }
 
 inline void wt() {}
-template<typename Head, typename... Tail>
-inline void wt(Head &&head, Tail &&... tail) {
+template <typename Head, typename... Tail>
+inline void wt(Head &&head, Tail &&...tail) {
   wt(head);
   wt(std::forward<Tail>(tail)...);
 }
-template<typename... Args>
-inline void wtn(Args &&... x) {
+template <typename... Args>
+inline void wtn(Args &&...x) {
   wt(std::forward<Args>(x)...);
   wt('\n');
 }
@@ -310,9 +314,8 @@ int main() {
     g[p].push_back(i + 1);
   }
   EulerTour et(g);
-  auto rmq = create_rmq(et.node_tour.size(), [&](int i, int j) {
-    return et.depth_tour[i] < et.depth_tour[j];
-  });
+  RMQ rmq(et.node_tour.size(),
+          [&](int i, int j) { return et.depth_tour[i] < et.depth_tour[j]; });
   unsigned u, v;
   for (unsigned i = 0; i < q; ++i) {
     rd(u, v);
