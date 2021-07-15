@@ -1,5 +1,5 @@
 project(problems)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DENABLE_DEBUG")
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBUG")
 add_executable(GPD GPD/main.cpp)
 add_executable(PSHTTR PSHTTR/main.cpp)
