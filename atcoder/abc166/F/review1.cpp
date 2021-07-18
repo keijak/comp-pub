@@ -96,37 +96,27 @@ auto solve() -> optional<vector<char>> {
     cin >> s[i];
   }
 
-  stack<tuple<int,
-  set<char> curset;
-  bool win = false;
-  int winpos = -1;
   REP(i, n) {
     int k0 = s[i][0] - 'A';
     int k1 = s[i][1] - 'A';
     assert(k0 != k1);
 
-    if (not win) {
-      if (v[k0] == 0 and v[k1] == 0) {
-        return nullopt;
-      }
-      if (v[k0] == 0) {
-        ans[i] = s[i][0];
-        v[k0]++;
-        v[k1]--;
-        continue;
-      }
-      if (v[k1] == 0) {
-        ans[i] = s[i][1];
-        v[k1]++;
-        v[k0]--;
-        continue;
-      }
-      win = true;
-      winpos = i;
+    if (v[k0] == 0 and v[k1] == 0) {
+      return nullopt;
     }
-    if (curset.empty()) {
-      curset = {s[i][0], s[i][1]};
+    if (v[k0] == 0) {
+      ans[i] = s[i][0];
+      v[k0]++;
+      v[k1]--;
+      continue;
     }
+    if (v[k1] == 0) {
+      ans[i] = s[i][1];
+      v[k1]++;
+      v[k0]--;
+      continue;
+    }
+
     if (i == n - 1) {
       ans[i] = s[i][0];
       break;
@@ -135,18 +125,20 @@ auto solve() -> optional<vector<char>> {
       ans[i] = s[i][0];
       ans[i + 1] = s[i][1];
       ++i;
-      curset.clear();
       continue;
     }
-    if (contains(s[i], 'A') and contains(s[i + 1], 'A')) {
-      curset = {'B', 'C'};
+
+    int t0 = s[i + 1][0] = 'A';
+    int t1 = s[i + 1][1] = 'A';
+    if (k0 == t0 or k0 == t1) {
+      ans[i] = s[i][0];
+      v[k0]++;
+      v[k1]--;
+    } else {
+      ans[i] = s[i][0];
+      v[k0]++;
+      v[k1]--;
     }
-
-    if ()
-
-      if (contains(s[i], 'A') and contains(s[i + 1], 'A')) {
-        ans.
-      }
   }
   return ans;
 }
