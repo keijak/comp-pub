@@ -117,32 +117,33 @@ auto solve() {
   INPUT(int, n);
   vector<i64> H(n);
   cin >> H;
-  auto dp = vector(n, vector(n, Mint(0)));
+  // has j slots on the left.
+  auto dp = vector(2, vector(n, Mint(0)));
   REP(p, n) dp[0][p] = 1;
   REP(i, 1, n) {
     auto dp_sum = vector(n + 1, Mint(0));
-    REP(j, n) dp_sum[j + 1] = dp_sum[j] + dp[i - 1][j];
+    REP(j, n) dp_sum[j + 1] = dp_sum[j] + dp[0][j];
 
+    int r = n - i;
     if (H[i] == H[i - 1]) {
-      REP(j, n) {
-        dp[i][j] += dp_sum[n] - dp_sum[j + 1] + dp_sum[j];
+      for (int j = 0; j < r; ++j) {
+        dp[1][j] += dp_sum[r + 1];
       }
     } else if (H[i] > H[i - 1]) {
-      REP(j, n) {
-        auto x = dp_sum[n];
-        auto y = dp_sum[j + 1];
-        dp[i][j] += x - y;
+      for (int j = 0; j < r; ++j) {
+        dp[1][j] += dp_sum[r + 1] - dp_sum[j + 1];
       }
     } else {
-      REP(j, n) {
-        auto x = dp_sum[j];
-        dp[i][j] += x;
+      for (int j = 0; j < r; ++j) {
+        dp[1][j] += dp_sum[j + 1];
       }
     }
+    swap(dp[0], dp[1]);
+    dp[1].assign(n, 0);
   }
   Mint ans = 0;
   REP(j, n) {
-    ans += dp[n - 1][j];
+    ans += dp[0][j];
   }
   return ans;
 }
