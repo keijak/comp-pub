@@ -116,40 +116,43 @@ struct Factorials {
   }
 };
 
-auto solve() {
-  vector<int> freq;
-  i64 fsum = 0;
-  REP(i, 26) {
-    INPUT(int, f);
-    if (f == 0) continue;
-    freq.push_back(f);
-    fsum += f;
-  }
-  DUMP(freq);
-  DUMP(fsum);
+Mint count_permutations_no_neighbors_from_same_group(const std::vector<int> &freq) {
   const int n = freq.size();
-  Factorials fs(fsum + 1);
+  const i64 max_slots = std::accumulate(ALL(freq), 0LL) + 1;
 
-  auto dp = vector(n + 1, vector(fsum + 5, Mint(0)));
-  int slots = freq[0] + 1;
-  dp[1][slots - 2] = 1;
+  Factorials fs(max_slots);
+  auto dp = vector(n + 1, vector(max_slots + 1, Mint(0)));
+  int slots = freq[0] + 1;  // insertion points
+  dp[1][slots - 2] = 1;  // exclude left/right end points.
   for (int i = 1; i < n; ++i) {
-    // j: fill due
+    // j slots are violating the no-neighbor-from-same-group rule.
     for (int j = 0; j <= slots - 2; ++j) {
       if (dp[i][j].val() == 0) continue;
-      int red = slots - j;
-      // Resolve p dues.
-      for (int p = 0; p <= min(j, freq[i]); ++p) {
-        for (int q = 0; p + q <= min(slots, freq[i]); ++q) {
-          if (p + q == 0) continue;
-          int nj = j - p + (freq[i] - p - q);
-          if (nj < fsum + 5)dp[i + 1][nj] += dp[i][j] * fs.C(j, p) * fs.C(freq[i] - 1, p + q - 1) * fs.C(red, q);
+      int slots_ok = slots - j;
+      // Break `freq[i]` items into `p` buckets.
+      for (int p = 1; p <= freq[i]; ++p) {
+        auto x = fs.C(freq[i] - 1, p - 1);
+        for (int q = 0; q <= min(j, p); ++q) {
+          int nj = j - q + freq[i] - p;
+          if (nj <= max_slots) {
+            dp[i + 1][nj] += dp[i][j] * x * fs.C(j, q) * fs.C(slots_ok, p - q);
+          }
         }
       }
     }
     slots += freq[i];
   }
   return dp[n][0];
+}
+
+auto solve() {
+  vector<int> freq;
+  REP(i, 26) {
+    INPUT(int, f);
+    if (f == 0) continue;
+    freq.push_back(f);
+  }
+  return count_permutations_no_neighbors_from_same_group(freq);
 }
 
 int main() {
