@@ -5,6 +5,12 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
+#include <atcoder/modint>
+using Mint = atcoder::modint998244353;
+std::ostream &operator<<(std::ostream &os, const Mint &m) {
+  return os << m.val();
+}
+
 template<typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
@@ -83,17 +89,59 @@ void read_from_cin(T &value, Ts &...args) {
 
 using namespace std;
 
-auto solve() {
-  //
-  return -42;
-}
+inline int popcount(unsigned x) { return __builtin_popcount(x); }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(15);
-  int t = 1;
-  REP(test_case, t) {
-    auto ans = solve();
-    print(ans);
+  INPUT(int, n, m);
+  auto g = vector(n, vector(n, 0));
+  vector<pair<int, int>> edges(m);
+  REP(i, m) {
+    INPUT(int, a, b);
+    --a, --b;
+    g[a][b] = g[b][a] = true;
+    edges[i] = {a, b};
+  }
+
+  vector<Mint> pow2(m + 1, 1);
+  REP(i, 1, m + 1) {
+    pow2[i] = pow2[i - 1] * 2;
+  }
+
+  auto es = vector(1 << n, 0);
+  REP(bits, 1 << n) {
+    int count = 0;
+    for (auto[u, v] : edges) {
+      if (not(bits & (1 << v))) continue;
+      if (not(bits & (1 << u))) continue;
+      ++count;
+    }
+    es[bits] = count;
+  }
+
+  const unsigned kFull = (1 << n) - 1;
+  auto dp = vector(1 << n, Mint(0));
+
+  for (unsigned bits = 1; bits <= kFull; bits += 2) {
+    dp[bits] = pow2[es[bits]];
+    for (unsigned sub = (bits - 1) & bits; sub; sub = (sub - 1) & bits) {
+      if (not(sub & 1)) continue;
+      unsigned other = (bits ^ sub);
+      dp[bits] -= dp[sub] * pow2[es[other]];
+    }
+  }
+
+  vector<Mint> ans(n, 0);
+  REP(bits, 1 << n) {
+    if (not(bits & 1)) continue;
+    REP(x, 1, n) {
+      if (bits & (1 << x)) {
+        unsigned other = kFull ^ bits;
+        ans[x] += dp[bits] * pow2[es[other]];
+      }
+    }
+  }
+  REP(i, 1, n) {
+    print(ans[i]);
   }
 }
