@@ -102,9 +102,8 @@ std::vector<std::pair<i64, int>> factorize(i64 n) {
 }
 
 auto euler_totient(i64 n) {
-  auto fac = factorize(n);
   i64 res = n;
-  for (auto[p, k] : fac) {
+  for (auto[p, k] : factorize(n)) {
     res /= p;
     res *= p - 1;
   }
