@@ -251,44 +251,43 @@ struct DenseFPS {
     return res;
   }
 
-  // Divides by (1 - x^k).
-  void cumsum_inplace(int k = 1) {
-    int trailing_zero = 0;
-    for (int i = k; i < size(); ++i) {
-      coeff_[i] += coeff_[i - k];
-      if (coeff_[i] == 0) {
-        ++trailing_zero;
-      } else {
-        trailing_zero = 0;
-      }
-    }
-    // Shrink.
-    if (trailing_zero) {
-      coeff_.resize(max(int(coeff_.size()) - trailing_zero, 1));
-    }
-  }
-
-  // Divides by (1 - x^k).
-  DenseFPS cumsum(int k = 1) const {
-    DenseFPS res = *this;
-    res.cumsum_inplace(k);
-    return res;
-  }
-
-  // Multiplies by (1 - x^k).
-  void diff_inplace(int k = 1) {
+  // Multiplies by (1 + c * x^k).
+  void diff_inplace(int c = 1, int k = 1) {
     if (size() <= dmax()) {
       coeff_.resize(min(size() + k, dmax() + 1), 0);
     }
     for (int i = size() - 1; i >= 0; --i) {
-      if (i + k < size()) coeff_[i + k] -= coeff_[i];
+      if (i + k < size()) coeff_[i + k] += coeff_[i] * c;
     }
   }
 
-  // Multiplies by (1 - x^k).
-  DenseFPS diff(int k = 1) const {
+  // Multiplies by (1 + c * x^k).
+  DenseFPS diff(int c = 1, int k = 1) const {
     DenseFPS res = *this;
-    res.diff_inplace(k);
+    res.diff_inplace(c, k);
+    return res;
+  }
+
+  // Divides by (1 + c * x^k).
+  void cumsum_inplace(int c = 1, int k = 1) {
+    for (int i = k; i < size(); ++i) {
+      coeff_[i] -= coeff_[i - k] * c;
+    }
+  }
+
+  // Divides by (1 + x^k).
+  DenseFPS cumsum(int c = 1, int k = 1) const {
+    DenseFPS res = *this;
+    res.cumsum_inplace(c, k);
+    return res;
+  }
+
+  T eval(const T &a) const {
+    T x(1), res(0);
+    for (auto c : coeff_) {
+      res += c * x;
+      x *= a;
+    }
     return res;
   }
 };
