@@ -6,35 +6,36 @@
 using i64 = long long;
 
 #include <atcoder/convolution>
+#include <atcoder/math>
 #include <atcoder/modint>
 using Mint = atcoder::modint1000000007;
 std::ostream &operator<<(std::ostream &os, const Mint &m) {
   return os << m.val();
 }
 
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template<typename T>
+template <typename T>
 inline int ssize(const T &a) {
-  return (int) std::size(a);
+  return (int)std::size(a);
 }
 
-template<typename T>
+template <typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
   for (auto &x : a) is >> x;
   return is;
 }
-template<typename T, typename U>
+template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
-template<typename Container>
+template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -45,35 +46,34 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   }
   return os << ends;
 }
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value &&
-        !std::is_same<T, std::string_view>::value &&
-        !std::is_same<T, std::string>::value>>
+template <typename T, typename = std::enable_if_t<
+                          is_iterable<T>::value &&
+                          !std::is_same<T, std::string_view>::value &&
+                          !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 void print() { std::cout << "\n"; }
-template<class T>
+template <class T>
 void print(const T &x) {
   std::cout << x << "\n";
 }
-template<typename Head, typename... Tail>
+template <typename Head, typename... Tail>
 void print(const Head &head, Tail... tail) {
   std::cout << head << " ";
   print(tail...);
 }
 
 void read_from_cin() {}
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 void read_from_cin(T &value, Ts &...args) {
   std::cin >> value;
   read_from_cin(args...);
@@ -90,215 +90,44 @@ void read_from_cin(T &value, Ts &...args) {
 
 using namespace std;
 
-template<typename T, int DMAX>
-struct NaiveMult {
-  using value_type = T;
-  static constexpr int dmax() { return DMAX; }
-
-  static std::vector<T> multiply(const std::vector<T> &x,
-                                 const std::vector<T> &y) {
-    const int n = std::min<int>(x.size() + y.size() - 1, DMAX + 1);
-    const int mi = std::min<int>(x.size(), n);
-    std::vector<T> res(n);
-    for (int i = 0; i < mi; ++i) {
-      for (int j = 0; j < int(y.size()); ++j) {
-        if (i + j >= n) break;
-        res[i + j] += x[i] * y[j];
-      }
-    }
-    return res;
-  }
-
-  static std::vector<T> invert(const std::vector<T> &x) {
-    std::vector<T> res(DMAX + 1);
-    res[0] = x[0].inv();
-    for (int i = 1; i <= DMAX; ++i) {
-      T s = 0;
-      const int mj = std::min<int>(i + 1, x.size());
-      for (int j = 1; j < mj; ++j) {
-        s += x[j] * res[i - j];
-      }
-      res[i] = -res[0] * s;
-    }
-    return res;
-  }
-};
-
-namespace FastFourierTransform {
-using real = double;
-
-struct C {
-  real x, y;
-
-  C() : x(0), y(0) {}
-
-  C(real x, real y) : x(x), y(y) {}
-
-  inline C operator+(const C &c) const { return C(x + c.x, y + c.y); }
-
-  inline C operator-(const C &c) const { return C(x - c.x, y - c.y); }
-
-  inline C operator*(const C &c) const {
-    return C(x * c.x - y * c.y, x * c.y + y * c.x);
-  }
-
-  inline C conj() const { return C(x, -y); }
-};
-
-const real PI = acosl(-1);
-int base = 1;
-vector<C> rts = {{0, 0}, {1, 0}};
-vector<int> rev = {0, 1};
-
-void ensure_base(int nbase) {
-  if (nbase <= base) return;
-  rev.resize(1 << nbase);
-  rts.resize(1 << nbase);
-  for (int i = 0; i < (1 << nbase); i++) {
-    rev[i] = (rev[i >> 1] >> 1) + ((i & 1) << (nbase - 1));
-  }
-  while (base < nbase) {
-    real angle = PI * 2.0 / (1 << (base + 1));
-    for (int i = 1 << (base - 1); i < (1 << base); i++) {
-      rts[i << 1] = rts[i];
-      real angle_i = angle * (2 * i + 1 - (1 << base));
-      rts[(i << 1) + 1] = C(cos(angle_i), sin(angle_i));
-    }
-    ++base;
-  }
-}
-
-void fft(vector<C> &a, int n) {
-  assert((n & (n - 1)) == 0);
-  int zeros = __builtin_ctz(n);
-  ensure_base(zeros);
-  int shift = base - zeros;
-  for (int i = 0; i < n; i++) {
-    if (i < (rev[i] >> shift)) {
-      swap(a[i], a[rev[i] >> shift]);
-    }
-  }
-  for (int k = 1; k < n; k <<= 1) {
-    for (int i = 0; i < n; i += 2 * k) {
-      for (int j = 0; j < k; j++) {
-        C z = a[i + j + k] * rts[j + k];
-        a[i + j + k] = a[i + j] - z;
-        a[i + j] = a[i + j] + z;
-      }
-    }
-  }
-}
-
-vector<int64_t> multiply(const vector<int> &a, const vector<int> &b) {
-  int need = (int) a.size() + (int) b.size() - 1;
-  int nbase = 1;
-  while ((1 << nbase) < need) nbase++;
-  ensure_base(nbase);
-  int sz = 1 << nbase;
-  vector<C> fa(sz);
-  for (int i = 0; i < sz; i++) {
-    int x = (i < (int) a.size() ? a[i] : 0);
-    int y = (i < (int) b.size() ? b[i] : 0);
-    fa[i] = C(x, y);
-  }
-  fft(fa, sz);
-  C r(0, -0.25 / (sz >> 1)), s(0, 1), t(0.5, 0);
-  for (int i = 0; i <= (sz >> 1); i++) {
-    int j = (sz - i) & (sz - 1);
-    C z = (fa[j] * fa[j] - (fa[i] * fa[i]).conj()) * r;
-    fa[j] = (fa[i] * fa[i] - (fa[j] * fa[j]).conj()) * r;
-    fa[i] = z;
-  }
-  for (int i = 0; i < (sz >> 1); i++) {
-    C A0 = (fa[i] + fa[i + (sz >> 1)]) * t;
-    C A1 = (fa[i] - fa[i + (sz >> 1)]) * t * rts[(sz >> 1) + i];
-    fa[i] = A0 + A1 * s;
-  }
-  fft(fa, sz >> 1);
-  vector<int64_t> ret(need);
-  for (int i = 0; i < need; i++) {
-    ret[i] = llround(i & 1 ? fa[i >> 1].y : fa[i >> 1].x);
-  }
-  return ret;
-}
-};  // namespace FastFourierTransform
-
-template<typename T = Mint>
-struct ArbitraryModConvolution {
-  using real = FastFourierTransform::real;
-  using C = FastFourierTransform::C;
-  using value_type = T;
-
-  static vector<T> multiply(const vector<T> &a, const vector<T> &b,
-                            int need = -1) {
-    if (need == -1) need = a.size() + b.size() - 1;
-    int nbase = 0;
-    while ((1 << nbase) < need) nbase++;
-    FastFourierTransform::ensure_base(nbase);
-    int sz = 1 << nbase;
-    vector<C> fa(sz);
-    for (int i = 0; i < (int) a.size(); i++) {
-      fa[i] = C(a[i].val() & ((1 << 15) - 1), a[i].val() >> 15);
-    }
-    fft(fa, sz);
-    vector<C> fb(sz);
-    if (a == b) {
-      fb = fa;
-    } else {
-      for (int i = 0; i < (int) b.size(); i++) {
-        fb[i] = C(b[i].val() & ((1 << 15) - 1), b[i].val() >> 15);
-      }
-      fft(fb, sz);
-    }
-    real ratio = 0.25 / sz;
-    C r2(0, -1), r3(ratio, 0), r4(0, -ratio), r5(0, 1);
-    for (int i = 0; i <= (sz >> 1); i++) {
-      int j = (sz - i) & (sz - 1);
-      C a1 = (fa[i] + fa[j].conj());
-      C a2 = (fa[i] - fa[j].conj()) * r2;
-      C b1 = (fb[i] + fb[j].conj()) * r3;
-      C b2 = (fb[i] - fb[j].conj()) * r4;
-      if (i != j) {
-        C c1 = (fa[j] + fa[i].conj());
-        C c2 = (fa[j] - fa[i].conj()) * r2;
-        C d1 = (fb[j] + fb[i].conj()) * r3;
-        C d2 = (fb[j] - fb[i].conj()) * r4;
-        fa[i] = c1 * d1 + c2 * d2 * r5;
-        fb[i] = c1 * d2 + c2 * d1;
-      }
-      fa[j] = a1 * b1 + a2 * b2 * r5;
-      fb[j] = a1 * b2 + a2 * b1;
-    }
-    fft(fa, sz);
-    fft(fb, sz);
-    vector<T> ret(need);
-    for (int i = 0; i < need; i++) {
-      int64_t aa = llround(fa[i].x);
-      int64_t bb = llround(fb[i].x);
-      int64_t cc = llround(fa[i].y);
-      aa = T(aa).val(), bb = T(bb).val(), cc = T(cc).val();
-      ret[i] = aa + (bb << 15) + (cc << 30);
-    }
-    return ret;
-  }
-};
-
-template<typename T, int DMAX>
+template <typename T, int DMAX>
 struct ArbitraryModMult {
   using value_type = T;
+  static_assert(atcoder::internal::is_modint<T>::value);
+
   static constexpr int dmax() { return DMAX; }
 
   static std::vector<T> multiply(const std::vector<T> &x,
                                  const std::vector<T> &y) {
-    // NOTE: Setting `need=DMAX+1` gives incorrect results.
-    auto res = ArbitraryModConvolution<T>::multiply(x, y);
-    if (int(res.size()) > DMAX + 1) res.resize(DMAX + 1);  // shrink
+    std::vector<int> xv(x.size());
+    std::vector<int> yv(y.size());
+    for (int i = 0; i < (int)x.size(); ++i) xv[i] = x[i].val();
+    for (int i = 0; i < (int)y.size(); ++i) yv[i] = y[i].val();
+
+    constexpr int M1 = 167772161, M2 = 469762049, M3 = 1224736769;
+    const auto z1 = atcoder::convolution<M1>(xv, yv);
+    const auto z2 = atcoder::convolution<M2>(xv, yv);
+    const auto z3 = atcoder::convolution<M3>(xv, yv);
+
+    const i64 m1_inv_m2 = atcoder::inv_mod(M1, M2);
+    const i64 m12_inv_m3 = atcoder::inv_mod(i64(M1) * M2, M3);
+    constexpr i64 m12 = i64(M1) * M2 % T::mod();
+    const int n = std::min<int>(x.size() + y.size() - 1, dmax() + 1);
+    std::vector<T> res(n);
+    for (int i = 0; i < n; ++i) {
+      atcoder::static_modint<M2> v1 = z2[i] - z1[i];
+      v1 *= m1_inv_m2;
+      const i64 w1 = v1.val() * i64(M1);
+      atcoder::static_modint<M3> v2 = z3[i] - z1[i] - w1;
+      v2 *= m12_inv_m3;
+      res[i] = z1[i] + w1 + (v2.val() * m12);
+    }
     return res;
   }
 };
 
 // Formal Power Series (dense format).
-template<typename Mult>
+template <typename Mult>
 struct DenseFPS {
   using T = typename Mult::value_type;
   static constexpr int dmax() { return Mult::dmax(); }
@@ -454,7 +283,7 @@ struct DenseFPS {
 };
 
 // Formal Power Series (sparse format).
-template<typename T>
+template <typename T>
 struct SparseFPS {
   int size_;
   std::vector<int> degree_;
@@ -468,7 +297,7 @@ struct SparseFPS {
     std::sort(terms.begin(), terms.end(),
               [](const auto &x, const auto &y) { return x.first < y.first; });
     for (int i = 0; i < size_; ++i) {
-      auto[d, c] = terms[i];
+      auto [d, c] = terms[i];
       assert(d >= 0);
       degree_[i] = d;
       coeff_[i] = c;
@@ -496,7 +325,7 @@ struct SparseFPS {
   // Returns the coefficient of x^d.
   T operator[](int d) const {
     auto it = std::lower_bound(degree_.begin(), degree_.end(), d);
-    if (it == degree_.end() or *it != d) return (T) (0);
+    if (it == degree_.end() or *it != d) return (T)(0);
     int j = std::distance(degree_.begin(), it);
     return coeff_[j];
   }
@@ -562,7 +391,7 @@ struct SparseFPS {
 };
 
 // Polynomial addition (dense + sparse).
-template<typename FPS>
+template <typename FPS>
 FPS &operator+=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   for (int i = 0; i < y.size(); ++i) {
     if (y.degree(i) > FPS::dmax()) break;  // ignore
@@ -570,19 +399,19 @@ FPS &operator+=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   }
   return x;
 }
-template<typename FPS>
+template <typename FPS>
 FPS operator+(const FPS &x, const SparseFPS<typename FPS::T> &y) {
   auto res = x;
   res += y;
   return res;
 }
-template<typename FPS>
+template <typename FPS>
 FPS operator+(const SparseFPS<typename FPS::T> &x, const FPS &y) {
   return y + x;  // commutative
 }
 
 // Polynomial multiplication (dense * sparse).
-template<typename FPS>
+template <typename FPS>
 FPS &operator*=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   if (y.size() == 0) {
     return x *= 0;
@@ -607,19 +436,19 @@ FPS &operator*=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   }
   return x;
 }
-template<typename FPS>
+template <typename FPS>
 FPS operator*(const FPS &x, const SparseFPS<typename FPS::T> &y) {
   auto res = x;
   res *= y;
   return res;
 }
-template<typename FPS>
+template <typename FPS>
 FPS operator*(const SparseFPS<typename FPS::T> &x, const FPS &y) {
   return y * x;  // commutative
 }
 
 // Polynomial division (dense / sparse).
-template<typename FPS>
+template <typename FPS>
 FPS &operator/=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   assert(y.size() > 0 and y.degree(0) == 0 and y.coeff(0) != 0);
   const auto inv_c0 = y.coeff(0).inv();
@@ -637,7 +466,7 @@ FPS &operator/=(FPS &x, const SparseFPS<typename FPS::T> &y) {
   }
   return x;
 }
-template<typename FPS>
+template <typename FPS>
 FPS operator/(const FPS &x, const SparseFPS<typename FPS::T> &y) {
   FPS res = x;
   res /= y;
@@ -663,9 +492,7 @@ auto solve() {
     gr[i] /= d;
   }
   auto conv = vector(n, DF{1});
-  REP(k, n) {
-    conv[k] = gl[k] * gr[k + 1];
-  }
+  REP(k, n) { conv[k] = gl[k] * gr[k + 1]; }
   REP(qi, Q) {
     INPUT(int, k, x);
     --k;
