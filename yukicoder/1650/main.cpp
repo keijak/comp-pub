@@ -69,8 +69,7 @@ struct Input {
   template<typename T>
   operator T() const {
     T x;
-    std::cin >> x;
-    return x;
+    return (std::cin >> x), x;
   }
 } in;
 

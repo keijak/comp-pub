@@ -20,7 +20,7 @@ inline int ssize(const T &a) {
 
 template<typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
+  for (auto &x: a) is >> x;
   return is;
 }
 template<typename T, typename U>
@@ -65,15 +65,14 @@ void print(const Head &head, Tail... tail) {
   print(tail...);
 }
 
-void read_from_cin() {}
-template<typename T, typename... Ts>
-void read_from_cin(T &value, Ts &...args) {
-  std::cin >> value;
-  read_from_cin(args...);
-}
-#define INPUT(type, ...) \
-  type __VA_ARGS__;      \
-  read_from_cin(__VA_ARGS__)
+struct Input {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
+  }
+} in;
 
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
@@ -83,81 +82,20 @@ void read_from_cin(T &value, Ts &...args) {
 
 using namespace std;
 
-auto solve() -> optional<vector<int>> {
-  INPUT(i64, H, W, n);
-  vector<pair<int, int>> spots(n);
-  vector<vector<int>> rows(H), cols(W);
-  REP(i, n) {
-    INPUT(int, x, y);
-    --x, --y;
-    spots[i] = {x, y};
-    rows[x].push_back(i);
-    cols[y].push_back(i);
-  }
-
-  auto par = vector(n, vector(2, -1));
-  auto done = vector(n, vector(2, false));
-  auto depth = vector(n, vector(2, -1));
-  vector<int> anc(n, -1);
-
-  auto dfs = [&](auto &dfs, int v, int j) -> optional<vector<int>> {
-    int x, y;
-    tie(x, y) = spots[v];
-    vector<int> &nexts = (j & 1) ? rows[x] : cols[y];
-    for (int u : nexts) {
-      if (anc[u] != -1) {
-        if (anc[u] == j) continue;
-        if (depth[v][j] - depth[u][1 - j] < 3) continue;
-        vector<int> path;
-        for (int w = v, p = j; w != -1; w = par[w][p], p ^= 1) {
-          path.push_back(w);
-          if (w == u) break;
-        }
-        reverse(ALL(path));
-        if (j == 0) {
-          std::rotate(path.begin(), path.begin() + 1, path.end());
-        }
-        return path;
-      }
-      if (done[u][1 - j]) continue;
-      done[u][1 - j] = true;
-      depth[u][1 - j] = depth[v][j] + 1;
-      par[u][1 - j] = v;
-      anc[u] = 1 - j;
-      auto sub = dfs(dfs, u, 1 - j);
-      if (sub) return sub;
-      anc[u] = -1;
-    }
-    return nullopt;
-  };
-
-  REP(i, 2) {
-    REP(v, n) {
-      if (done[v][i]) continue;
-      done[v][i] = true;
-      depth[v][i] = i;
-      anc[v] = i;
-      auto sub = dfs(dfs, v, i);
-      if (sub) return sub;
-      anc[v] = -1;
-    }
-  }
-  return nullopt;
+auto solve() {
+  int a = in, b = in, c = in, d = in, m = in;
+  int base = (a + c) % m;
+  int x = base + (b - a) + (d - c);
+  if (x >= m - 1) return m - 1;
+  return x % m;
 }
 
-int main() {
+auto main() -> int {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(15);
-  int t = 1;
+  cout << std::fixed << std::setprecision(18);
+  const int t = 1;
   REP(test_case, t) {
     auto ans = solve();
-    if (not ans) {
-      print(-1);
-    } else {
-      auto &v = ans.value();
-      print(v.size());
-      for (auto &x : v) ++x;
-      print_seq(v);
-    }
+    print(ans);
   }
 }
