@@ -105,7 +105,7 @@ class HalfOpenIntervalSet : public std::map<i64, i64> {
 
   // Inserts interval [l, r)
   void add_interval(i64 l, i64 r) {
-    auto itl = upper_bound(l), itr = upper_bound(r - 1 + merge_adjacent);
+    auto itl = upper_bound(l), itr = lower_bound(r + merge_adjacent);
     if (itl != begin()) {
       --itl;
       if (itl->second <= l - merge_adjacent) ++itl;
@@ -121,7 +121,7 @@ class HalfOpenIntervalSet : public std::map<i64, i64> {
 
   // Removes interval [l, r)
   void remove_interval(i64 l, i64 r) {
-    auto itl = upper_bound(l), itr = upper_bound(r - 1);
+    auto itl = upper_bound(l), itr = lower_bound(r);
     if (itl != begin()) {
       --itl;
       if (itl->second <= l) ++itl;
@@ -157,5 +157,4 @@ auto main() -> int {
     ivs.add_interval(a, b + 1);
     print(ivs.max_len);
   }
-
 }
