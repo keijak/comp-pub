@@ -2,11 +2,11 @@
 
 set -e
 
-contest="1455"  # e.g. "1455"
-tasks=(B C D E F G)
+contest=""  # number (e.g. "1567")
+tasks=(A B C D E F)
 
 if [[ "$contest" = "" ]]; then
-    echo "An AtCoder contest name is required."
+    echo "A CodeForces contest ID is required."
     exit 1
 fi
 
@@ -14,6 +14,7 @@ echo "contest: ${contest}"
 echo "tasks: ${tasks}"
 
 for task in $tasks; do
+    mkdir -p "${task}"
     pushd "${task}"
     oj d "https://codeforces.com/contest/${contest}/problem/${task}"
     popd
