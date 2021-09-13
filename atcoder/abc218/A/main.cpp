@@ -57,7 +57,11 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 void print() { std::cout << "\n"; }
 template<class T>
 void print(const T &x) {
-  std::cout << x << "\n";
+  if constexpr (std::is_same_v<T, bool>) {
+    std::cout << (x ? "Yes" : "No") << "\n";
+  } else {
+    std::cout << x << "\n";
+  }
 }
 template<typename Head, typename... Tail>
 void print(const Head &head, Tail... tail) {
@@ -94,6 +98,6 @@ int main() {
   const int t = 1;
   REP(test_case, t) {
     auto ans = solve();
-    print(ans ? "Yes" : "No");
+    print(ans);
   }
 }

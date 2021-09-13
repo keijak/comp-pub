@@ -5,29 +5,29 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-template <typename T, typename U>
+template<typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template <typename T, typename U>
+template<typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template <typename T>
+template<typename T>
 inline int ssize(const T &a) {
-  return (int)std::size(a);
+  return (int) std::size(a);
 }
 
-template <typename T>
+template<typename T>
 std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
+  for (auto &x: a) is >> x;
   return is;
 }
-template <typename T, typename U>
+template<typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
   return os << "(" << a.first << ", " << a.second << ")";
 }
-template <typename Container>
+template<typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -38,41 +38,45 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   }
   return os << ends;
 }
-template <typename T, typename = void>
+template<typename T, typename = void>
 struct is_iterable : std::false_type {};
-template <typename T>
+template<typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
+    : std::true_type {
+};
 
-template <typename T, typename = std::enable_if_t<
-                          is_iterable<T>::value &&
-                          !std::is_same<T, std::string_view>::value &&
-                          !std::is_same<T, std::string>::value>>
+template<typename T, typename = std::enable_if_t<
+    is_iterable<T>::value &&
+        !std::is_same<T, std::string_view>::value &&
+        !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 void print() { std::cout << "\n"; }
-template <class T>
+template<class T>
 void print(const T &x) {
-  std::cout << x << "\n";
+  if constexpr (std::is_same_v<T, bool>) {
+    std::cout << (x ? "Yes" : "No") << "\n";
+  } else {
+    std::cout << x << "\n";
+  }
 }
-template <typename Head, typename... Tail>
+template<typename Head, typename... Tail>
 void print(const Head &head, Tail... tail) {
   std::cout << head << " ";
   print(tail...);
 }
 
-void read_from_cin() {}
-template <typename T, typename... Ts>
-void read_from_cin(T &value, Ts &...args) {
-  std::cin >> value;
-  read_from_cin(args...);
-}
-#define INPUT(type, ...) \
-  type __VA_ARGS__;      \
-  read_from_cin(__VA_ARGS__);
+struct Input {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
+  }
+} in;
 
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
@@ -83,14 +87,14 @@ void read_from_cin(T &value, Ts &...args) {
 using namespace std;
 
 auto solve() {
-  //
+
   return -42;
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(15);
-  int t = 1;
+  cout << std::fixed << std::setprecision(18);
+  const int t = 1;
   REP(test_case, t) {
     auto ans = solve();
     print(ans);
