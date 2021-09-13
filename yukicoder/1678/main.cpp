@@ -1,5 +1,8 @@
 #include <bits/stdc++.h>
+
 #include <atcoder/mincostflow>
+#include <boost/heap/fibonacci_heap.hpp>
+
 #define REP_(i, a_, b_, a, b, ...) \
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
@@ -86,7 +89,7 @@ using namespace std;
 template<typename Cap, typename Cost>
 class MinCostFlowDAG {
  public:
-  static constexpr Cost INF = std::numeric_limits<Cost>::max();
+  static constexpr Cost INF = std::numeric_limits<Cost>::max() / 4;
 
   struct Edge {
     int to, rev;
@@ -128,12 +131,17 @@ class MinCostFlowDAG {
   }
 
  private:
+  // using DijkstraState = pair<Cost, int>;
+
   struct DijkstraState {
     Cost dist;
     int node;
   };
   friend bool operator>(const DijkstraState &x, const DijkstraState &y) {
     return x.dist > y.dist;
+  }
+  friend bool operator<(const DijkstraState &x, const DijkstraState &y) {
+    return x.dist < y.dist;
   }
 
   bool topological_sort() {
@@ -163,24 +171,31 @@ class MinCostFlowDAG {
   }
 
   void dijkstra(const int s) {
-    using Heap = std::priority_queue<DijkstraState, std::vector<DijkstraState>,
-                                     std::greater<DijkstraState>>;
+    using Heap = boost::heap::fibonacci_heap<
+        DijkstraState, boost::heap::compare<std::greater<DijkstraState>>>;
     Heap heap;
     fill(dist.begin(), dist.end(), INF);
     dist[s] = 0;
-    heap.push(DijkstraState{0, s});
+    vector<optional<typename Heap::handle_type>> handles(V);
+    handles[s] = heap.push({dist[s], s});
+
     while (not heap.empty()) {
       const auto cur = heap.top();
       heap.pop();
       const int v = cur.node;
       if (dist[v] < cur.dist) continue;
       for (int i = 0; i < (int) G[v].size(); ++i) {
-        Edge &e = G[v][i];
-        if (e.cap > 0 and dist[e.to] > dist[v] + e.cost + h[v] - h[e.to]) {
-          dist[e.to] = dist[v] + e.cost + h[v] - h[e.to];
+        const Edge &e = G[v][i];
+        const Cost new_dist = dist[v] + e.cost + h[v] - h[e.to];
+        if (e.cap > 0 and dist[e.to] > new_dist) {
+          dist[e.to] = new_dist;
           prevv[e.to] = v;
           preve[e.to] = i;
-          heap.push(DijkstraState{dist[e.to], e.to});
+          if (handles[e.to]) {
+            heap.update(*handles[e.to], {new_dist, e.to});
+          } else {
+            handles[e.to] = heap.push({new_dist, e.to});
+          }
         }
       }
     }
@@ -220,9 +235,7 @@ auto solve() {
       }
     }
   }
-  REP(i, n - 1) {
-    g.add_edge(i, i + 1, K, 0);
-  }
+  REP(i, n - 1) { g.add_edge(i, i + 1, K, 0); }
   auto ans = g.flow(0, n - 1, K);
   assert(ans.has_value());
   return -ans.value();
