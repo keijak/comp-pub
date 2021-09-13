@@ -1,0 +1,8 @@
+project(fhc2021_round1)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -D_GLIBCXX_DEBUG -DMY_DEBUG")
+add_executable(A1 A1/main.cpp)
+add_executable(A2 A2/main.cpp)
+add_executable(A3 A3/main.cpp)
+add_executable(B B/main.cpp)
+add_executable(C C/main.cpp)
