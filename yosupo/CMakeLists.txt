@@ -5,3 +5,4 @@ set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBU
 add_executable(rmq_fischer_heun staticrmq/fischer_heun.cpp)
 add_executable(lca_fischer_heun lca/fischer_heun.cpp)
 
+add_executable(rectangle_sum rectangle_sum/main.cpp)
