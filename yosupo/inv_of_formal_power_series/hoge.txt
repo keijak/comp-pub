@@ -1,7 +1,0 @@
-main.cpp: In instantiation of 'DenseFPS<T, DMAX> DenseFPS<T, DMAX>::inv() const [with T = atcoder::static_modint<998244353>; int DMAX = 500000]':
-main.cpp:197:18:   required from here
-main.cpp:165:12: error: could not convert 'res' from 'DenseFPS<atcoder::static_modint<998244353>, 500000>(std::vector<atcoder::static_modint<998244353>, std::allocator<atcoder::static_modint<998244353> > > (*)())' to 'DenseFPS<atcoder::static_modint<998244353>, 500000>'
-  165 |     return res;
-      |            ^~~
-      |            |
-      |            DenseFPS<atcoder::static_modint<998244353>, 500000>(std::vector<atcoder::static_modint<998244353>, std::allocator<atcoder::static_modint<998244353> > > (*)())

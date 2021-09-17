@@ -8,61 +8,26 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-template <typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
-template <typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
-template <typename T>
-inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
-
-template <typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
-}
-template <typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
-                        std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
-    os << *it;
+struct Input {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
   }
-  return os << ends;
-}
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
+  struct SizedInput {
+    std::size_t n;
+    template<typename T>
+    operator T() const {
+      T x(n);
+      for (auto &e: x) std::cin >> e;
+      return x;
+    }
+  };
+  auto operator()(std::size_t n) const -> const SizedInput { return {n}; }
+} const in;
 
-template <typename T, typename = std::enable_if_t<
-                          is_iterable<T>::value &&
-                          !std::is_same<T, std::string_view>::value &&
-                          !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
-}
-
-#ifdef MY_DEBUG
-#include "debug_dump.hpp"
-#else
-#define DUMP(...)
-#endif
-
-template <typename T>
+template<typename T>
 struct Compressed {
   std::vector<T> values;
 
@@ -147,7 +112,7 @@ struct Mo {
                           : queries[a].r < queries[b].r;
     });
     int l = 0, r = 0;
-    for (auto idx : ord) {
+    for (auto idx: ord) {
       while (l > queries[idx].l) task.add_left(--l);
       while (r < queries[idx].r) task.add_right(r++);
       while (l < queries[idx].l) task.erase_left(l++);
@@ -159,10 +124,8 @@ struct Mo {
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  int N, Q;
-  cin >> N >> Q;
-  vector<int> A(N);
-  cin >> A;
+  const int N = in, Q = in;
+  const vector<int> A = in(N);
   Compressed<int> ca(A);
   Task task(N, Q, A, ca);
   Mo mo(N);
