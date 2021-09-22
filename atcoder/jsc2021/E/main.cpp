@@ -3,7 +3,6 @@
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using i64 = long long;
 
 template<typename T, typename U>
 inline bool chmax(T &a, U b) {
@@ -16,47 +15,6 @@ inline bool chmin(T &a, U b) {
 template<typename T>
 inline int ssize(const T &a) {
   return (int) a.size();
-}
-
-void print() { std::cout << "\n"; }
-template<class T>
-void print(const T &x) {
-  if constexpr (std::is_same_v<T, bool>) {
-    std::cout << (x ? "Yes" : "No") << "\n";
-  } else {
-    std::cout << x << "\n";
-  }
-}
-template<typename Head, typename... Tail>
-void print(const Head &head, Tail... tail) {
-  std::cout << head << " ";
-  print(tail...);
-}
-
-template<typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
-                        std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
-    os << *it;
-  }
-  return os << ends;
-}
-
-template<typename T, typename = void>
-struct is_iterable : std::false_type {};
-template<typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
-
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value && !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 struct Input {
@@ -109,7 +67,16 @@ struct Infinity {
 };
 constexpr Infinity<> kBig;
 
-auto solve() -> optional<i64> {
+inline bool is_palindrome(const string &s) {
+  for (int i = 0;; ++i) {
+    const int j = ssize(s) - 1 - i;
+    if (j <= i) break;
+    if (s[i] != s[j]) return false;
+  }
+  return true;
+}
+
+auto solve() -> optional<int> {
   const int K = in;
   const string S = in;
   const int n = ssize(S);
@@ -118,58 +85,48 @@ auto solve() -> optional<i64> {
     return 0;
   }
   if (K == 0) {
-    auto R = S;
-    reverse(ALL(R));
-    if (S == R) return 1;
-    return 0;
-  }
-  if (K == 1) {
-    if (n <= 3) return nullopt;
-    int m = n / 2;
-    string L = S.substr(0, m);
-    string R = S.substr(m + (n % 2), m);
-    bool eq = (L == R);
-    reverse(ALL(R));
-    if (L == R) {
-      if (eq) return 2;
-      return 0;
-    }
-    int cnt = 0;
-    REP(i, m) {
-      if (L[i] == R[i]) continue;
-      ++cnt;
-    }
-    return cnt;
+    return is_palindrome(S) ? 1 : 0;
   }
 
-  auto f = [&](auto &f, int k, const vector<pair<int, int>> &intervals) -> optional<i64> {
-    assert(not intervals.empty());
-    assert(k > 0);
-    auto[l0, r0] = intervals[0];
-    const i64 width = r0 - l0;
+  vector<pair<int, int>> intervals = {pair{0, n}};
+  int total_cost = 0;
+
+  for (int k = K; k >= 1; --k) {
+    const auto&[l0, r0] = intervals[0];
+    const int width = r0 - l0;
     if (width == 0) return nullopt;
-    i64 center_cost = 0;
-    if (width % 2 == 1) {
+    const int half_width = width >> 1;
+    if (width & 1) {
       vector<int> cc(26, 0);
       int max_count = 0;
       for (auto[l, r]: intervals) {
-        int mid = l + width / 2;
+        int mid = l + half_width;
         char ch = S[mid];
         chmax(max_count, ++cc[ch - 'a']);
       }
-      center_cost = ssize(intervals) - max_count;
+      total_cost += ssize(intervals) - max_count;
     }
-    if (k == 1) {
-      if (width == 1) return center_cost;
-      i64 cost = center_cost;
-      i64 mindiff = kBig;
-      string x;
-      REP(j, width / 2) {
+    if (k > 1) {
+      vector<pair<int, int>> children;
+      children.reserve(intervals.size() * 2);
+      for (auto[l, r]: intervals) {
+        int mid = l + half_width;
+        children.emplace_back(l, mid);
+        children.emplace_back(mid + width % 2, r);
+      }
+      swap(children, intervals);
+    } else { // k == 1
+      if (width == 1) break;
+      if (width <= 3) return nullopt;
+      int min_extra_cost = kBig;
+      string level0;
+      level0.reserve(half_width);
+      REP(j, half_width) {
         vector<int> cc(26, 0);
-        for (auto[l, r]: intervals) {
-          int mid = l + width / 2;
-          char ch1 = S[mid - 1 - j];
-          char ch2 = S[mid + width % 2 + j];
+        for (const auto&[l, r]: intervals) {
+          const int mid = l + half_width;
+          const char ch1 = S[mid - 1 - j];
+          const char ch2 = S[mid + width % 2 + j];
           ++cc[ch1 - 'a'];
           ++cc[ch2 - 'a'];
         }
@@ -184,49 +141,28 @@ auto solve() -> optional<i64> {
             top2[1] = cc[c];
           }
         }
-        x.push_back(tch);
-        const i64 c1 = 2 * ssize(intervals) - top2[0];
-        cost += c1;
-        if (width / 2 % 2 == 0 or j != (width / 2) / 2) {
-          const i64 c2 = 2 * ssize(intervals) - top2[1];
-          chmin(mindiff, c2 - c1);
+        level0.push_back(tch);
+        const int c1 = 2 * ssize(intervals) - top2[0];
+        total_cost += c1;
+        if (half_width % 2 == 0 or j != half_width / 2) {
+          const int c2 = 2 * ssize(intervals) - top2[1];
+          chmin(min_extra_cost, c2 - c1);
         }
       }
-      string rx = x;
-      reverse(ALL(rx));
-      if (rx == x) {
-        if (width <= 3) return nullopt;
-        cost += mindiff;
+      if (is_palindrome(level0)) {
+        total_cost += min_extra_cost;
       }
-      return cost;
     }
-    vector<pair<int, int>> children;
-    for (auto[l, r]: intervals) {
-      int mid = l + width / 2;
-      children.emplace_back(l, mid);
-      children.emplace_back(mid + width % 2, r);
-    }
-    auto sub = f(f, k - 1, children);
-    if (not sub) return nullopt;
-    i64 ret = *sub + center_cost;
-    return ret;
-  };
-  vector<pair<int, int>> v;
-  v.emplace_back(0, n / 2);
-  v.emplace_back(n / 2 + n % 2, n);
-  return f(f, K - 1, v);
+  }
+  return total_cost;
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
-  const int t = 1;
-  REP(test_case, t) {
-    auto ans = solve();
-    if (not ans) {
-      print("impossible");
-    } else {
-      print(*ans);
-    }
+  auto ans = solve();
+  if (not ans) {
+    cout << "impossible\n";
+  } else {
+    cout << *ans << "\n";
   }
 }
