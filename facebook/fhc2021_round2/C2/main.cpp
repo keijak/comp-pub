@@ -161,6 +161,40 @@ struct SumOp {
   static T invert(const T &x) { return -x; }
 };
 
+struct MinOp {
+  using T = long long;
+  static T op(const T &x, const T &y) { return std::min(x, y); }
+  static constexpr T id() { return std::numeric_limits<T>::max(); }
+};
+
+// Fix the left bound, extend the right bound as much as possible.
+template<class M, class F>
+int max_right(const SegTree<M> &seg, int l, F pred) {
+  static_assert(std::is_invocable_r_v<bool, F, typename M::T>,
+                "predicate must be invocable on the value type");
+  assert(0 <= l && l <= seg.size());
+  assert(pred(M::id()));
+  if (l == seg.size()) return seg.size();
+  l += seg.offset_;
+  auto sm = M::id();
+  do {
+    while (l % 2 == 0) l >>= 1;
+    if (not pred(M::op(sm, seg.data_[l]))) {
+      while (l < seg.offset_) {
+        l <<= 1;
+        if (pred(M::op(sm, seg.data_[l]))) {
+          sm = M::op(sm, seg.data_[l]);
+          ++l;
+        }
+      }
+      return l - seg.offset_;
+    }
+    sm = M::op(sm, seg.data_[l]);
+    ++l;
+  } while ((l & -l) != l);
+  return seg.size();
+}
+
 template<typename V>
 void flip_vertically(std::vector<V> &grid) {
   const int h = grid.size();
@@ -184,52 +218,111 @@ auto solve() {
     getline(cin, G[i]);
     assert(ssize(G[i]) == C);
   }
+  vector<pair<int, int>> spells(S);
   REP(i, S) {
     int a = in, b = in;
+    spells[i] = {a - 1, b - 1};
   }
 
-  i64 ans0 = 0;
-  REP(j, C) {
-    if (G[K][j] == 'X') ++ans0;
-  }
   vector<i64> ans(S, C);
+  vector<SegTree<MinOp>> costs;
+  vector<vector<SegTree<SumOp>>> segs_x(2);
+  vector<vector<set<int>>> sslots(2, vector<set<int>>(C));
+  vector<vector<string>> gg(2);
+  gg[0] = G;
+  gg[1] = G;
+  flip_vertically(gg[1]);
+  vector<int> gk = {K, R - 1 - K};
 
   REP(flipping, 2) {
+    auto &g = gg[flipping];
+    int k = gk[flipping];
+
     vector<i64> init_cost(R + 1, C);
     REP(i, R + 1) {
-      init_cost[i] = C + (i - K);
+      init_cost[i] = C;
     }
-    SegTree<SumOp> cost(init_cost);
+    REP(i, k + 1, R + 1) {
+      init_cost[i] += i - k;
+    }
+    costs.emplace_back(init_cost);
+    auto &cost = costs.back();
+    auto &seg_x = segs_x[flipping];
+    auto &slots = sslots[flipping];
 
     REP(j, C) {
       vector<i64> init_x(R, 0);
       REP(i, R) {
-
+        if (g[i][j] == 'X') init_x[i] = 1;
       }
+      seg_x.emplace_back(init_x);
+    }
+
+    REP(j, C) {
       int x_count = 0;
       REP(i, R + 1) {
-        if (x_count >= K + 1) break;
+        if (x_count >= k + 1) break;
         if (i == R) {
-          --cost[i];
+          cost.set(i, cost[i] - 1);
           break;
         }
-        if (G[i][j] == 'X') {
+        if (g[i][j] == 'X') {
           ++x_count;
-        } else if (i > K) {
-          --cost[i];
+        } else {
+          slots[j].insert(i);
+          cost.set(i, cost[i] - 1);
         }
       }
     }
-
-    REP(i, K + 1, R + 1) {
-      i64 co = cost[i] + (i - K);
-      chmin(ans0, co);
-    }
-
-    flip_vertically(G);
-    K = R - 1 - K;
   }
-  return ans;
+
+  REP(i, S) {
+    REP(flipping, 2) {
+      auto &cost = costs[flipping];
+      auto &seg_x = segs_x[flipping];
+      auto &g = gg[flipping];
+      auto &slots = sslots[flipping];
+      int k = gk[flipping];
+
+      int r, c;
+      tie(r, c) = spells[i];
+      if (flipping) {
+        r = R - 1 - r;
+      }
+
+      int r0 = max_right(seg_x[c], 0, [&](i64 x) { return x <= k; });
+      if (g[r][c] == 'X') {
+        seg_x[c].set(r, 0);
+        g[r][c] = '.';
+        slots[c].insert(r);
+        if (seg_x[c].fold(0, r) <= k) {
+          cost.set(r, cost[r] - 1);
+          int r1 = max_right(seg_x[c], 0, [&](i64 x) { return x <= k; });
+          assert(r0 <= r1);
+          for (auto it = slots[c].lower_bound(r0 + 1); it != slots[c].end() and *it < r1; ++it) {
+            if (*it == r) continue;
+            cost.set(*it, cost[*it] - 1);
+          }
+        }
+      } else {
+        seg_x[c].set(r, 1);
+        g[r][c] = 'X';
+        slots[c].erase(r);
+        if (seg_x[c].fold(0, r) <= k) {
+          cost.set(r, cost[r] + 1);
+          int r1 = max_right(seg_x[c], 0, [&](i64 x) { return x <= k; });
+          assert(r1 <= r0);
+          for (auto it = slots[c].lower_bound(r1 + 1); it != slots[c].end() and *it < r0; ++it) {
+            if (*it == r) continue;
+            cost.set(*it, cost[*it] + 1);
+          }
+        }
+      }
+      chmin(ans[i], cost.fold(k, R + 1));
+    }
+  }
+  DUMP(ans);
+  return accumulate(ALL(ans), 0LL);
 }
 
 int main() {

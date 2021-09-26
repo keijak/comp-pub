@@ -86,6 +86,142 @@ struct Input {
 
 using namespace std;
 
+template<typename Monoid>
+struct SegTree {
+  using T = typename Monoid::T;
+
+  int n_;                // number of valid leaves.
+  int offset_;           // where leaves start
+  std::vector<T> data_;  // data size: 2*offset_
+
+  inline int size() const { return n_; }
+  inline int offset() const { return offset_; }
+
+  explicit SegTree(int n) : n_(n) {
+    offset_ = 1;
+    while (offset_ < n_) offset_ <<= 1;
+    data_.assign(2 * offset_, Monoid::id());
+  }
+
+  explicit SegTree(const std::vector<T> &leaves) : n_(leaves.size()) {
+    offset_ = 1;
+    while (offset_ < n_) offset_ <<= 1;
+    data_.assign(2 * offset_, Monoid::id());
+    for (int i = 0; i < n_; ++i) {
+      data_[offset_ + i] = leaves[i];
+    }
+    for (int i = offset_ - 1; i > 0; --i) {
+      data_[i] = Monoid::op(data_[i * 2], data_[i * 2 + 1]);
+    }
+  }
+
+  // Sets i-th value (0-indexed) to x.
+  void set(int i, const T &x) {
+    int k = offset_ + i;
+    data_[k] = x;
+    // Update its ancestors.
+    while (k > 1) {
+      k >>= 1;
+      data_[k] = Monoid::op(data_[k * 2], data_[k * 2 + 1]);
+    }
+  }
+
+  // Queries by [l,r) range (0-indexed, half-open interval).
+  T fold(int l, int r) const {
+    l = std::max(l, 0) + offset_;
+    r = std::min(r, offset_) + offset_;
+    T vleft = Monoid::id(), vright = Monoid::id();
+    for (; l < r; l >>= 1, r >>= 1) {
+      if (l & 1) vleft = Monoid::op(vleft, data_[l++]);
+      if (r & 1) vright = Monoid::op(data_[--r], vright);
+    }
+    return Monoid::op(vleft, vright);
+  }
+
+  T fold_all() const { return data_[1]; }
+
+  // Returns i-th value (0-indexed).
+  T operator[](int i) const { return data_[offset_ + i]; }
+
+  friend std::ostream &operator<<(std::ostream &os, const SegTree &st) {
+    os << "[";
+    for (int i = 0; i < st.size(); ++i) {
+      if (i != 0) os << ", ";
+      const auto &x = st[i];
+      os << x;
+    }
+    return os << "]";
+  }
+};
+
+struct SumOp {
+  using T = long long;
+  static T op(const T &x, const T &y) { return x + y; }
+  static constexpr T id() { return 0; }
+  static T invert(const T &x) { return -x; }
+};
+
+struct MinOp {
+  using T = long long;
+  static T op(const T &x, const T &y) { return std::min(x, y); }
+  static constexpr T id() { return std::numeric_limits<T>::max(); }
+};
+
+// Fix the left bound, extend the right bound as much as possible.
+template<class M, class F>
+int max_right(const SegTree<M> &seg, int l, F pred) {
+  static_assert(std::is_invocable_r_v<bool, F, typename M::T>,
+                "predicate must be invocable on the value type");
+  assert(0 <= l && l <= seg.size());
+  assert(pred(M::id()));
+  if (l == seg.size()) return seg.size();
+  l += seg.offset_;
+  auto sm = M::id();
+  do {
+    while (l % 2 == 0) l >>= 1;
+    if (not pred(M::op(sm, seg.data_[l]))) {
+      while (l < seg.offset_) {
+        l <<= 1;
+        if (pred(M::op(sm, seg.data_[l]))) {
+          sm = M::op(sm, seg.data_[l]);
+          ++l;
+        }
+      }
+      return l - seg.offset_;
+    }
+    sm = M::op(sm, seg.data_[l]);
+    ++l;
+  } while ((l & -l) != l);
+  return seg.size();
+}
+
+// Fix the right bound, extend the left bound as much as possible.
+template<class M, class F>
+int min_left(const SegTree<M> &seg, int r, F pred) {
+  static_assert(std::is_invocable_r_v<bool, F, typename M::T>,
+                "predicate must be invocable on the value type");
+  assert(0 <= r && r <= seg.size());
+  assert(pred(M::id()));
+  r += seg.offset_;
+  auto sm = M::id();
+  do {
+    --r;
+    while (r > 1 && (r % 2)) r >>= 1;
+    if (not pred(M::op(seg.data_[r], sm))) {
+      while (r < seg.offset_) {
+        r = 2 * r + 1;
+        if (pred(M::op(seg.data_[r], sm))) {
+          sm = M::op(seg.data_[r], sm);
+          --r;
+        }
+      }
+      return r + 1 - seg.offset_;
+    }
+    sm = M::op(seg.data_[r], sm);
+  } while ((r & -r) != r);
+  return 0;
+}
+
 template<typename V>
 void flip_vertically(std::vector<V> &grid) {
   const int h = grid.size();
@@ -109,38 +245,55 @@ auto solve() {
     assert(ssize(G[i]) == C);
   }
 
-  i64 ans = 0;
+  i64 ans0 = 0;
   REP(j, C) {
-    if (G[K][j] == 'X') ++ans;
+    if (G[K][j] == 'X') ++ans0;
   }
-  REP(flipping, 2) {
-    vector<int> cost(R + 1, C);
 
+  REP(flipping, 2) {
+    vector<i64> init_cost(R + 1, C);
+    REP(i, R + 1) {
+      init_cost[i] = C;
+    }
+    REP(i, K + 1, R + 1) {
+      init_cost[i] += i - K;
+    }
+    SegTree<MinOp> cost(init_cost);
+
+    vector<SegTree<SumOp>> seg_x;
+    REP(j, C) {
+      vector<i64> init_x(R, 0);
+      REP(i, R) {
+        if (G[i][j] == 'X') init_x[i] = 1;
+      }
+      seg_x.emplace_back(init_x);
+    }
+
+    vector<set<int>> slots(C);
     REP(j, C) {
       int x_count = 0;
       REP(i, R + 1) {
         if (x_count >= K + 1) break;
         if (i == R) {
-          --cost[i];
+          cost.set(i, cost[i] - 1);
           break;
         }
         if (G[i][j] == 'X') {
           ++x_count;
-        } else if (i > K) {
-          --cost[i];
+        } else {
+          slots[j].insert(i);
+          if (i > K) {
+            cost.set(i, cost[i] - 1);
+          }
         }
       }
     }
-
-    REP(i, K + 1, R + 1) {
-      i64 co = cost[i] + (i - K);
-      chmin(ans, co);
-    }
+    chmin(ans0, cost.fold(K, R + 1));
 
     flip_vertically(G);
     K = R - 1 - K;
   }
-  return ans;
+  return ans0;
 }
 
 int main() {
