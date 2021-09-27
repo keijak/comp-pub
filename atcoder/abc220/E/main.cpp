@@ -93,30 +93,42 @@ struct Input {
 
 using namespace std;
 
+template<class T>
+T ceil_div(T x, T y) {
+  assert(y != 0);
+  return x / y + (((x ^ y) >= 0) and (x % y));
+}
+
 auto solve() {
   const i64 n = in, D = in;
+
+  vector<Mint> P(D);
+  P[D - 1] = 1;
+  for (int k = D - 2; k >= 0; --k) P[k] = P[k + 1] * 2;
+  vector<Mint> pcum(D + 1, 0);
+  REP(k, D) pcum[k + 1] = pcum[k] + P[k];
+  const Mint pd = Mint(2).pow(D);
+
   Mint ans = 0;
-  //Mint(2).pow(D) * (Mint(2).pow(n_ - D) - 1) * 2;
-  DUMP(ans);
-  for (int i = 0; i <= D; ++i) {
-    int j = D - i;
-    int m = max(i, j);
-    int p = min(i, j);
-    if (n - m - 1 < 0) continue;
-    if (i == j) {
-      Mint x = Mint(2).pow(i);
-      x = x * (x / 2);
-      Mint z = Mint(2).pow(n - m) - 1;
-      ans += x * z;
-    } else {
-      Mint x = Mint(2).pow(p);
-      Mint y = Mint(2).pow(m);
-      if (p > 0) {
-        y /= 2;
-      }
-      Mint z = Mint(2).pow(n - m) - 1;
-      ans += x * y * z;
+  for (int d = n - 1; d >= 0; --d) {
+    Mint s = 0;
+
+    // k = 0
+    if (d + D <= n - 1) {
+      s += pd;
     }
+
+    // k = D
+    if (d - D >= 0) {
+      s += 1;
+    }
+
+    int l = max(1, ceil_div<int>(d + D - n + 1, 2));
+    int r = min<int>(D - 1, d);
+    if (l <= r) {
+      s += pcum[r + 1] - pcum[l];
+    }
+    ans += s * Mint(2).pow(d);
   }
   return ans;
 }
