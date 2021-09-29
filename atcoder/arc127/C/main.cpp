@@ -93,29 +93,29 @@ struct Input {
 
 using namespace std;
 
-void decrement(deque<char> &x) {
+void decrement(vector<char> &x) {
   assert(not x.empty());
-  for (int i = ssize(x) - 1; i >= 0; --i) {
+  REP(i, ssize(x)) {
     if (x[i] == 1) {
-      if (i == 0) {
-        x.pop_front();
+      if (i == ssize(x) - 1) {
+        x.pop_back();
       } else {
         x[i] = 0;
       }
       break;
-    } else {
-      x[i] = 1;
     }
+    x[i] = 1;
   }
 }
 
-auto solve() -> string {
+int main() {
+  ios_base::sync_with_stdio(false), cin.tie(nullptr);
   const int n = in;
   cin.ignore();
   const string X = in;
-  deque<char> q;
-  for (char ch: X) {
-    q.push_back(ch - '0');
+  vector<char> q(ssize(X));
+  REP(i, ssize(X)) {
+    q[i] = X[ssize(X) - 1 - i] - '0';
   }
   decrement(q);
 
@@ -128,19 +128,9 @@ auto solve() -> string {
       decrement(q);
     } else {
       ret.push_back('1');
-      q.pop_front();
-      while (not q.empty() and q.front() == 0) q.pop_front();
+      q.pop_back();
+      while (not q.empty() and q.back() == 0) q.pop_back();
     }
   }
-  return ret;
-}
-
-int main() {
-  ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
-  const int t = 1;
-  REP(test_case, t) {
-    auto ans = solve();
-    print(ans);
-  }
+  cout << ret << "\n";
 }
