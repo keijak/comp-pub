@@ -1,0 +1,7 @@
+project(mr_contest003)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBUG")
+add_executable(1 1/main.cpp)
+add_executable(2 2/main.cpp)
+add_executable(3 3/main.cpp)
+add_executable(4 4/main.cpp)
