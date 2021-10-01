@@ -18,20 +18,21 @@ inline int ssize(const T &a) {
   return (int) a.size();
 }
 
-void print() { std::cout << "\n"; }
 template<class T>
-void print(const T &x) {
+inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same_v<T, bool>) {
-    std::cout << (x ? "Yes" : "No") << "\n";
+    return std::cout << (x ? "Yes" : "No") << endc;
   } else {
-    std::cout << x << "\n";
+    return std::cout << x << endc;
   }
 }
-template<typename Head, typename... Tail>
-void print(const Head &head, Tail... tail) {
-  std::cout << head << " ";
-  print(tail...);
+template<class T>
+inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
+template<typename T, typename... Ts>
+std::ostream &print(const T &head, Ts... tail) {
+  return print_one(head, ' '), print(tail...);
 }
+inline std::ostream &print() { return std::cout << '\n'; }
 
 template<typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
