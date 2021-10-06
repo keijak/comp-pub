@@ -91,88 +91,54 @@ inline void check(bool cond, const char *message = "!ERROR!") {
 
 using namespace std;
 
+tuple<i64, int, i64> dp[200005];
+
 auto solve() -> i64 {
-  const i64 n = in;
-  vector<pair<i64, i64>> queries(n);
-  vector<i64> cuma(n + 1);
-  vector<pair<i64, i64>> maxb(n + 1);
-  maxb[0] = {0, -1};
-  REP(i, n) {
+  const i64 N = in;
+  vector<i64> maxb;
+  vector<i64> cuma;
+  maxb.reserve(N);
+  cuma.reserve(N + 1);
+  cuma.push_back(0);
+  i64 acum = 0;
+  REP(i, N) {
     i64 a = in, b = in;
-    queries[i] = {a, b};
-    cuma[i + 1] = cuma[i] + a;
-    if (b > maxb[i].first) {
-      maxb[i + 1] = {b, i};
-    } else {
-      maxb[i + 1] = maxb[i];
+    if (i > 0 and maxb.back() >= b) {
+      acum += a;
+      continue;
     }
+    a += acum;
+    acum = 0;
+    maxb.push_back(b);
+    cuma.push_back(cuma.back() + a);
   }
-  DUMP(maxb[n]);
-  REP(i, n) {
-    if (cuma[i + 1] < queries[i].second) {
-      return -1;
-    }
-  }
+  cuma.push_back(cuma.back() + acum);
+  const int Q = ssize(maxb);
 
-  vector<pair<optional<pair<i64, i64>>, bool>> memo(n + 1, {nullopt, false});
-  auto earliest_buy = [&](auto &f, i64 k) -> optional<pair<i64, i64>> {
-    if (memo[k].second) return memo[k].first;
-    memo[k].second = true;
-    if (k == 0) {
-      memo[k].first = pair{-1, 0LL};
-      return memo[k].first;
-    }
-
-    i64 b;
-    i64 i;
-    tie(b, i) = maxb[k];
-
-    auto sub0 = f(f, i);
-    if (not sub0) return nullopt;
-    i64 j0;
-    i64 amt0;
-    tie(j0, amt0) = sub0.value();
-
-    i64 ok = i, ng = -1;
-    i64 ok_amt = amt0 + cuma[i + 1] - cuma[j0 + 1];
-    if (ok_amt < b) return nullopt;
-
-    while (ok - ng > 1LL) {
-      i64 mid = (ok + ng) / 2;
-      auto sub = f(f, mid);
-      if (not sub) {
-        ng = mid;
-        continue;
-      }
-      i64 j;
-      i64 amt;
-      tie(j, amt) = sub.value();
-      i64 amt2 = amt + cuma[mid + 1] - cuma[j + 1];
-      if (amt2 >= b) {
-        ok = mid;
-        ok_amt = amt2;
-      } else {
-        ng = mid;
+  int head = 0, tail = 1;
+  dp[head] = tuple{0LL, -1, 0LL};
+  REP(i, Q) {
+    const auto b = maxb[i];
+    for (; head < tail; ++head) {
+      const auto&[power, t0, stock] = dp[head];
+      if (power >= b) break;
+      while (tail <= Q) {
+        const i64 bx = maxb[tail - 1];
+        const i64 stockx = stock + cuma[i + 1] - cuma[t0 + 1] - bx;
+        if (stockx < 0) break;
+        dp[tail++] = {bx, i, stockx};;
       }
     }
-    check(ok_amt >= b);
-    memo[k].first = pair{ok, ok_amt - b};
-    return memo[k].first;
-  };
-  auto eb = earliest_buy(earliest_buy, n);
-  if (not eb) {
-    return -1;
+    if (tail == Q + 1) break;
   }
-  auto[day, amt] = eb.value();
-  return amt + cuma[n] - cuma[day + 1];
+  if (tail != Q + 1) return -1;
+  auto[_, rj, stock] = dp[tail - 1];
+  DUMP(rj, stock);
+  DUMP(cuma.back(), cuma[rj + 1]);
+  return stock + cuma.back() - cuma[rj + 1];
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
-  const int t = 1;
-  REP(test_case, t) {
-    auto ans = solve();
-    print(ans);
-  }
+  print(solve());
 }
