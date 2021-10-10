@@ -1,0 +1,6 @@
+project(OCT21B)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBUG")
+add_executable(ANDSUBAR ANDSUBAR/main.cpp)
+add_executable(MEXOR MEXOR/main.cpp)
+add_executable(DIGITREM DIGITREM/main.cpp)
