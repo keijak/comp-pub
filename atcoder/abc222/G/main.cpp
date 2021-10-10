@@ -92,59 +92,82 @@ inline void check(bool cond, const char *message = "!ERROR!") {
 
 using namespace std;
 
-int64_t mod_log(int64_t a, int64_t b, int64_t p) {
-  int64_t g = 1;
+unordered_map<i64, vector<pair<i64, int>>> cache;
 
-  for (int64_t i = p; i; i /= 2) (g *= a) %= p;
-  g = std::gcd(g, p);
-
-  int64_t t = 1, c = 0;
-  for (; t % g; c++) {
-    if (t == b) return c;
-    (t *= a) %= p;
+// Factorizes a number into {prime, count} pairs. O(sqrt(n)).
+const std::vector<std::pair<i64, int>> &factorize(i64 n) {
+  const i64 key = n;
+  if (auto it = cache.find(key); it != cache.end()) {
+    return it->second;
   }
-  if (b % g) return -1;
-
-  t /= g;
-  b /= g;
-
-  int64_t n = p / g, h = 0, gs = 1;
-
-  for (; h * h < n; h++) (gs *= a) %= n;
-
-  unordered_map<int64_t, int64_t> bs;
-  for (int64_t s = 0, e = b; s < h; bs[e] = ++s) {
-    (e *= a) %= n;
+  std::vector<std::pair<i64, int>> res;
+  for (i64 k = 2; k * k <= n; ++k) {
+    if (n % k != 0) continue;
+    int count = 0;
+    do {
+      n /= k;
+      ++count;
+    } while (n % k == 0);
+    res.emplace_back(k, count);
   }
-
-  for (int64_t s = 0, e = t; s < n;) {
-    (e *= gs) %= n;
-    s += h;
-    if (bs.count(e)) return c + s - bs[e];
+  if (n > 1) {
+    res.emplace_back(n, 1);
   }
-  return -1;
+  return (cache[key] = res);
 }
+
+i64 totient(i64 n) {
+  i64 res = n;
+  for (auto[p, _]: factorize(n)) {
+    res /= p;
+    res *= p - 1;
+  }
+  return res;
+}
+
+// Enumerates divisors from prime factorization.
+// O(d(n)) + sorting
+std::vector<i64> enumerate_divisors(
+    const std::vector<std::pair<i64, int>> &fac) {
+  std::vector<i64> res = {1};
+  for (auto[p, k]: fac) {
+    int sz = res.size();
+    for (int i = 0; i < sz; ++i) {
+      i64 pp = 1;
+      for (int j = 0; j < k; ++j) {
+        pp *= p;
+        res.push_back(res[i] * pp);
+      }
+    }
+  }
+  std::sort(res.begin(), res.end());
+  return res;
+}
+
+// On a large N, often faster than simple `divisors()`.
+std::vector<i64> divisors2(i64 n) { return enumerate_divisors(factorize(n)); }
 
 #include <atcoder/math>
 
 auto solve() -> i64 {
   i64 K = in;
-  if (K % 2 == 0) {
-    K /= 2;
-  }
+  if (K % 2 == 0) K /= 2;
   K *= 9;
-  if (gcd(10, K) != 1) {
-    return -1LL;
+  if (gcd(10, K) != 1) return -1;
+  i64 phi = totient(K);
+  for (auto d: divisors2(phi)) {
+    if (atcoder::pow_mod(10, d, K) == 1) {
+      return d;
+    }
   }
-  i64 q = atcoder::inv_mod(10, K);
-  i64 res = mod_log(10LL, q, K);
-  DUMP(K, res);
-  return res + 1;
+  return phi;
 }
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
+  cache.reserve(1 << 20);
+  cache.max_load_factor(0.25);
+
   const int t = in;
   REP(test_case, t) {
     auto ans = solve();
