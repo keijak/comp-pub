@@ -287,9 +287,6 @@ struct DenseFPS {
 const int D = 3000;
 using DF = DenseFPS<NaiveMult<Mint, D>>;
 
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
-
 auto solve() {
   const int n = in, S = in;
   vector<int> a = in(n);
@@ -297,7 +294,8 @@ auto solve() {
   REP(i, n) {
     f += f.multiply2(a[i], 1);
   }
-  return f[S];
+  Mint ans = f[S];
+  return ans;
 }
 
 int main() {

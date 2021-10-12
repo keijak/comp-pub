@@ -10,20 +10,20 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
   return os << m.val();
 }
 
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template<typename T>
+template <typename T>
 inline int ssize(const T &a) {
-  return (int) a.size();
+  return (int)a.size();
 }
 
-template<class T>
+template <class T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same_v<T, bool>) {
     return std::cout << (x ? "Yes" : "No") << endc;
@@ -31,15 +31,17 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
-inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
-template<typename T, typename... Ts>
+template <class T>
+inline std::ostream &print(const T &x) {
+  return print_one(x, '\n');
+}
+template <typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
   return print_one(head, ' '), print(tail...);
 }
 inline std::ostream &print() { return std::cout << '\n'; }
 
-template<typename Container>
+template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -51,22 +53,22 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   return os << ends;
 }
 
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value && !std::is_same<T, std::string>::value>>
+template <typename T,
+          typename = std::enable_if_t<is_iterable<T>::value &&
+                                      !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 struct VersatileInput {
-  template<typename T>
+  template <typename T>
   operator T() const {
     T x;
     std::cin >> x;
@@ -74,10 +76,10 @@ struct VersatileInput {
   }
   struct Sized {
     std::size_t n;
-    template<typename T>
+    template <typename T>
     operator T() const {
       T x(n);
-      for (auto &e: x) std::cin >> e;
+      for (auto &e : x) std::cin >> e;
       return x;
     }
   };
@@ -92,12 +94,13 @@ inline void check(bool cond, const char *message = "!ERROR!") {
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)
-#define cerr if(false)std::cerr
+#define cerr \
+  if (false) std::cerr
 #endif
 
 using namespace std;
 
-template<typename T, int DMAX>
+template <typename T, int DMAX>
 struct NaiveMult {
   using value_type = T;
   static constexpr int dmax() { return DMAX; }
@@ -132,7 +135,7 @@ struct NaiveMult {
 };
 
 // Formal Power Series (dense format).
-template<typename Mult>
+template <typename Mult>
 struct DenseFPS {
   using T = typename Mult::value_type;
   static constexpr int dmax() { return Mult::dmax(); }
@@ -183,7 +186,7 @@ struct DenseFPS {
     return *this;
   }
   friend DenseFPS operator+(const DenseFPS &x, const DenseFPS &y) {
-    return DenseFPS(x) -= y;
+    return DenseFPS(x) += y;
   }
 
   DenseFPS &operator-=(const DenseFPS &other) {
@@ -198,7 +201,7 @@ struct DenseFPS {
   }
 
   DenseFPS &operator*=(const T &scalar) {
-    for (auto &x: coeff_) x *= scalar;
+    for (auto &x : coeff_) x *= scalar;
     return *this;
   }
   friend DenseFPS operator*(const DenseFPS &x, const T &scalar) {
@@ -216,7 +219,7 @@ struct DenseFPS {
   }
 
   DenseFPS &operator/=(const T &scalar) {
-    for (auto &x: coeff_) x /= scalar;
+    for (auto &x : coeff_) x /= scalar;
     return *this;
   }
   friend DenseFPS operator/(const DenseFPS &x, const T &scalar) {
@@ -276,7 +279,7 @@ struct DenseFPS {
 
   T eval(const T &a) const {
     T res = 0, x = 1;
-    for (auto c: coeff_) {
+    for (auto c : coeff_) {
       res += c * x;
       x *= a;
     }
@@ -290,12 +293,10 @@ using DF = DenseFPS<NaiveMult<Mint, D>>;
 auto solve() {
   const int n = in, S = in;
   vector<int> a = in(n);
-
-  DF f;
   Mint ans = 0;
+  DF f;
   REP(i, n) {
-    f.coeff_[0] += 1;
-    f.multiply2_inplace(a[i], 1);
+    f = (f + 1).multiply2(a[i], 1);
     ans += f[S];
   }
   return ans;
@@ -304,7 +305,7 @@ auto solve() {
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
   cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
+  const int T = 1;  // in;
   REP(t, T) {
     auto ans = solve();
     print(ans);
