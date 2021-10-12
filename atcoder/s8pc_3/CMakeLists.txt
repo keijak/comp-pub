@@ -1,0 +1,6 @@
+project(s8pc_3)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBUG")
+add_executable(A A/main.cpp)
+add_executable(B B/main.cpp)
+add_executable(G G/main.cpp)
