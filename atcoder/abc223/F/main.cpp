@@ -5,20 +5,20 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template<typename T, typename U>
+template <typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template<typename T>
+template <typename T>
 inline int ssize(const T &a) {
-  return (int) a.size();
+  return (int)a.size();
 }
 
-template<class T>
+template <class T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same_v<T, bool>) {
     return std::cout << (x ? "Yes" : "No") << endc;
@@ -26,15 +26,17 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
-inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
-template<typename T, typename... Ts>
+template <class T>
+inline std::ostream &print(const T &x) {
+  return print_one(x, '\n');
+}
+template <typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
   return print_one(head, ' '), print(tail...);
 }
 inline std::ostream &print() { return std::cout << '\n'; }
 
-template<typename Container>
+template <typename Container>
 std::ostream &print_seq(const Container &a, std::string_view sep = " ",
                         std::string_view ends = "\n",
                         std::ostream &os = std::cout) {
@@ -46,22 +48,22 @@ std::ostream &print_seq(const Container &a, std::string_view sep = " ",
   return os << ends;
 }
 
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value && !std::is_same<T, std::string>::value>>
+template <typename T,
+          typename = std::enable_if_t<is_iterable<T>::value &&
+                                      !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 struct VersatileInput {
-  template<typename T>
+  template <typename T>
   operator T() const {
     T x;
     std::cin >> x;
@@ -69,10 +71,10 @@ struct VersatileInput {
   }
   struct Sized {
     std::size_t n;
-    template<typename T>
+    template <typename T>
     operator T() const {
       T x(n);
-      for (auto &e: x) std::cin >> e;
+      for (auto &e : x) std::cin >> e;
       return x;
     }
   };
@@ -87,12 +89,13 @@ inline void check(bool cond, const char *message = "!ERROR!") {
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)
-#define cerr if(false)std::cerr
+#define cerr \
+  if (false) std::cerr
 #endif
 
 using namespace std;
 
-template<typename LazyMonoid>
+template <typename LazyMonoid>
 struct LazySegTree {
   using T = typename LazyMonoid::T;
   using F = typename LazyMonoid::F;
@@ -228,25 +231,26 @@ struct LazySegTree {
   mutable std::vector<F> lazy_;
 };
 
-template<int sign = 1>
+template <int sign = 1>
 struct Infinity {
-  template<typename T>
+  template <typename T>
   constexpr operator T() const {
     static_assert(sign == 1 or not std::is_unsigned_v<T>,
                   "must be positive in an unsigned type");
     if constexpr (std::numeric_limits<T>::has_infinity) {
       return T(sign) * std::numeric_limits<T>::infinity();
     } else {
-      static_assert(std::numeric_limits<T>::max() != T());  // max must be defined
+      static_assert(std::numeric_limits<T>::max() !=
+                    T());  // max must be defined
       return T(sign) * (std::numeric_limits<T>::max() / T(2));
     }
   }
   constexpr Infinity<sign * -1> operator-() const { return {}; }
-  template<typename T>
+  template <typename T>
   friend constexpr bool operator==(const T &x, const Infinity &y) {
     return x == T(y);
   }
-  template<typename T>
+  template <typename T>
   friend constexpr bool operator!=(const T &x, const Infinity &y) {
     return x != T(y);
   }
@@ -259,7 +263,7 @@ struct AddMinOp {
 
   // Fold: Min
   static T op(const T &x, const T &y) { return std::min(x, y); }
-  static constexpr T id() { return (i64) kBig; }
+  static constexpr T id() { return (i64)kBig; }
 
   // Update: Add
   static T f_apply(const F &f, const T &x) { return f + x; }
@@ -287,7 +291,7 @@ int main() {
       seg.apply(l + 1, r, rv - lv);
     } else {
       auto rsum = seg[r] - seg[l];
-      auto rmin = seg.fold(l, r) - seg[l];
+      auto rmin = seg.fold(l + 1, r + 1) - seg[l];
       DUMP(qi, l, r, rsum, rmin);
       bool ok = rsum == 0 and rmin >= 0;
       print(ok);
