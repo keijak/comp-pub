@@ -72,7 +72,7 @@ inline void check(bool cond, const char *message = "!ERROR!") {
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #include "backward.hpp"
-const backward::SignalHandling kSignalHandling;
+[[maybe_unused]] const backward::SignalHandling kSignalHandling;
 #else
 #define DUMP(...)
 #define cerr if(false)std::cerr
