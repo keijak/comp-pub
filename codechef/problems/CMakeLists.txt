@@ -4,3 +4,4 @@ set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBU
 add_executable(GPD GPD/main.cpp)
 add_executable(PSHTTR PSHTTR/main.cpp)
 add_executable(SMPLSUM SMPLSUM/main.cpp)
+add_executable(XRQRS XRQRS/main_XRQRS.cpp)
