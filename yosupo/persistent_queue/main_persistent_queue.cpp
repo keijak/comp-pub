@@ -96,11 +96,32 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-
+// immutable stack interface
 template<typename T>
 struct PersistentStack {
+  virtual ~PersistentStack() = default;
+
+  virtual PersistentStack<T> *push(T item) const = 0;
+
+  virtual PersistentStack<T> *pop() const = 0;
+
+  virtual std::optional<T> top() const = 0;
+
+  virtual int size() const = 0;
+
+  bool empty() const { return size() == 0; }
+
+ private:
+  mutable std::optional<PersistentStack<T> *> rev_;
+
+  template<typename U>
+  friend PersistentStack<U> *reverse_stack(PersistentStack<U> *st);
+};
+
+template<typename T>
+struct LinkedList : public PersistentStack<T> {
   struct Node;
-  using NodePtr = std::shared_ptr<Node>;
+  using NodePtr = Node *;
 
   struct Node {
     T val;
@@ -108,97 +129,148 @@ struct PersistentStack {
     Node(T val, NodePtr next) : val(std::move(val)), next(std::move(next)) {}
   };
 
-  PersistentStack() : node_{}, reversed_(false), size_(0) {}
+  LinkedList() : node_{}, size_(0) {}
+  ~LinkedList() override = default;
 
-  PersistentStack push(T item) const {
-    resolve_reverse();
-    return PersistentStack(std::make_shared<Node>(std::move(item), node_), false, size_ + 1);
+  static LinkedList<T> *&nil() {
+    static LinkedList<T> *kNil = new LinkedList<T>();
+    return kNil;
   }
 
-  PersistentStack pop() const {
-    assert(not empty());
-    resolve_reverse();
-    return PersistentStack(node_->next, false, size_ - 1);
+  PersistentStack<T> *push(T item) const override {
+    return new LinkedList<T>(new Node(std::move(item), node_), size_ + 1);
   }
 
-  optional<T> top() const {
-    if (empty()) return nullopt;
-    resolve_reverse();
+  PersistentStack<T> *pop() const override {
+    assert(node_ != nullptr);
+    return new LinkedList<T>(node_->next, size_ - 1);
+  }
+
+  std::optional<T> top() const override {
+    if (node_ == nullptr) return std::nullopt;
     return node_->val;
   }
 
-  bool empty() const {
-    return node_ == nullptr;
-  }
-
-  int size() const {
-    return size_;
-  }
-
-  const PersistentStack &reverse() const {
-    if (reverse_stack_ == nullptr) {
-      reverse_stack_.reset(new PersistentStack(node_, not reversed_, size_));
-    }
-    return *reverse_stack_;
-  }
+  int size() const override { return size_; }
 
  private:
-  mutable NodePtr node_;
-  mutable bool reversed_;
-  mutable std::shared_ptr<PersistentStack<T>> reverse_stack_;
+  NodePtr node_;
   int size_;
 
-  PersistentStack(NodePtr node, bool reversed, int size)
-      : node_(std::move(node)), reversed_(reversed), size_(size) {}
+  LinkedList(NodePtr node, int size) : node_(std::move(node)), size_(size) {}
+};
 
-  void resolve_reverse() const {
-    if (not reversed_) return;
-    NodePtr rev;
-    for (Node *p = node_.get(); p != nullptr; p = p->next.get()) {
-      rev = std::make_shared<Node>(p->val, std::move(rev));
+template<typename T>
+struct ReversedStack : public PersistentStack<T> {
+  explicit ReversedStack(PersistentStack<T> *st) : wrapped_(std::move(st)) {}
+  ~ReversedStack() override = default;
+
+  PersistentStack<T> *push(T item) const override {
+    return evaluate()->push(std::move(item));
+  }
+
+  PersistentStack<T> *pop() const override {
+    return evaluate()->pop();
+  }
+
+  std::optional<T> top() const override { return evaluate()->top(); }
+
+  int size() const override { return wrapped_->size(); }
+
+ private:
+  PersistentStack<T> *wrapped_;
+  mutable std::optional<PersistentStack<T> *> evaluated_;
+
+  PersistentStack<T> *evaluate() const {
+    if (not evaluated_) {
+      PersistentStack<T> *rev = LinkedList<T>::nil();
+      for (PersistentStack<T> *p = wrapped_; not p->empty(); p = p->pop()) {
+        rev = rev->push(*p->top());
+      }
+      evaluated_ = std::move(rev);
     }
-    std::swap(node_, rev);
-    reversed_ = not reversed_;
+    return *evaluated_;
   }
 };
 
 template<typename T>
-struct PersistentQueue {
-  mutable PersistentStack<T> front_, rear_;
+PersistentStack<T> *reverse_stack(PersistentStack<T> *st) {
+  if (not st->rev_) {
+    st->rev_ = new ReversedStack<T>(st);
+  }
+  return *(st->rev_);
+}
 
-  PersistentQueue() = default;
+template<typename T>
+struct ConcatenatedStack : public PersistentStack<T> {
+  explicit ConcatenatedStack(PersistentStack<T> *st1,
+                             PersistentStack<T> *st2)
+      : stack1_(std::move(st1)), stack2_(std::move(st2)) {}
+  ~ConcatenatedStack() override = default;
+
+  PersistentStack<T> *push(T item) const override {
+    return new ConcatenatedStack<T>(stack1_, stack2_->push(item));
+  }
+
+  PersistentStack<T> *pop() const override {
+    if (stack1_->empty()) return stack2_->pop();
+    auto st1 = stack1_->pop();
+    if (st1->empty()) return stack2_;
+    return new ConcatenatedStack<T>(std::move(st1), stack2_);
+  }
+
+  std::optional<T> top() const override {
+    if (stack1_->empty()) return stack2_->top();
+    return stack1_->top();
+  }
+
+  int size() const override { return stack1_->size() + stack2_->size(); }
+
+ private:
+  PersistentStack<T> *stack1_, *stack2_;
+};
+
+// Banker's Queue
+template<typename T>
+struct PersistentQueue {
+  mutable PersistentStack<T> *front_, *rear_;
+
+  PersistentQueue()
+      : front_(LinkedList<T>::nil()), rear_(LinkedList<T>::nil()) {}
 
   PersistentQueue push(T item) const {
-    return PersistentQueue(front_, rear_.push(item));
+    auto r = rear_->push(item);
+    if (r->size() > front_->size() + 1) {
+      auto f = new ConcatenatedStack<T>(front_, reverse_stack(std::move(r)));
+      return PersistentQueue(std::move(f), LinkedList<T>::nil());
+    }
+    return PersistentQueue(front_, std::move(r));
   }
 
   PersistentQueue pop() const {
-    if (not front_.empty()) {
-      return PersistentQueue(front_.pop(), rear_);
+    if (not front_->empty()) {
+      return PersistentQueue(front_->pop(), rear_);
     }
-    assert(not rear_.empty());
-    return PersistentQueue(rear_.reverse(), PersistentStack<T>());
+    assert(not rear_->empty());
+    return PersistentQueue(reverse_stack(rear_), LinkedList<T>::nil());
   }
 
-  optional<T> top() const {
-    if (empty()) return nullopt;
-    if (front_.empty()) {
-      front_ = rear_.reverse();
-      rear_ = PersistentStack<T>();
+  std::optional<T> top() const {
+    if (empty()) return std::nullopt;
+    if (front_->empty()) {
+      front_ = reverse_stack(rear_);
+      rear_ = LinkedList<T>::nil();
     }
-    return front_.top();
+    return front_->top();
   }
 
-  bool empty() const {
-    return front_.empty() and rear_.empty();
-  }
+  bool empty() const { return front_->empty() and rear_->empty(); }
 
-  int size() const {
-    return front_.size() + rear_.size();
-  }
+  int size() const { return front_->size() + rear_->size(); }
 
  private:
-  PersistentQueue(PersistentStack<T> f, PersistentStack<T> r) : front_(std::move(f)), rear_(std::move(r)) {}
+  PersistentQueue(PersistentStack<T> *f, PersistentStack<T> *r)
+      : front_(std::move(f)), rear_(std::move(r)) {}
 };
 
 int main() {
