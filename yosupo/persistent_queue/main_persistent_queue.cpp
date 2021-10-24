@@ -108,19 +108,22 @@ struct PersistentStack {
     Node(T val, NodePtr next) : val(std::move(val)), next(std::move(next)) {}
   };
 
-  PersistentStack() : node_{}, size_(0) {}
+  PersistentStack() : node_{}, reversed_(false), size_(0) {}
 
   PersistentStack push(T item) const {
-    return PersistentStack(std::make_shared<Node>(std::move(item), node_), size_ + 1);
+    resolve_reverse();
+    return PersistentStack(std::make_shared<Node>(std::move(item), node_), false, size_ + 1);
   }
 
   PersistentStack pop() const {
     assert(not empty());
-    return PersistentStack(node_->next, size_ - 1);
+    resolve_reverse();
+    return PersistentStack(node_->next, false, size_ - 1);
   }
 
   optional<T> top() const {
     if (empty()) return nullopt;
+    resolve_reverse();
     return node_->val;
   }
 
@@ -132,25 +135,36 @@ struct PersistentStack {
     return size_;
   }
 
-  PersistentStack reverse() const {
+  const PersistentStack &reverse() const {
+    if (reverse_stack_ == nullptr) {
+      reverse_stack_.reset(new PersistentStack(node_, not reversed_, size_));
+    }
+    return *reverse_stack_;
+  }
+
+ private:
+  mutable NodePtr node_;
+  mutable bool reversed_;
+  mutable std::shared_ptr<PersistentStack<T>> reverse_stack_;
+  int size_;
+
+  PersistentStack(NodePtr node, bool reversed, int size)
+      : node_(std::move(node)), reversed_(reversed), size_(size) {}
+
+  void resolve_reverse() const {
+    if (not reversed_) return;
     NodePtr rev;
     for (Node *p = node_.get(); p != nullptr; p = p->next.get()) {
       rev = std::make_shared<Node>(p->val, std::move(rev));
     }
-    return PersistentStack(std::move(rev), size_);
+    std::swap(node_, rev);
+    reversed_ = not reversed_;
   }
-
- private:
-  NodePtr node_;
-  int size_;
-  bool reverse_;
-
-  explicit PersistentStack(NodePtr node, int size) : node_(std::move(node)), size_(size) {}
 };
 
 template<typename T>
 struct PersistentQueue {
-  PersistentStack<T> front_, rear_;
+  mutable PersistentStack<T> front_, rear_;
 
   PersistentQueue() = default;
 
@@ -166,10 +180,11 @@ struct PersistentQueue {
     return PersistentQueue(rear_.reverse(), PersistentStack<T>());
   }
 
-  optional<T> top() {
+  optional<T> top() const {
     if (empty()) return nullopt;
     if (front_.empty()) {
-      return rear_.reverse().top();
+      front_ = rear_.reverse();
+      rear_ = PersistentStack<T>();
     }
     return front_.top();
   }
