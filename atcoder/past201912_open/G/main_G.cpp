@@ -97,55 +97,57 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-using D = long double;      // Coordinate value
 
-
-// can represent infinity
-struct Rational {
-  Int nume, deno;
-  Rational() = default;
-  Rational(Int n, Int d) {
-    check(d != 0 or n != 0);
-    if (d == 0) {
-      n = 1;
-    } else if (n == 0) {
-      d = 1;
+template<int sign = 1>
+struct Infinity {
+  template<typename T>
+  constexpr operator T() const {
+    static_assert(sign == 1 or not std::is_unsigned_v<T>,
+                  "must be positive in an unsigned type");
+    if constexpr (std::numeric_limits<T>::has_infinity) {
+      return T(sign) * std::numeric_limits<T>::infinity();
     } else {
-      Int g = gcd(n, d);
-      n /= g;
-      d /= g;
+      static_assert(std::numeric_limits<T>::max() != T());  // max must be defined
+      return T(sign) * (std::numeric_limits<T>::max() / T(2));
     }
-    nume = n;
-    deno = d;
+  }
+  constexpr Infinity<sign * -1> operator-() const { return {}; }
+  template<typename T>
+  friend constexpr bool operator==(const T &x, const Infinity &y) {
+    return x == T(y);
+  }
+  template<typename T>
+  friend constexpr bool operator!=(const T &x, const Infinity &y) {
+    return x != T(y);
   }
 };
-bool operator<(const Rational &r1, const Rational &r2) {
-  if (tie(r1.nume, r1.deno) == tie(r2.nume, r2.deno)) return false;
-  if (r2.deno == 0) return true;
-  if (r1.deno == 0) return false;
-  return r1.nume * r2.deno < r2.nume * r1.deno;
-}
+constexpr Infinity<> kBig;
 
 auto solve() {
   int n = in;
-  vector<tuple<Rational, Rational, int>> ps(n);
-  REP(i, n) {
-    int x = in, y = in;
-    ps[i] = tuple{Rational(y, x - 1), Rational(y - 1, x), i};
-  }
-  sort(ALL(ps));
-  Rational ma = {-1, -1};
-  int cnt = 0;
-  REP(i, n) {
-    Rational l, r;
-    int j;
-    tie(r, l, j) = ps[i];
-    if (i == 0 or not(l < ma)) {
-      ++cnt;
-      ma = r;
+  auto a = vector(n, vector(n, 0LL));
+  REP(i, n) REP(j, i + 1, n) a[i][j] = Int(in);
+  Int ans = -kBig;
+  vector<int> group(n, -1);
+  auto f = [&](auto &f, int i) -> void {
+    if (i == n) {
+      Int x = 0;
+      REP(p, n) REP(q, p + 1, n) {
+          if (group[p] == group[q]) {
+            x += a[p][q];
+          }
+        }
+      chmax(ans, x);
+      return;
     }
-  }
-  return cnt;
+    REP(g, 3) {
+      group[i] = g;
+      f(f, i + 1);
+    }
+  };
+  f(f, 0);
+
+  return ans;
 }
 
 int main() {

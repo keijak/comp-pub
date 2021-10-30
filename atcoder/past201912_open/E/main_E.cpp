@@ -97,63 +97,52 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-using D = long double;      // Coordinate value
-
-
-// can represent infinity
-struct Rational {
-  Int nume, deno;
-  Rational() = default;
-  Rational(Int n, Int d) {
-    check(d != 0 or n != 0);
-    if (d == 0) {
-      n = 1;
-    } else if (n == 0) {
-      d = 1;
-    } else {
-      Int g = gcd(n, d);
-      n /= g;
-      d /= g;
-    }
-    nume = n;
-    deno = d;
-  }
-};
-bool operator<(const Rational &r1, const Rational &r2) {
-  if (tie(r1.nume, r1.deno) == tie(r2.nume, r2.deno)) return false;
-  if (r2.deno == 0) return true;
-  if (r1.deno == 0) return false;
-  return r1.nume * r2.deno < r2.nume * r1.deno;
-}
-
-auto solve() {
-  int n = in;
-  vector<tuple<Rational, Rational, int>> ps(n);
-  REP(i, n) {
-    int x = in, y = in;
-    ps[i] = tuple{Rational(y, x - 1), Rational(y - 1, x), i};
-  }
-  sort(ALL(ps));
-  Rational ma = {-1, -1};
-  int cnt = 0;
-  REP(i, n) {
-    Rational l, r;
-    int j;
-    tie(r, l, j) = ps[i];
-    if (i == 0 or not(l < ma)) {
-      ++cnt;
-      ma = r;
-    }
-  }
-  return cnt;
-}
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
   cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
-  REP(t, T) {
-    auto ans = solve();
-    print(ans);
+
+  int n = in, Q = in;
+  vector<set<int>> f(n), rf(n);
+
+  REP(qi, Q) {
+    int qt = in;
+    if (qt == 1) {
+      int a = in, b = in;
+      --a, --b;
+      f[a].insert(b);
+      rf[b].insert(a);
+    } else if (qt == 2) {
+      int a = int(in) - 1;
+      set<int> s;
+      for (auto v: rf[a]) {
+        if (v == a) continue;
+        s.insert(v);
+      }
+      for (auto v: s) {
+        f[a].insert(v);
+        rf[v].insert(a);
+      }
+    } else {
+      int a = int(in) - 1;
+      set<int> s;
+      for (auto x: f[a]) {
+        for (auto y: f[x]) {
+          if (y == a) continue;
+          s.insert(y);
+        }
+      }
+      for (auto y: s) {
+        f[a].insert(y);
+        rf[y].insert(a);
+      }
+    }
+  }
+
+  REP(i, n) {
+    REP(j, n) {
+      cout << ((f[i].count(j)) ? 'Y' : 'N');
+    }
+    cout << "\n";
   }
 }

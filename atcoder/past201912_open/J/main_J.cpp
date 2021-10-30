@@ -97,55 +97,67 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-using D = long double;      // Coordinate value
+
+const Int kBig = 1e16;
+
+template<class T>
+using MinHeap = priority_queue<T, vector<T>, greater<T>>;
 
 
-// can represent infinity
-struct Rational {
-  Int nume, deno;
-  Rational() = default;
-  Rational(Int n, Int d) {
-    check(d != 0 or n != 0);
-    if (d == 0) {
-      n = 1;
-    } else if (n == 0) {
-      d = 1;
-    } else {
-      Int g = gcd(n, d);
-      n /= g;
-      d /= g;
-    }
-    nume = n;
-    deno = d;
-  }
+struct GridState {
+  Int cost;
+  int r;
+  int c;
 };
-bool operator<(const Rational &r1, const Rational &r2) {
-  if (tie(r1.nume, r1.deno) == tie(r2.nume, r2.deno)) return false;
-  if (r2.deno == 0) return true;
-  if (r1.deno == 0) return false;
-  return r1.nume * r2.deno < r2.nume * r1.deno;
+bool operator>(const GridState &x, const GridState &y) {
+  return x.cost > y.cost;
 }
 
 auto solve() {
-  int n = in;
-  vector<tuple<Rational, Rational, int>> ps(n);
-  REP(i, n) {
-    int x = in, y = in;
-    ps[i] = tuple{Rational(y, x - 1), Rational(y - 1, x), i};
-  }
-  sort(ALL(ps));
-  Rational ma = {-1, -1};
-  int cnt = 0;
-  REP(i, n) {
-    Rational l, r;
-    int j;
-    tie(r, l, j) = ps[i];
-    if (i == 0 or not(l < ma)) {
-      ++cnt;
-      ma = r;
+  int H = in, W = in;
+  auto a = vector(H, vector(W, 0LL));  // cost
+  REP(i, H) REP(j, W) a[i][j] = Int(in);
+
+  auto search_shortest_path_on_grid = [&](const pair<int, int> &start) {
+    static const int dx[4] = {1, 0, -1, 0};
+    static const int dy[4] = {0, 1, 0, -1};
+    auto inside = [&](int i, int j) {
+      return 0 <= i and i < H and 0 <= j and j < W;
+    };
+    auto mincost = vector(H, vector(W, (Int) kBig));
+    MinHeap<GridState> que;
+    auto push = [&](Int cost, int r, int c) -> bool {
+      if (not chmin(mincost[r][c], cost)) return false;
+      que.push(GridState{cost, r, c});
+      return true;
+    };
+    check(push(0LL, start.first, start.second));
+
+    while (not que.empty()) {
+      GridState cur = que.top();
+      que.pop();
+      if (cur.cost != mincost[cur.r][cur.c]) continue;
+      for (int i = 0; i < 4; ++i) {
+        const int nr = cur.r + dx[i];
+        const int nc = cur.c + dy[i];
+        if (not inside(nr, nc)) continue;
+        const auto new_cost = cur.cost + a[nr][nc];
+        push(new_cost, nr, nc);
+      }
+    }
+    return mincost;
+  };
+  auto mc1 = search_shortest_path_on_grid({H - 1, 0});
+  auto mc2 = search_shortest_path_on_grid({H - 1, W - 1});
+  auto mc3 = search_shortest_path_on_grid({0, W - 1});
+  Int ans = kBig;
+  REP(i, H) {
+    REP(j, W) {
+      Int d = mc1[i][j] + mc2[i][j] + mc3[i][j] - a[i][j] * 2;
+      chmin(ans, d);
     }
   }
-  return cnt;
+  return ans;
 }
 
 int main() {

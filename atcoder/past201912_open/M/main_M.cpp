@@ -97,55 +97,47 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-using D = long double;      // Coordinate value
 
-
-// can represent infinity
-struct Rational {
-  Int nume, deno;
-  Rational() = default;
-  Rational(Int n, Int d) {
-    check(d != 0 or n != 0);
-    if (d == 0) {
-      n = 1;
-    } else if (n == 0) {
-      d = 1;
+template<class Float, class F>
+Float bisect_float(Float true_x, Float false_x, F pred) {
+  static_assert(std::is_floating_point_v<Float>);
+  static_assert(std::is_invocable_r_v<bool, F, Float>);
+  for (int iter = 0; iter < 80; ++iter) {
+    auto mid = (true_x + false_x) * 0.5;
+    if (pred(mid)) {
+      true_x = std::move(mid);
     } else {
-      Int g = gcd(n, d);
-      n /= g;
-      d /= g;
+      false_x = std::move(mid);
     }
-    nume = n;
-    deno = d;
   }
-};
-bool operator<(const Rational &r1, const Rational &r2) {
-  if (tie(r1.nume, r1.deno) == tie(r2.nume, r2.deno)) return false;
-  if (r2.deno == 0) return true;
-  if (r1.deno == 0) return false;
-  return r1.nume * r2.deno < r2.nume * r1.deno;
+  return true_x;
 }
 
-auto solve() {
-  int n = in;
-  vector<tuple<Rational, Rational, int>> ps(n);
-  REP(i, n) {
-    int x = in, y = in;
-    ps[i] = tuple{Rational(y, x - 1), Rational(y - 1, x), i};
-  }
-  sort(ALL(ps));
-  Rational ma = {-1, -1};
-  int cnt = 0;
-  REP(i, n) {
-    Rational l, r;
-    int j;
-    tie(r, l, j) = ps[i];
-    if (i == 0 or not(l < ma)) {
-      ++cnt;
-      ma = r;
+auto solve() -> Real {
+  int n = in, m = in;
+  vector<pair<Int, Int>> mons(n + m);
+  for (auto&[x, y]: mons) cin >> x >> y;
+  DUMP(mons);
+  return bisect_float(Real(0), Real(1e6), [&](Real p) {
+    vector<pair<Real, int>> xs(n + m);
+    REP(i, n + m) {
+      auto[a, b] = mons[i];
+      xs[i] = {Real(b) - p * a, i};
     }
-  }
-  return cnt;
+    sort(ALL(xs), greater{});
+    int cnt = 0;
+    bool helped = false;
+    Real sm = 0;
+    for (auto[x, i]: xs) {
+      bool helper = i >= n;
+      if (helped and helper) continue;
+      if (helper) helped = true;
+      sm += x;
+      ++cnt;
+      if (cnt == 5) break;
+    }
+    return sm >= 0;
+  });
 }
 
 int main() {

@@ -102,7 +102,6 @@ struct Node {
   int v;
   Node *next;
   Node *prev;
-  Node *head;
 };
 
 int main() {
@@ -110,8 +109,7 @@ int main() {
   int n = in, Q = in;
   vector<Node *> nodes(n);
   REP(i, n) {
-    nodes[i] = new Node{i, nullptr, nullptr, nullptr};
-    //nodes[i]->head = nodes[i];
+    nodes[i] = new Node{i, nullptr, nullptr};
   }
   REP(qi, Q) {
     int qt = in;
@@ -120,13 +118,11 @@ int main() {
       --x, --y;
       nodes[x]->next = nodes[y];
       nodes[y]->prev = nodes[x];
-      //nodes[y]->head = nodes[x]->head;
     } else if (qt == 2) {
       int x = in, y = in;
       --x, --y;
       nodes[x]->next = nullptr;
       nodes[y]->prev = nullptr;
-      //nodes[y]->head = nodes[y];
     } else {
       int x = in;
       --x;
@@ -146,11 +142,5 @@ int main() {
       }
       cout << "\n";
     }
-//    vector<int> debug(n);
-//    REP(v, n) {
-//      debug[v] = nodes[v]->next == nullptr ? -1 : nodes[v]->next->v;
-//    }
-//    DUMP(qi, debug);
-
   }
 }
