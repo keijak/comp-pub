@@ -123,7 +123,6 @@ struct ModInt {
 const unsigned MOD = 998244353;
 using Mint = ModInt<MOD>;
 
-#pragma region coreutil
 template<typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
@@ -212,7 +211,6 @@ backward::SignalHandling kSignalHandling;
 #define DUMP(...)
 #define cerr if(false)std::cerr
 #endif
-#pragma endregion coreutil
 
 using namespace std;
 
@@ -243,61 +241,24 @@ struct Factorials {
   }
 };
 
-template<class T>
-T ceil_div(T x, T y) {
-  assert(y != 0);
-  return x / y + (((x ^ y) >= 0) and (x % y));
-}
-
-template<int sign = 1>
-struct Infinity {
-  template<typename T>
-  constexpr operator T() const {
-    static_assert(sign == 1 or not std::is_unsigned_v<T>,
-                  "must be positive in an unsigned type");
-    if constexpr (std::numeric_limits<T>::has_infinity) {
-      return T(sign) * std::numeric_limits<T>::infinity();
-    } else {
-      static_assert(std::numeric_limits<T>::max() != T());  // max must be defined
-      return T(sign) * (std::numeric_limits<T>::max() / T(2));
-    }
-  }
-  constexpr Infinity<sign * -1> operator-() const { return {}; }
-  template<typename T>
-  friend constexpr bool operator==(const T &x, const Infinity &y) {
-    return x == T(y);
-  }
-  template<typename T>
-  friend constexpr bool operator!=(const T &x, const Infinity &y) {
-    return x != T(y);
-  }
-};
-constexpr Infinity<> kBig;
-#include <boost/multiprecision/cpp_int.hpp>
-using BInt = boost::multiprecision::checked_int256_t;
-// using Uint = boost::multiprecision::checked_uint256_t;
-namespace multip = boost::multiprecision;
-
 auto solve(int N, int X) -> Mint {
-  auto f = [&](auto &f, int x, int m) -> Mint {
-    if (m == 0) {
-      return x;
-    }
-    int k = ceil_div(x, m);  // k回攻撃されると死ぬ
-    Mint ret = 0;
-    for (int i = 1; i <= k - 1; ++i) {
-      Mint pr = 0;
-      for (int j = 1; j <= m; ++j) {
-        // i回の攻撃後にj人死ぬ
-        Mint r = Mint(i * m).pow(j) * Mint(x - 1 - i * m).pow(m - j);
-        Mint y = r - pr;
-        ret += f(f, x - i * m, m - j) * y;
-        pr = r;
+  Factorials fs(N);
+  auto dp = vector(N + 1, vector(X + 1, Mint(0)));
+  dp[N][0] = 1;
+  for (int i = N; i >= 2; --i) {
+    for (int d = 0; d < X; ++d) {
+      if (dp[i][d].val() == 0) continue;
+      for (int j = 0; j <= i; ++j) { // j heroes get killed in one round
+        // d damage accumulated
+        // will receive i-1 damage in this round
+        // d < health <= min(d+i-1, X)  (i-1 choices)
+        Mint choice = min(d + i - 1, X) - d;
+        int d2 = min(d + i - 1, X);
+        dp[i - j][d2] += fs.C(i, j) * choice.pow(j) * dp[i][d];
       }
     }
-    return ret;
-  };
-  return Mint(X).pow(N) - f(f, X, N - 1) * N;
+  }
+  return accumulate(ALL(dp[0]), Mint(0));
 }
 
 int main() {
