@@ -251,14 +251,19 @@ auto solve(int N, int X) -> Mint {
       for (int j = 0; j <= i; ++j) { // j heroes get killed in one round
         // d damage accumulated
         // will receive i-1 damage in this round
-        // d < health <= min(d+i-1, X)  (i-1 choices)
+        // d < health <= min(d+i-1, X)
         Mint choice = min(d + i - 1, X) - d;
         int d2 = min(d + i - 1, X);
         dp[i - j][d2] += fs.C(i, j) * choice.pow(j) * dp[i][d];
       }
     }
   }
-  return accumulate(ALL(dp[0]), Mint(0));
+  Mint a0 = accumulate(ALL(dp[0]), Mint(0));
+  Mint a1 = 0;
+  REP(d, X) { a1 += (X - d) * dp[1][d]; }
+  Mint tot = Mint(X).pow(N);
+  check(tot.val() == (a0 + a1).val());
+  return tot - a1;
 }
 
 int main() {
