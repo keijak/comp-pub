@@ -15,5 +15,4 @@ add_executable(L L/main_L.cpp)
 add_executable(M M/main_M.cpp)
 add_executable(N N/main_N.cpp)
 add_executable(O O/main_O.cpp)
-
-add_executable(A A/main.py)
+add_executable(seg2d N/seg2d.cpp)

@@ -230,7 +230,7 @@ int main() {
   vector<Int> ans(Q, 0);
   for (const auto &e: events) {
     if (e.typ == 2) {
-      int yi = cy.lindex(e.y_top);
+      int yi = cy.lower_index(e.y_top);
       ans[e.index] = seg[yi];
     } else {
       const auto&[x, y, d, c] = sites[e.index];
