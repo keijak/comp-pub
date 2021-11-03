@@ -131,8 +131,6 @@ struct SegmentTree {
   inline int size() const { return n_; }
   inline int offset() const { return offset_; }
 
-  SegmentTree() : n_(0), offset_(1) {}
-
   explicit SegmentTree(int n) : n_(n), offset_(1) {
     while (offset_ < n_) offset_ <<= 1;
     data_.assign(2 * offset_, Monoid::id());
@@ -201,59 +199,76 @@ struct StaticSegmentTree2d {
   vector<pair<Int, Int>> xy_;
 
   // [(x,y) => value]
-  explicit StaticSegmentTree2d(const vector<pair<Int, Int>> &xy, const vector<T> &vals)
-      : offset_(1), xy_(xy.size()) {
-    const int n = (int) xy.size();  // number of data points
+  explicit StaticSegmentTree2d(const map<pair<Int, Int>, T> &data)
+      : offset_(1), xy_(data.size()) {
+    const int n = (int) data.size();  // number of data points
     while (offset_ < n) offset_ *= 2;
-    for (int i = 0; i < n; ++i) {
-      xy_[i] = {xy[i].first, i};
+
+    vector<const pair<Int, Int> *> coords(n);
+    vector<const T *> vals(n);
+    {
+      int i = 0;
+      for (auto it = data.begin(); it != data.end(); ++it, ++i) {
+        coords[i] = &it->first;
+        vals[i] = &it->second;
+        // Temporarily fill xy_ with (x, coord_id).
+        xy_[i] = {it->first.first, i};
+      }
     }
-    std::sort(ALL(xy_), [&](const auto &p1, const auto &p2) {  // Compare by X, then Y.
-      return std::tie(p1.first, xy[p1.second].second) < std::tie(p2.first, xy[p2.second].second);
-    });
-    yx_.resize(2 * offset_ - 1), segs_.resize(2 * offset_ - 1);
+
+    std::sort(ALL(xy_),
+              [&](const auto &p1, const auto &p2) {  // Compare by X, then Y.
+                return std::tie(p1.first, coords[p1.second]->second) <
+                    std::tie(p2.first, coords[p2.second]->second);
+              });
+    yx_.resize(2 * offset_ - 1);
+    segs_.resize(2 * offset_ - 1, SegmentTree<Monoid>(0));
     // Build leaves.
     for (int i = 0; i < n; ++i) {
-      // Temporarily fill yx_ with (row_id, x).
+      // Temporarily fill yx_ with (coord_id, x).
       yx_[i + offset_ - 1] = {{xy_[i].second, xy_[i].first}};
-      vector<T> row_data = {vals[xy_[i].second]};
+      vector<T> row_data = {*vals[xy_[i].second]};
       segs_[i + offset_ - 1] = SegmentTree<Monoid>{std::move(row_data)};
-      xy_[i].second = xy[xy_[i].second].second;
+      // Set the second elements of xy_ to y.
+      xy_[i].second = coords[xy_[i].second]->second;
     }
     // Build inner nodes.
     for (int i = offset_ - 2; i >= 0; --i) {
       yx_[i].resize(yx_[2 * i + 1].size() + yx_[2 * i + 2].size());
       if (yx_[i].empty()) continue;
-      std::merge(ALL(yx_[2 * i + 1]),
-                 ALL(yx_[2 * i + 2]),
-                 yx_[i].begin(),
+      std::merge(ALL(yx_[2 * i + 1]), ALL(yx_[2 * i + 2]), yx_[i].begin(),
                  [&](const auto &p1, const auto &p2) {
-                   return std::tie(xy[p1.first].second, p1.second) < std::tie(xy[p2.first].second, p2.second);
+                   return std::tie(coords[p1.first]->second, p1.second) <
+                       std::tie(coords[p2.first]->second, p2.second);
                  });
       vector<T> row_data(yx_[i].size());
       for (int j = 0; j < (int) yx_[i].size(); ++j) {
-        row_data[j] = vals[yx_[i][j].first];
+        row_data[j] = *vals[yx_[i][j].first];
       }
       segs_[i] = SegmentTree<Monoid>{std::move(row_data)};
     }
 
-    // Set first elements of yx_ to y.
+    // Set the first elements of yx_ to y.
     for (int i = 0; i < 2 * offset_ - 1; ++i) {
       for (auto &[y, x]: yx_[i]) {
-        y = xy[y].second;
+        y = coords[y]->second;
       }
     }
   }
 
   // Query a rectangle: top_left x bottom_right.
   T fold(const Int tlx, const Int tly, const Int brx, const Int bry) {
-    const int qtid = lower_bound(ALL(xy_), pair{tlx, numeric_limits<Int>::min()}) - xy_.begin();
-    const int qbid = upper_bound(ALL(xy_), pair{brx, numeric_limits<Int>::min()}) - xy_.begin();
-    return (qtid >= qbid) ? Monoid::id() : fold_x(qtid, qbid, tly, bry, 0, 0, offset_);
+    const int qtid =
+        lower_bound(ALL(xy_), pair{tlx, numeric_limits<Int>::min()}) -
+            xy_.begin();
+    const int qbid =
+        upper_bound(ALL(xy_), pair{brx, numeric_limits<Int>::min()}) -
+            xy_.begin();
+    return (qtid >= qbid) ? Monoid::id()
+                          : fold_x(qtid, qbid, tly, bry, 0, 0, offset_);
   }
-  T get(Int x, Int y) {
-    return fold(x, y, x + 1, y + 1);
-  }
+
+  T get(Int x, Int y) { return fold(x, y, x + 1, y + 1); }
 
   void set(Int x, Int y, T val) {
     int id = lower_bound(ALL(xy_), pair(x, y)) - xy_.begin();
@@ -261,11 +276,16 @@ struct StaticSegmentTree2d {
   }
 
  private:
-  T fold_x(const int qtid, const int qbid, const Int ql, const Int qr, const int k, const int ntid, const int nbid) {
+  T fold_x(const int qtid, const int qbid, const Int ql, const Int qr,
+           const int k, const int ntid, const int nbid) {
     if (nbid <= qtid or qbid <= ntid) return Monoid::id();
     if (qtid <= ntid and nbid <= qbid) {
-      const int qlid = lower_bound(ALL(yx_[k]), pair{ql, numeric_limits<Int>::min()}) - yx_[k].begin();
-      const int qrid = upper_bound(ALL(yx_[k]), pair{qr, numeric_limits<Int>::min()}) - yx_[k].begin();
+      const int qlid =
+          lower_bound(ALL(yx_[k]), pair{ql, numeric_limits<Int>::min()}) -
+              yx_[k].begin();
+      const int qrid =
+          upper_bound(ALL(yx_[k]), pair{qr, numeric_limits<Int>::min()}) -
+              yx_[k].begin();
       return (qlid >= qrid) ? Monoid::id() : segs_[k].fold(qlid, qrid);
     } else {
       int m = (ntid + nbid) >> 1;
@@ -298,31 +318,18 @@ struct SumOp {
 
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
-
   int n = in, Q = in;
-  vector<pair<Int, Int>> coords;
-  vector<Int> vals;
-  vector<array<Int, 4>> sites(n);
+  map<pair<Int, Int>, Int> data;
   REP(i, n) {
-    Int a = in, b = in, d = in, c = in;
-    Int x1 = a;
-    Int y1 = b;
-    Int x2 = a + d + 1;
-    Int y2 = b + d + 1;
-    coords.emplace_back(x1, y1);
-    vals.push_back(c);
-    coords.emplace_back(x1, y2);
-    vals.push_back(-c);
-    coords.emplace_back(x2, y1);
-    vals.push_back(-c);
-    coords.emplace_back(x2, y2);
-    vals.push_back(c);
+    Int x1 = in, y1 = in, d = in, c = in;
+    Int x2 = x1 + d + 1;
+    Int y2 = y1 + d + 1;
+    data[{x1, y1}] += c;
+    data[{x1, y2}] -= c;
+    data[{x2, y1}] -= c;
+    data[{x2, y2}] += c;
   }
-  StaticSegmentTree2d<SumOp> segs(coords, vector<Int>(coords.size(), 0LL));
-  REP(i, coords.size()) {
-    auto[x, y] = coords[i];
-    segs.set(x, y, segs.get(x, y) + vals[i]);
-  }
+  StaticSegmentTree2d<SumOp> segs(data);
   REP(i, Q) {
     Int a = in, b = in;
     auto res = segs.fold(-5e9, -5e9, a + 1, b + 1);
