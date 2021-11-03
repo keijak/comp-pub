@@ -99,8 +99,24 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 auto solve() {
-
-  return -42;
+  int n = in, K = in;
+  vector<string> S(n);
+  for (auto &s: S) cin >> s;
+  sort(ALL(S), [&](const auto &x, const auto &y) {
+    return x + y < y + x;
+  });
+  string big(1, 'z' + 1);
+  auto dp = vector(n + 1, vector(K + 1, big));
+  dp[0][0] = "";
+  REP(i, n) {
+    string t = S[n - 1 - i];
+    dp[i + 1] = dp[i];
+    for (int j = K - 1; j >= 0; --j) {
+      if (dp[i][j] == big) continue;
+      chmin(dp[i + 1][j + 1], t + dp[i][j]);
+    }
+  }
+  return dp[n][K];
 }
 
 int main() {
