@@ -144,11 +144,16 @@ struct SpanHash : public RollingHash {
   std::vector<u64> cum_hash;
 
   // Constructionn: O(n).
-  template<class Seq = std::string>
+  // All elements must be non-zero. Otherwise we cannot distinguish between [1] and [0, 1].
+  template<class Seq>
   explicit SpanHash(const Seq &s) : cum_hash(s.size() + 1) {
     const int n = s.size();
-    for (int i = 0; i < n; i++) {
-      cum_hash[i + 1] = add(mul(cum_hash[i], base()), static_cast<u64>(s[i]));
+    int i = 0;
+    for (const auto &x: s) {
+      u64 val = static_cast<u64>(x);
+      assert(val != 0); // Ensure that all values are non-zero!
+      cum_hash[i + 1] = add(mul(cum_hash[i], base()), val);
+      ++i;
     }
   }
 
@@ -161,11 +166,13 @@ struct SpanHash : public RollingHash {
 
 auto solve() {
   int n = in;
-  set<vector<int>> hs;
+  set<u64> hs;
   REP(i, n) {
     int l = in;
     vector<int> a = in(l);
-    hs.insert(a);
+    for (auto &e: a) ++e;
+    SpanHash sh(a);
+    hs.insert(sh.cum_hash[l]);
   }
   return hs.size();
 }
