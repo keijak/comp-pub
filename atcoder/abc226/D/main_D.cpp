@@ -122,10 +122,6 @@ auto solve() {
       Int g = gcd(abs(dx), abs(dy));
       dx = floor_div(dx, g);
       dy = floor_div(dy, g);
-//      if (dy < 0) {
-//        dx *= -1;
-//        dy *= -1;
-//      }
       magic.insert({dx, dy});
     }
   }

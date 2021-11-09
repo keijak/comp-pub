@@ -180,7 +180,7 @@ auto solve() -> Mint {
     if (depth[v] != -1) continue;
     back_edges = 0;
     dfs(dfs, v, -1, 0);
-    if (back_edges != 1) return Mint(0);
+    if (back_edges != 1) return {0};
     ans *= 2;
   }
   return ans;
