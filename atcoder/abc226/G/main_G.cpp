@@ -111,35 +111,56 @@ auto solve() -> bool {
   vector<Int> a(6, 0), b(6, 0);
   REP(i, 5) cin >> a[i + 1];
   REP(i, 5) cin >> b[i + 1];
-  for (int i = 3; i <= 5; ++i) {
-    Int x = min(a[i], b[i]);
-    a[i] -= x;
-    b[i] -= x;
+  {
+    Int asum = 0, bsum = 0;
+    for (int i = 1; i <= 5; ++i) {
+      asum += a[i] * i;
+      bsum += b[i] * i;
+    }
+    if (asum > bsum) return false;
   }
-  for (int i = 5; i >= 1; --i) {
-    if (a[i] == 0) continue;
-    vector<Int> c(6, 0);
-    for (int j = 5; j >= i; --j) {
-      if (a[i] == 0) break;
-      if (b[j] == 0) continue;
-      Int q = (j / i);
-      Int m = min(a[i], b[j] * q);
-      a[i] -= m;
-      Int r = m / q;
-      b[j] -= r;
-      if (j > q * i) {
-        c[int(j - q * i)] += r;
-      }
-      if (m % q != 0) {
-        c[int(j - (m % q) * i)] += 1;
-      }
-    }
-    if (a[i] > 0) {
-      return false;
-    }
-    for (int j = 1; j <= 5; ++j) {
-      b[j] += c[j];
-    }
+  for (int i = 1; i <= 5; ++i) {
+    Int m = min(a[i], b[i]);
+    a[i] -= m;
+    b[i] -= m;
+  }
+  if (a[5] > 0) {
+    return false;
+  }
+  {
+    Int m = min(a[4], b[5]);
+    a[4] -= m;
+    b[5] -= m;
+    b[1] += m;
+    if (a[4] > 0) return false;
+  }
+  {
+    Int m = min({a[2], a[3], b[5]});
+    a[2] -= m;
+    a[3] -= m;
+    b[5] -= m;
+  }
+  {
+    Int m = min(a[3], b[4]);
+    a[3] -= m;
+    b[4] -= m;
+    b[1] += m;
+  }
+  {
+    Int m = min(a[3], b[5]);
+    a[3] -= m;
+    b[5] -= m;
+    b[2] += m;
+    if (a[3] > 0) return false;
+  }
+  for (int i = 5; i >= 2; --i) {
+    if (a[2] == 0) break;
+    Int q = i / 2;
+    Int m = min(a[2], b[i] * q);
+    a[2] -= m;
+  }
+  if (a[2] > 0) {
+    return false;
   }
   return true;
 }
