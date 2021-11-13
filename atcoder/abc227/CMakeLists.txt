@@ -9,3 +9,5 @@ add_executable(E E/main_E.cpp)
 add_executable(F F/main_F.cpp)
 add_executable(G G/main_G.cpp)
 add_executable(H H/main_H.cpp)
+
+add_executable(segment_sieve G/segment_sieve.cpp)
