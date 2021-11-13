@@ -47,29 +47,16 @@ std::ostream &print(const T &head, Ts... tail) {
 inline std::ostream &print() { return std::cout << '\n'; }
 
 template<typename Container>
-std::ostream &print_seq(const Container &a, const char *sep = " ",
+std::ostream &print_seq(const Container &seq,
+                        const char *sep = " ",
                         const char *ends = "\n",
                         std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
+  const auto itl = std::begin(seq), itr = std::end(seq);
+  for (auto it = itl; it != itr; ++it) {
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
-}
-
-template<typename T, typename = void>
-struct is_iterable : std::false_type {};
-template<typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
-
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value && !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
 struct CastInput {
