@@ -101,7 +101,7 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 struct PrimeSieve {
-  std::vector<int> spf;  // smallest prime factors table.
+  std::vector<int> spf;  // smallest prime factors_ table.
   std::vector<int> primes;
 
   explicit PrimeSieve(int n) : spf(n + 1) {
@@ -137,30 +137,30 @@ struct PrimeSieve {
 };
 
 class SegmentSieve {
-  Int L, R, M;
-  std::vector<Int> spf; // smallest prime factor for [0, sqrt(R)]
-  std::vector<std::vector<Int>> factors; // small prime factors of (L+i).
-  std::vector<Int> factors_prod;  // product of small prime factors of (L+i).
+  Int L, R, max_spf_;
+  std::vector<Int> spf_; // smallest prime factor for [0, max_spf_]
+  std::vector<std::vector<Int>> factors_; // small prime factors_ of (L+i).
+  std::vector<Int> factors_prod_;  // product of small prime factors_ of (L+i).
 
  public:
-  SegmentSieve(Int L, Int R) : L(L), R(R), M(1) {
-    while (M * M <= R) M <<= 1;  // Ensure M > sqrt(R).
-    spf.resize(M);
-    std::iota(spf.begin(), spf.end(), 0);
-    factors.resize(R - L);
-    factors_prod.assign(R - L, 1);
+  SegmentSieve(Int l, Int r, Int m = 1) : L(l), R(r), max_spf_(m) {
+    while (__int128_t(max_spf_) * max_spf_ <= R) max_spf_ *= 2;  // Ensure max_spf > sqrt(R).
+    spf_.resize(max_spf_ + 1);
+    std::iota(spf_.begin(), spf_.end(), 0);
+    factors_.resize(R - L);
+    factors_prod_.assign(R - L, 1);
 
     for (Int i = 2; i * i < R; ++i) {
-      if (spf[i] != i) continue;
-      for (Int j = i * i; j < M; j += i) {
-        if (spf[j] == j) spf[j] = i;
+      if (spf_[i] != i) continue;
+      for (Int j = i * i; j <= max_spf_; j += i) {
+        if (spf_[j] == j) spf_[j] = i;
       }
       for (Int j = (L + i - 1) / i * i; j < R; j += i) {
         Int num = j;
         do {
-          if (factors_prod[j - L] >= M) break;
-          factors[j - L].push_back(i);
-          factors_prod[j - L] *= i;
+          //if (factors_prod_[j - L] > max_spf_) break;
+          factors_[j - L].push_back(i);
+          factors_prod_[j - L] *= i;
           num /= i;
         } while (num % i == 0);
       }
@@ -169,26 +169,27 @@ class SegmentSieve {
 
   inline bool is_prime(int n) const {
     if (n <= 1) return false;
-    if (n < M) return spf[n] == n;
+    if (n <= max_spf_) return spf_[n] == n;
     assert(L <= n and n < R);
-    return factors_prod[n - L] == 1;
+    auto p = factors_prod_[n - L];
+    return p == 1 or p == n;
   }
 
   std::vector<Int> factorize(Int n) const {
     if (n <= 1) return {};
-    assert(n < M or L <= n and n < R);
+    assert(n <= max_spf_ or (L <= n and n < R));
     std::vector<Int> res;
     if (n >= L) {
-      res = factors[n - L];
-      n /= factors_prod[n - L];
-      if (n > M) {
+      res = factors_[n - L];
+      n /= factors_prod_[n - L];
+      if (n > max_spf_) {
         res.push_back(n);  // n must be a large prime.
         n = 1;
       }
     }
     while (n > 1) {
-      res.push_back(spf[n]);
-      n /= spf[n];
+      res.push_back(spf_[n]);
+      n /= spf_[n];
     }
     std::sort(res.begin(), res.end());
     return res;
@@ -199,23 +200,16 @@ auto solve() {
   Int N = in, K = in;
   K = min(K, N - K);
   Int L = N - K + 1;
-  SegmentSieve sieve(L, N + 5);
-
+  SegmentSieve sieve(L, N + 1, Int(1e6 + 10));
   unordered_map<Int, int> pcount;
-  pcount.reserve(1 << 20);
-  pcount.max_load_factor(0.25);
-
   for (Int i = L; i <= N; ++i) {
-    auto fac = sieve.factorize(i);
-    for (auto p: fac) { ++pcount[p]; }
+    for (auto p: sieve.factorize(i)) { ++pcount[p]; }
   }
   for (Int i = 2; i <= K; ++i) {
-    auto fac = sieve.factorize(i);
-    for (auto p: fac) { --pcount[p]; }
+    for (auto p: sieve.factorize(i)) { --pcount[p]; }
   }
   Mint ans = 1;
   for (auto[p, c]: pcount) {
-    if (p <= 1) continue;
     ans *= Mint(c + 1);
   }
   return ans;

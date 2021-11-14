@@ -101,7 +101,7 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 struct PrimeSieve {
-  std::vector<int> spf;  // smallest prime factors table.
+  std::vector<int> spf;  // smallest prime factors_ table.
   std::vector<int> primes;
 
   explicit PrimeSieve(int n) : spf(n + 1) {
