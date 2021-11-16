@@ -1,0 +1,9 @@
+project(srm681)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DMY_DEBUG")
+
+cmake_minimum_required(VERSION 3.20)
+find_package(GTest CONFIG REQUIRED)
+
+add_executable(easy easy/main_easy.cpp)
+target_link_libraries(easy PRIVATE GTest::gtest GTest::gmock GTest::gtest_main)
