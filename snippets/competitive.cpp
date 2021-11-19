@@ -26,13 +26,13 @@ inline void check(bool cond, const char *message = "!ERROR!") {
   }
 }
 
-struct Void {};  // No print.
+struct Void {};
 
 template<class T>
 inline std::ostream &print_one(const T &x, char endc) {
-  if constexpr (std::is_same_v<T, Void>) {
-    return std::cout;  // Nothing.
-  } else if constexpr (std::is_same_v<T, bool>) {
+  if constexpr (std::is_same<T, Void>::value) {
+    return std::cout;  // print nothing
+  } else if constexpr (std::is_same<T, bool>::value) {
     return std::cout << (x ? "Yes" : "No") << endc;
   } else {
     return std::cout << x << endc;
@@ -84,7 +84,7 @@ struct CastInput {
 backward::SignalHandling kSignalHandling;
 #else
 #define DUMP(...)
-#define cerr if(false)std::cerr
+#define cerr if(false)cerr
 #endif
 
 using namespace std;
