@@ -9,14 +9,14 @@ using namespace std;
 using Mint = atcoder::modint998244353;
 
 // Formal Power Series (dense format).
-template<typename T, int DMAX>
+template <typename T, int DMAX>
 struct DenseFPS {
   // Coefficients of terms from x^0 to x^DMAX.
   std::vector<T> coeff_;
 
   DenseFPS() : coeff_(1) {}  // zero-initialized
   explicit DenseFPS(std::vector<T> c) : coeff_(std::move(c)) {
-    assert((int) c.size() <= DMAX + 1);
+    assert((int)c.size() <= DMAX + 1);
   }
 
   DenseFPS(const DenseFPS &other) : coeff_(other.coeff_) {}
@@ -30,7 +30,7 @@ struct DenseFPS {
     return *this;
   }
 
-  int size() const { return (int) coeff_.size(); }
+  int size() const { return (int)coeff_.size(); }
 
   // Returns the coefficient of x^dy.
   T operator[](int dy) const {
@@ -74,7 +74,7 @@ struct DenseFPS {
   }
 
   DenseFPS &operator*=(const T &scalar) {
-    for (auto &x: coeff_) x *= scalar;
+    for (auto &x : coeff_) x *= scalar;
     return *this;
   }
   friend DenseFPS operator*(const DenseFPS &x, const T &scalar) {
@@ -120,27 +120,33 @@ struct DenseFPS {
 };
 
 // Fast polynomial inverse with NTT.
-template<typename ModInt, int DMAX>
+template <typename ModInt, int DMAX>
 DenseFPS<ModInt, DMAX> inv_ntt(const DenseFPS<ModInt, DMAX> &x) {
-  assert(x[0].val() != 0);  // must be invertible
-  const int n = x.size();
-  std::vector<ModInt> res(n);
-  res[0] = x[0].inv();
-  for (int d = 1; d < n; d <<= 1) {
-    vector<Mint> f(2 * d), g(2 * d);
-    for (int j = 0, m = min(n, 2 * d); j < m; ++j) f[j] = x[j];
-    for (int j = 0; j < d; ++j) g[j] = res[j];
-    f = atcoder::convolution(f, g);
-    f.resize(2 * d);
-    for (int j = 0; j < d; ++j) f[j] = 0;
-    f = atcoder::convolution(f, g);
-    for (int j = d, m = min(2 * d, n); j < m; ++j) res[j] = -f[j];
+  int n = x.size();
+  assert(n != 0 && x[0] != 0);
+  std::vector<ModInt> res{x[0].inv()};
+  for (int m = 1, m2 = 2; m < n; m = m2, m2 *= 2) {
+    std::vector<ModInt> f(x.coeff_.begin(), x.coeff_.begin() + min(n, 2 * m));
+    std::vector<ModInt> g(res);
+    f.resize(m2), atcoder::internal::butterfly(f);
+    g.resize(m2), atcoder::internal::butterfly(g);
+    for (int i = 0; i < m2; ++i) f[i] *= g[i];
+    atcoder::internal::butterfly_inv(f);
+    f.erase(f.begin(), f.begin() + m);
+    f.resize(2 * m), atcoder::internal::butterfly(f);
+    for (int i = 0; i < m2; ++i) f[i] *= g[i];
+    atcoder::internal::butterfly_inv(f);
+    auto iz = ModInt(2 * m).inv();
+    iz *= -iz;
+    for (int i = 0; i < m; ++i) f[i] *= iz;
+    res.insert(res.end(), f.begin(), f.begin() + m);
   }
+  res.resize(n);
   return DenseFPS<ModInt, DMAX>(std::move(res));
 }
 
 struct Input {
-  template<typename T>
+  template <typename T>
   operator T() const {
     T x;
     std::cin >> x;
@@ -148,10 +154,10 @@ struct Input {
   }
   struct SizedInput {
     std::size_t n;
-    template<typename T>
+    template <typename T>
     operator T() const {
       T x(n);
-      for (auto &e: x) std::cin >> e;
+      for (auto &e : x) std::cin >> e;
       return x;
     }
   };
