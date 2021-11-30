@@ -1,0 +1,5 @@
+project(radix_sort)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DMY_DEBUG")
+add_executable(gateau_de_noel gateau_de_noel/main_gateau_de_noel.cpp)
+add_executable(biscuit_de_noel biscuit_de_noel/main_biscuit_de_noel.cpp)
