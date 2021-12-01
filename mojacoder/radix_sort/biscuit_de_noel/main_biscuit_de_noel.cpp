@@ -111,52 +111,6 @@ struct NTTMult {
     if (int(res.size()) > DMAX + 1) res.resize(DMAX + 1);  // shrink
     return res;
   }
-
-  static std::vector<T> invert(const std::vector<T> &x, int d = -1) {
-    int n = x.size();
-    assert(n != 0 && x[0] != 0);
-    if (d == -1) d = n;
-    assert(d >= 0);
-    std::vector<T> res{x[0].inv()};
-    for (int m = 1; m < d; m *= 2) {
-      const int m2 = m * 2;
-      std::vector<T> f(x.begin(), x.begin() + min(n, 2 * m));
-      std::vector<T> g(res);
-      f.resize(m2), atcoder::internal::butterfly(f);
-      g.resize(m2), atcoder::internal::butterfly(g);
-      for (int i = 0; i < m2; ++i) f[i] *= g[i];
-      atcoder::internal::butterfly_inv(f);
-      f.erase(f.begin(), f.begin() + m);
-      f.resize(2 * m), atcoder::internal::butterfly(f);
-      for (int i = 0; i < m2; ++i) f[i] *= g[i];
-      atcoder::internal::butterfly_inv(f);
-      T iz = T(2 * m).inv();
-      iz *= -iz;
-      for (int i = 0; i < m; ++i) f[i] *= iz;
-      res.insert(res.end(), f.begin(), f.begin() + m);
-    }
-    res.resize(d);
-    return res;
-  }
-
-  static std::vector<T> invert2(const std::vector<T> &x) {
-    assert(x[0].val() != 0);  // must be invertible
-    const int n = x.size();
-    std::vector<T> res(n);
-    res[0] = T(1) / x[0];
-    for (int i = 1; i < n; i <<= 1) {
-      const int m = std::min(2 * i, n);
-      std::vector<T> f(2 * i), g(2 * i);
-      for (int j = 0; j < m; ++j) f[j] = x[j];
-      for (int j = 0; j < i; ++j) g[j] = res[j];
-      f = atcoder::convolution(f, g);
-      f.resize(2 * i);
-      for (int j = 0; j < i; ++j) f[j] = 0;
-      f = atcoder::convolution(f, g);
-      for (int j = i; j < m; ++j) res[j] = -f[j];
-    }
-    return res;
-  }
 };
 
 template<typename Mult>
@@ -173,20 +127,9 @@ struct DenseFPS {
     while (size() > dmax() + 1) coeff_.pop_back();
     assert(size() > 0);
   }
-  DenseFPS(std::initializer_list<T> init) : coeff_(init.begin(), init.end()) {
+  DenseFPS(std::initializer_list<T> c) : coeff_(c.begin(), c.end()) {
     while (size() > dmax() + 1) coeff_.pop_back();
     assert(size() > 0);
-  }
-
-  DenseFPS(const DenseFPS &other) : coeff_(other.coeff_) {}
-  DenseFPS(DenseFPS &&other) : coeff_(std::move(other.coeff_)) {}
-  DenseFPS &operator=(const DenseFPS &other) {
-    coeff_ = other.coeff_;
-    return *this;
-  }
-  DenseFPS &operator=(DenseFPS &&other) {
-    coeff_ = std::move(other.coeff_);
-    return *this;
   }
 
   // size <= dmax + 1
