@@ -4,3 +4,4 @@ set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit
 add_executable(frog_in_the_well frog_in_the_well/main_frog_in_the_well.cpp)
 add_executable(alice_loves_segment alice_loves_segment/main_alice_loves_segment.cpp)
 add_executable(swap_modulo swap_modulo/main_swap_modulo.cpp)
+add_executable(min_string min_string/main_min_string.cpp)
