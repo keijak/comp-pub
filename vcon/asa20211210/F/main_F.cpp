@@ -1,0 +1,157 @@
+#include <bits/stdc++.h>
+#define REP_(i, a_, b_, a, b, ...) \
+  for (int i = (a), END_##i = (b); i < END_##i; ++i)
+#define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
+#define ALL(x) std::begin(x), std::end(x)
+using Int = long long;
+using Uint = unsigned long long;
+using Real = long double;
+
+template<typename T, typename U>
+inline bool chmax(T &a, U b) {
+  return a < b and ((a = std::move(b)), true);
+}
+template<typename T, typename U>
+inline bool chmin(T &a, U b) {
+  return a > b and ((a = std::move(b)), true);
+}
+template<typename T>
+inline int ssize(const T &a) {
+  return (int) a.size();
+}
+inline void check(bool cond, const char *message = "!ERROR!") {
+  if (not cond) {
+    std::cout.flush(), std::cerr.flush();
+    throw std::runtime_error(message);
+  }
+}
+
+struct Void {};
+
+template<class T>
+inline std::ostream &print_one(const T &x, char endc) {
+  if constexpr (std::is_same<T, Void>::value) {
+    return std::cout;  // print nothing
+  } else if constexpr (std::is_same<T, bool>::value) {
+    return std::cout << (x ? "Yes" : "No") << endc;
+  } else {
+    return std::cout << x << endc;
+  }
+}
+template<class T>
+inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
+template<typename T, typename... Ts>
+std::ostream &print(const T &head, Ts... tail) {
+  return print_one(head, ' '), print(tail...);
+}
+inline std::ostream &print() { return std::cout << '\n'; }
+
+template<typename Container>
+std::ostream &print_seq(const Container &seq,
+                        const char *sep = " ",
+                        const char *ends = "\n",
+                        std::ostream &os = std::cout) {
+  const auto itl = std::begin(seq), itr = std::end(seq);
+  for (auto it = itl; it != itr; ++it) {
+    if (it != itl) os << sep;
+    os << *it;
+  }
+  return os << ends;
+}
+
+struct CastInput {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
+  }
+  struct Sized {
+    std::size_t n;
+    template<typename T>
+    operator T() const {
+      T x(n);
+      for (auto &e: x) std::cin >> e;
+      return x;
+    }
+  };
+  Sized operator()(std::size_t n) const { return {n}; }
+} in;
+
+#ifdef MY_DEBUG
+#include "debug_dump.hpp"
+#include "backward.hpp"
+backward::SignalHandling kSignalHandling;
+#else
+#define DUMP(...)
+#define cerr if(false)cerr
+#endif
+
+using namespace std;
+
+auto solve() {
+  Int n = in, L = in;
+
+  deque<pair<char, vector<Int>>> rs;
+  REP(i, n) {
+    Int x = in;
+    char d = in;
+    if (rs.empty() or rs.back().first != d) {
+      vector<Int> v(1, x);
+      rs.push_back({d, v});
+    } else {
+      rs.back().second.push_back(x);
+    }
+  }
+
+  auto gain_l = [&](Int lb, const vector<Int> &pos) -> Int {
+    Int ret = 0;
+    for (auto x: pos) {
+      ret += x - lb;
+      ++lb;
+    }
+    return ret;
+  };
+
+  auto gain_r = [&](Int rb, const vector<Int> &pos) -> Int {
+    Int ret = 0;
+    for (int i = ssize(pos) - 1; i >= 0; --i) {
+      Int x = pos[i];
+      ret += rb - x;
+      --rb;
+    }
+    return ret;
+  };
+
+  Int ans = 0;
+  if (rs.front().first == 'L') {
+    ans += gain_l(1, rs.front().second);
+    rs.pop_front();
+  }
+  if (rs.back().first == 'R') {
+    ans += gain_r(L, rs.back().second);
+    rs.pop_back();
+  }
+  while (not rs.empty()) {
+    check(ssize(rs) % 2 == 0);
+    check(rs.front().first == 'R');
+    auto R = rs.front().second;
+    rs.pop_front();
+    check(rs.front().first == 'L');
+    auto L = rs.front().second;
+    rs.pop_front();
+    ans += max(gain_l(R.back() + 1, L) + gain_r(R.back(), R),
+               gain_r(L.front() - 1, R) + gain_l(L.front(), L));
+  }
+  return ans;
+}
+
+int main() {
+  ios_base::sync_with_stdio(false), cin.tie(nullptr);
+  cout << std::fixed << std::setprecision(18);
+  const int T = 1;//in;
+  REP(t, T) {
+    auto ans = solve();
+    print(ans);
+  }
+}
