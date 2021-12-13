@@ -1,9 +1,17 @@
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize("inline")
-#pragma GCC optimize("omit-frame-pointer")
-#pragma GCC optimize("unroll-loops")
+#include <iostream>
+#include <vector>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <random>
+#include <array>
+#include <memory>
+#include <cassert>
 
-#include <bits/stdc++.h>
+#include <boost/multiprecision/cpp_int.hpp>
+using u128 = __uint128_t; //boost::multiprecision::uint128_t;
+namespace multip = boost::multiprecision;
+
 #define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
@@ -87,7 +95,7 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-template<typename T, int K = 16>
+template<typename T, int K = 12>
 class PersistentArray {
  public:
   struct Node;
@@ -95,7 +103,7 @@ class PersistentArray {
   using NodePtr = Node *;  // std::shared_ptr<Node>;
 
   struct Node {
-    std::optional<T> val;
+    T val;
     std::unique_ptr<std::array<NodePtr, K>> children;
   };
 
@@ -106,19 +114,19 @@ class PersistentArray {
   PersistentArray &operator=(const PersistentArray &) = default;
   PersistentArray &operator=(PersistentArray &&) = default;
 
-  std::optional<T> operator[](int idx) const { return do_get(idx, root_); }
+  T operator[](int idx) const { return do_get(idx, root_); }
 
   PersistentArray<T, K> set(int idx, T val) const {
     return PersistentArray<T, K>(do_set(idx, val, root_));
   }
 
  private:
-  static std::optional<T> do_get(int idx, const NodePtr &node) {
-    if (node == nullptr) return std::nullopt;
+  static T do_get(int idx, const NodePtr &node) {
+    if (node == nullptr) return T{};
     if (idx == 0) return node->val;
-    if (node->children == nullptr) return std::nullopt;
+    if (node->children == nullptr) return T{};
     const NodePtr &child = (*node->children)[idx % K];
-    if (child == nullptr) return std::nullopt;
+    if (child == nullptr) return T{};
     return do_get(idx / K, child);
   }
 
@@ -196,11 +204,7 @@ struct RollingHash {
 //   auto ok_bound = bisect(ok, ng, [&](i64 x) -> bool { return ...; });
 template<class T, class F>
 auto bisect(T true_x, T false_x, F pred) -> T {
-  static_assert(std::is_invocable_r_v<bool, F, T>);
-  assert(std::max(true_x, false_x) <= std::numeric_limits<T>::max() / 2);
-  assert(true_x >= -1 and false_x >= -1);  // need floor_div to allow negative.
-
-  while (std::abs(true_x - false_x) > 1) {
+  while (true_x - false_x > 1) {
     T mid = (true_x + false_x) >> 1;
     if (pred(mid)) {
       true_x = std::move(mid);
@@ -211,6 +215,20 @@ auto bisect(T true_x, T false_x, F pred) -> T {
   return true_x;
 }
 
+inline u128 encode(u64 hash, char ch) {
+  return (u128(ch) << 64) | u128(hash);
+}
+inline u64 decode_hash(const u128 &val) {
+  static u128 kMask = (u128(1) << 64) - 1;
+  return u64(val & kMask);
+}
+inline char decode_char(const u128 &val) {
+  return char(val >> 64);
+}
+
+constexpr int L = 1001;
+PersistentArray<u128> fdp[L][L], bdp[L][L];
+
 int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
 
@@ -218,45 +236,45 @@ int main() {
   vector<string> M(n);
   REP(i, n) cin >> M[i];
 
-  auto fdp = vector(n, vector(n, PersistentArray<pair<u64, char>>()));
   REP(i, n) {
+    int pmink = 0;
     REP(j, n) {
       int pos = i + j;
       if (i == 0 and j == 0) {
-        fdp[0][0] = fdp[0][0].set(0, {u64(M[0][0]), M[0][0]});
+        fdp[0][0] = fdp[0][0].set(0, encode(u64(M[0][0]), M[0][0]));
       } else if (i > 0 and j > 0) {
-        const auto &pa1 = fdp[i - 1][j];
-        const auto &pa2 = fdp[i][j - 1];
-        u64 last1 = get<0>(pa1[pos - 1].value());
-        u64 last2 = get<0>(pa2[pos - 1].value());
+        auto &pa1 = fdp[i - 1][j];
+        auto &pa2 = fdp[i][j - 1];
+        u64 last1 = decode_hash(pa1[pos - 1]);
+        u64 last2 = decode_hash(pa2[pos - 1]);
         if (last1 == last2) {
           u64 val = RollingHash::concat(last1, M[i][j], 1);
-          fdp[i][j] = pa1.set(pos, {val, M[i][j]});
+          fdp[i][j] = pa1.set(pos, encode(val, M[i][j]));
         } else {
-          int mink = bisect<int>(pos - 1, 0, [&](int k) {
-            return get<0>(pa1[k].value()) != get<0>(pa2[k].value());
+          int mink = bisect<int>(pos - 1, min(pmink - 1, j), [&](int k) {
+            return pa1[k] != pa2[k];
           });
-          if (get<1>(pa1[mink].value()) <= get<1>(pa2[mink].value())) {
+          if (decode_char(pa1[mink]) <= decode_char(pa2[mink])) {
             u64 val = RollingHash::concat(last1, M[i][j], 1);
-            fdp[i][j] = pa1.set(pos, {val, M[i][j]});
+            fdp[i][j] = pa1.set(pos, encode(val, M[i][j]));
           } else {
             u64 val = RollingHash::concat(last2, M[i][j], 1);
-            fdp[i][j] = pa2.set(pos, {val, M[i][j]});
+            fdp[i][j] = pa2.set(pos, encode(val, M[i][j]));
           }
+          pmink = mink;
         }
       } else if (i > 0) {
-        u64 phash = get<0>(fdp[i - 1][j][pos - 1].value());
+        u64 phash = decode_hash(fdp[i - 1][j][pos - 1]);
         u64 hash = RollingHash::concat(phash, M[i][j], 1);
-        fdp[i][j] = fdp[i - 1][j].set(pos, {hash, M[i][j]});
+        fdp[i][j] = fdp[i - 1][j].set(pos, encode(hash, M[i][j]));
       } else {
-        u64 phash = get<0>(fdp[i][j - 1][pos - 1].value());
+        u64 phash = decode_hash(fdp[i][j - 1][pos - 1]);
         u64 hash = RollingHash::concat(phash, M[i][j], 1);
-        fdp[i][j] = fdp[i][j - 1].set(pos, {hash, M[i][j]});
+        fdp[i][j] = fdp[i][j - 1].set(pos, encode(hash, M[i][j]));
       }
     }
   }
 
-  auto bdp = vector(n, vector(n, PersistentArray<pair<u64, char>>()));
   REP(i, n) {
     const int ri = n - 1 - i;
     REP(j, n) {
@@ -264,61 +282,58 @@ int main() {
       const int rlen = i + j;
       const int pos = 2 * n - 2 - rlen;
       if (i == 0 and j == 0) {
-        bdp[ri][rj] = bdp[ri][rj].set(pos, {u64(M[ri][rj]), M[ri][rj]});
+        bdp[ri][rj] = bdp[ri][rj].set(pos, encode(u64(M[ri][rj]), M[ri][rj]));
       } else if (i > 0 and j > 0) {
         const auto &pa1 = bdp[ri + 1][rj];
         const auto &pa2 = bdp[ri][rj + 1];
-        u64 last1 = get<0>(pa1[pos + 1].value());
-        u64 last2 = get<0>(pa2[pos + 1].value());
+        u64 last1 = decode_hash(pa1[pos + 1]);
+        u64 last2 = decode_hash(pa2[pos + 1]);
         if (last1 == last2) {
           u64 hash = RollingHash::concat(M[ri][rj], last1, rlen);
-          bdp[ri][rj] = pa1.set(pos, {hash, M[ri][rj]});
+          bdp[ri][rj] = pa1.set(pos, encode(hash, M[ri][rj]));
         } else {
-          int mink = bisect<int>(2 * n - 1, pos + 1, [&](int k) {
-            auto r1 = get<0>(pa1[k].value());
-            auto r2 = get<0>(pa2[k].value());
-            return RollingHash::sub(last1, r1) != RollingHash::sub(last2, r2);
-          });
-          --mink;
-          if (get<1>(pa1[mink].value()) <= get<1>(pa2[mink].value())) {
+          int mink;
+          if (M[ri + 1][rj] != M[ri][rj + 1]) {
+            mink = pos + 1;
+          } else {
+            mink = bisect<int>(2 * n - 1, pos + 1, [&](int k) {
+              auto r1 = decode_hash(pa1[k]);
+              auto r2 = decode_hash(pa2[k]);
+              return RollingHash::sub(last1, r1) != RollingHash::sub(last2, r2);
+            }) - 1;
+          }
+          if (decode_char(pa1[mink]) <= decode_char(pa2[mink])) {
             u64 hash = RollingHash::concat(M[ri][rj], last1, rlen);
-            bdp[ri][rj] = pa1.set(pos, {hash, M[ri][rj]});
+            bdp[ri][rj] = pa1.set(pos, encode(hash, M[ri][rj]));
           } else {
             u64 hash = RollingHash::concat(M[ri][rj], last2, rlen);
-            bdp[ri][rj] = pa2.set(pos, {hash, M[ri][rj]});
+            bdp[ri][rj] = pa2.set(pos, encode(hash, M[ri][rj]));
           }
         }
       } else if (i > 0) {
-        u64 phash = get<0>(bdp[ri + 1][rj][pos + 1].value());
+        u64 phash = decode_hash(bdp[ri + 1][rj][pos + 1]);
         u64 hash = RollingHash::concat(M[ri][rj], phash, rlen);
-        bdp[ri][rj] = bdp[ri + 1][rj].set(pos, {hash, M[ri][rj]});
+        bdp[ri][rj] = bdp[ri + 1][rj].set(pos, encode(hash, M[ri][rj]));
       } else {
-        u64 phash = get<0>(bdp[ri][rj + 1][pos + 1].value());
+        u64 phash = decode_hash(bdp[ri][rj + 1][pos + 1]);
         u64 hash = RollingHash::concat(M[ri][rj], phash, rlen);
-        bdp[ri][rj] = bdp[ri][rj + 1].set(pos, {hash, M[ri][rj]});
+        bdp[ri][rj] = bdp[ri][rj + 1].set(pos, encode(hash, M[ri][rj]));
       }
     }
   }
 
-  map<pair<int, int>, string> memo;
   const int Q = in;
   REP(i, Q) {
     const int x = int(in) - 1, y = int(in) - 1;
-    if (auto it = memo.find({x, y}); it != memo.end()) {
-      print(it->second);
-      continue;
-    }
     int pos = x + y;
     auto &fa = fdp[x][y];
     auto &ba = bdp[x][y];
-    string path;
     for (int j = 0; j <= pos; ++j) {
-      path.push_back(get<1>(fa[j].value()));
+      cout << decode_char(fa[j]);
     }
     for (int j = pos + 1; j <= 2 * n - 2; ++j) {
-      path.push_back(get<1>(ba[j].value()));
+      cout << decode_char(ba[j]);
     }
-    print(path);
-    memo[{x, y}] = path;
+    cout << '\n';
   }
 }
