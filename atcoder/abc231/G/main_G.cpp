@@ -103,22 +103,29 @@ auto solve() {
   int n = in;
   Int K = in;
   vector<Int> a = in(n);
-  auto f = [&](auto &f, int i, Int r) -> Mint {
-    if (i == n) return 1;
-    if (r == 0) {
-      Mint res = 1;
-      for (int j = i; j < n; ++j) {
-        res *= a[j];
+  auto dp = vector(n + 1, vector(n + 1, Mint(0)));
+  dp[0][0] = 1;
+  REP(i, 1, n + 1) {
+    REP(j, n + 1) {
+      dp[i][j] += dp[i - 1][j];
+      if (j - 1 >= 0) {
+        dp[i][j] += dp[i - 1][j - 1] * a[i - 1];
       }
-      return res;
     }
-    auto s1 = f(f, i + 1, r);
-    auto s2 = f(f, i + 1, r - 1);
-    Mint ret = a[i] * s1 + Mint(K) / n * s2;
-    //DUMP(i, r, s1, s2, a[i], ret);
-    return ret;
-  };
-  return f(f, 0, K);
+  }
+  const Mint pnk = Mint(n).pow(K);
+  Mint fac = pnk;
+  Mint ninv = Mint(n).inv();
+  Mint ans = 0;
+  for (int i = n; i >= 0; --i) {
+    int r = n - i;
+    if (K < r) continue;
+    ans += dp[n][i] * fac;
+    fac *= K - r;
+    fac *= ninv;
+  }
+  ans /= pnk;
+  return ans;
 }
 
 int main() {
