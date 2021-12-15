@@ -16,9 +16,8 @@ struct gen_indices : gen_indices<N - 1, N - 1, Ix...> {};
 template<std::size_t... Ix>
 struct gen_indices<0, Ix...> : indices<Ix...> {};
 
-template<class Ch, class Tr, class Tuple, std::size_t... Ix>
-void print_tuple(std::basic_ostream<Ch, Tr> &os, Tuple const &t,
-                 indices<Ix...>);
+template<class Tuple, std::size_t... Ix>
+void print_tuple(std::ostream &os, Tuple const &t, indices<Ix...>);
 
 template<typename T, typename = void>
 struct is_iterable : std::false_type {};
@@ -29,8 +28,8 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
 };
 
 template<typename Container>
-std::ostream &print_seq(const Container &a, const char *sep, const char *ends,
-                        std::ostream &os);
+void print_seq(const Container &a, const char *sep, const char *ends,
+               std::ostream &os);
 }  // namespace aux
 
 std::ostream &operator<<(std::ostream &os, const __uint128_t &x) {
@@ -48,44 +47,43 @@ std::ostream &operator<<(std::ostream &os, const __int128_t &x) {
 }
 
 template<typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
+std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
+  return os << '(' << p.first << ", " << p.second << ')';
 }
 
-template<class Ch, class Tr, class... Args>
-auto operator<<(
-    std::basic_ostream<Ch, Tr> &os,
-    std::tuple<Args...> const &t) -> std::basic_ostream<Ch, Tr> & {
-  os << "(";
+template<class... Args>
+std::ostream &operator<<(std::ostream &os, const std::tuple<Args...> &t) {
+  os << '(';
   ::aux::print_tuple(os, t, aux::gen_indices<sizeof...(Args)>());
-  return os << ")";
+  return os << ')';
 }
 
 template<typename T,
     typename = std::enable_if_t<::aux::is_iterable<T>::value &&
         !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
-  return ::aux::print_seq(a, ", ", "", (os << "{")) << "}";
+  os << '{';
+  ::aux::print_seq(a, ", ", "", os);
+  return os << '}';
 }
 
 namespace aux {
 
-template<class Ch, class Tr, class Tuple, std::size_t... Ix>
-void print_tuple(std::basic_ostream<Ch, Tr> &os, Tuple const &t,
-                 indices<Ix...>) {
+template<class Tuple, std::size_t... Ix>
+void print_tuple(std::ostream &os, Tuple const &t, indices<Ix...>) {
   using swallow = int[];
-  (void) swallow{0,
-                 (void(os << (Ix == 0 ? "" : ", ") << std::get<Ix>(t)), 0)...};
+  swallow{0, (void(os << (Ix == 0 ? "" : ", ") << std::get<Ix>(t)), 0)...};
 }
+
 template<typename Container>
-std::ostream &print_seq(const Container &a, const char *sep, const char *ends,
-                        std::ostream &os) {
+void print_seq(const Container &a, const char *sep, const char *ends,
+               std::ostream &os) {
   auto itl = std::begin(a), itr = std::end(a);
   for (auto it = itl; it != itr; ++it) {
     if (it != itl) os << sep;
     os << *it;
   }
-  return os << ends;
+  os << ends;
 }
 
 }  // namespace aux

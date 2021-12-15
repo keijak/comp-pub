@@ -1,6 +1,5 @@
 #include <bits/stdc++.h>
-#define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), END_##i = (b); i < END_##i; ++i)
+#define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using Int = long long;
@@ -18,12 +17,6 @@ inline bool chmin(T &a, U b) {
 template<typename T>
 inline int ssize(const T &a) {
   return (int) a.size();
-}
-inline void check(bool cond, const char *message = "!ERROR!") {
-  if (not cond) {
-    std::cout.flush(), std::cerr.flush();
-    throw std::runtime_error(message);
-  }
 }
 
 struct Void {};
