@@ -117,7 +117,8 @@
         "syncstream": "cpp",
         "modint": "cpp",
         "version": "cpp",
-        "__functional_03": "cpp"
+        "__functional_03": "cpp",
+        "__bits": "cpp"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.pycodestyleEnabled": false,
