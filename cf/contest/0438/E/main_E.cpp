@@ -90,40 +90,6 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-// mod: prime
-template<class T = Mint>
-struct Factorials {
-  // factorials and inverse factorials.
-  std::vector<T> fact, ifact;
-
-  // n: max cached value.
-  Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n >= 0);
-    assert(n < T::mod());
-    fact[0] = 1;
-    for (int i = 1; i <= n; ++i) {
-      fact[i] = fact[i - 1] * i;
-    }
-    ifact[n] = fact[n].inv();
-    for (int i = n; i >= 1; --i) {
-      ifact[i - 1] = ifact[i] * i;
-    }
-  }
-
-  // Combination (nCk)
-  T C(int n, int k) const {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
-  }
-};
-
-template<typename T>
-T catalan(const Factorials<T> &fs, int k) {
-  auto ret = fs.C(2 * k, k);
-  if (k > 0) ret -= fs.C(2 * k, k - 1);
-  return ret;
-}
-
 template<typename T, int DMAX>
 struct NTTMult {
   static_assert(atcoder::internal::is_modint<T>::value, "Requires ACL modint.");
@@ -253,106 +219,56 @@ struct DenseFPS {
   friend DenseFPS operator/(const DenseFPS &f, const DenseFPS &g) {
     return f * DenseFPS(Mult::invert(g.coeff_));
   }
-
-  DenseFPS pow(long long t) const {
-    assert(t >= 0);
-    DenseFPS res = {1}, base = *this;
-    while (t) {
-      if (t & 1) res *= base;
-      base *= base;
-      t >>= 1;
-    }
-    return res;
-  }
-
-  // Multiplies by (1 + c * x^k).
-  void multiply2_inplace(int k, int c) {
-    assert(k > 0);
-    if (size() <= dmax()) {
-      coeff_.resize(min(size() + k, dmax() + 1), 0);
-    }
-    for (int i = size() - 1; i >= k; --i) {
-      coeff_[i] += coeff_[i - k] * c;
-    }
-  }
-  // Multiplies by (1 + c * x^k).
-  DenseFPS multiply2(int k, int c) const {
-    DenseFPS res = *this;
-    res.multiply2_inplace(k, c);
-    return res;
-  }
-
-  // Divides by (1 + c * x^k).
-  void divide2_inplace(int k, int c) {
-    assert(k > 0);
-    for (int i = k; i < size(); ++i) {
-      coeff_[i] -= coeff_[i - k] * c;
-    }
-  }
-  // Divides by (1 + c * x^k).
-  DenseFPS divide2(int k, int c) const {
-    DenseFPS res = *this;
-    res.divide2_inplace(k, c);
-    return res;
-  }
-
-  // Multiplies by x^k.
-  void shift_inplace(int k) {
-    if (k > 0) {
-      if (size() <= dmax()) {
-        coeff_.resize(min(size() + k, dmax() + 1), 0);
-      }
-      for (int i = size() - 1; i >= k; --i) {
-        coeff_[i] = coeff_[i - k];
-      }
-      for (int i = k - 1; i >= 0; --i) {
-        coeff_[i] = 0;
-      }
-    } else if (k < 0) {
-      k *= -1;
-      for (int i = k; i < size(); ++i) {
-        coeff_[i - k] = coeff_[i];
-      }
-      for (int i = size() - k; i < size(); ++i) {
-        // If coefficients of degrees higher than dmax() were truncated
-        // beforehand, you lose the information. Ensure dmax() is big enough.
-        coeff_[i] = 0;
-      }
-    }
-  }
-  // Multiplies by x^k.
-  DenseFPS shift(int k) const {
-    DenseFPS res = *this;
-    res.shift_inplace(k);
-    return res;
-  }
-
-  T eval(const T &a) const {
-    T res = 0, x = 1;
-    for (auto c: coeff_) {
-      res += c * x;
-      x *= a;
-    }
-    return res;
-  }
 };
 
 template<typename FPS, typename T = typename FPS::T>
-FPS prefix(const FPS &f, unsigned deg) {
-  return FPS(std::vector<T>(f.coeff_.begin(), f.coeff_.begin() + min<unsigned>(deg, f.coeff_.size())));
-}
+FPS fps_sqrt(const FPS &f_square) {
+  static const T kHalf = T(1) / 2;
+  assert(f_square[0] == T(1));
+  std::vector<T> f{1}, g{1}, z{1};
+  T n2_inv = 1;
+  for (int n = 1; n <= FPS::dmax(); n *= 2) {
+    REP(i, n) z[i] *= z[i];
+    atcoder::internal::butterfly_inv(z);
+    REP(i, n) z[i] *= n2_inv;
 
-template<typename FPS, typename T = typename FPS::T>
-FPS sqrt(const FPS &f) {
-  assert(f[0] == T(1));
-  T inv2 = T(1) / T(2);
-  FPS ss = {1};
-  for (unsigned i = 1; i <= FPS::dmax() + 5;) {
-    i <<= 1;
-    ss = prefix(ss + prefix(f, i) * prefix(FPS{1} / ss, i),
-                i) * inv2;
+    const int n2 = n * 2;
+    n2_inv *= kHalf;
+
+    std::vector<T> delta(n2);
+    REP(i, n) delta[n + i] = z[i] - f_square[i] - f_square[n + i];
+    atcoder::internal::butterfly(delta);
+
+    std::vector<T> gbuf(n2);
+    REP(i, n) gbuf[i] = g[i];
+    atcoder::internal::butterfly(gbuf);
+
+    REP(i, n2) delta[i] *= gbuf[i];
+    atcoder::internal::butterfly_inv(delta);
+    REP(i, n2) delta[i] *= n2_inv;
+    f.resize(n2);
+    for (int i = n; i < n2; ++i) f[i] = -delta[i] * kHalf;
+    if (n2 > FPS::dmax()) break;
+
+    z = f;
+    atcoder::internal::butterfly(z);
+
+    std::vector<T> eps = gbuf;
+    REP(i, n2) eps[i] *= z[i];
+    atcoder::internal::butterfly_inv(eps);
+    REP(i, n) eps[i] = 0;
+    REP(i, n, n2) eps[i] *= n2_inv;
+    atcoder::internal::butterfly(eps);
+    REP(i, n2) eps[i] *= gbuf[i];
+    atcoder::internal::butterfly_inv(eps);
+    REP(i, n2) eps[i] *= n2_inv;
+    g.resize(n2);
+    for (int i = n; i < n2; ++i) g[i] -= eps[i];
   }
-  return ss;
+  if ((int) f.size() > FPS::dmax() + 1) {
+    f.resize(FPS::dmax() + 1);
+  }
+  return FPS(f);
 }
 
 constexpr int D = 100005;
@@ -363,22 +279,14 @@ int main() {
 
   int n = in, m = in;
   vector<int> C = in(n);
-  Int mic = *min_element(ALL(C));
-  Int mac = *max_element(ALL(C));
+  int mac = *max_element(ALL(C));
   vector<Mint> fv(mac + 1);
   for (auto c: C) {
     fv[c] = 1;
   }
   DF f(fv);
-  Factorials fs(2 * m + 2);
-  DF g = f;
-  DF res;
+  DF g = DF{2} / (DF{1} + fps_sqrt(DF{1} - 4 * f));
   for (int i = 1; i <= m; ++i) {
-    if (mic * i > m) break;
-    res += g * catalan(fs, i);
-    g *= f;
-  }
-  for (int i = 1; i <= m; ++i) {
-    print(res[i]);
+    print(g[i]);
   }
 }
