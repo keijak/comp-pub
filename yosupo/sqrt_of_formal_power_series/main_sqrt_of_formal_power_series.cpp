@@ -176,10 +176,10 @@ std::optional<long long> sqrt_mod(long long a, int p) {
 }
 
 template<typename FPS, typename T = typename FPS::T>
-FPS sqrt_fft(const FPS &f_square) {
-  assert(f_square[0] == T(1));
+FPS sqrt_fft(const FPS &f) {
+  assert(f[0] == T(1));
   static const T kHalf = T(1) / 2;
-  std::vector<T> f{1}, g{1}, z{1};
+  std::vector<T> r{1}, g{1}, z{1};
   T n2_inv = 1;
   for (int n = 1; n <= FPS::dmax(); n *= 2) {
     for (int i = 0; i < n; ++i) z[i] *= z[i];
@@ -190,7 +190,7 @@ FPS sqrt_fft(const FPS &f_square) {
     n2_inv *= kHalf;
 
     std::vector<T> delta(n2);
-    for (int i = 0; i < n; ++i) delta[n + i] = z[i] - f_square[i] - f_square[n + i];
+    for (int i = 0; i < n; ++i) delta[n + i] = z[i] - f[i] - f[n + i];
     atcoder::internal::butterfly(delta);
 
     std::vector<T> gbuf(n2);
@@ -200,11 +200,11 @@ FPS sqrt_fft(const FPS &f_square) {
     for (int i = 0; i < n2; ++i) delta[i] *= gbuf[i];
     atcoder::internal::butterfly_inv(delta);
     for (int i = 0; i < n2; ++i) delta[i] *= n2_inv;
-    f.resize(n2);
-    for (int i = n; i < n2; ++i) f[i] = -delta[i] * kHalf;
+    r.resize(n2);
+    for (int i = n; i < n2; ++i) r[i] = -delta[i] * kHalf;
     if (n2 > FPS::dmax()) break;
 
-    z = f;
+    z = r;
     atcoder::internal::butterfly(z);
 
     std::vector<T> eps = gbuf;
@@ -219,30 +219,32 @@ FPS sqrt_fft(const FPS &f_square) {
     g.resize(n2);
     for (int i = n; i < n2; ++i) g[i] -= eps[i];
   }
-  if ((int) f.size() > FPS::dmax() + 1) {
-    f.resize(FPS::dmax() + 1);
+  if ((int) r.size() > FPS::dmax() + 1) {
+    r.resize(FPS::dmax() + 1);
   }
-  return FPS(std::move(f));
+  return FPS(std::move(r));
 }
 }  // namespace fps_internal
 
 template<typename FPS, typename T = typename FPS::T>
-std::optional<FPS> fps_sqrt(const FPS &f_square) {
-  if (f_square[0].val() == 1) return fps_internal::sqrt_fft(f_square);  // fast path
+std::optional<FPS> fps_sqrt(const FPS &f) {
+  // fast path
+  if (f[0].val() == 1) return fps_internal::sqrt_fft(f);
 
   int z = 0;
-  while (z < f_square.size() && f_square[z].val() == 0) ++z;
-  if (z == f_square.size()) return FPS{0};
+  while (z < f.size() && f[z].val() == 0) ++z;
+  if (z == f.size()) return FPS{0};
   if (z % 2 == 1) return std::nullopt;
-  const T fz = f_square[z];
-  const auto c0 = fps_internal::sqrt_mod(fz.val(), T::mod());
-  if (not c0.has_value()) return std::nullopt;
-  auto g = FPS(std::vector<T>(f_square.coeff_.begin() + z, f_square.coeff_.end()));
-  g = fps_internal::sqrt_fft(g / fz);
+  const auto f0 = f[z];
+  const auto oc0 = fps_internal::sqrt_mod(f0.val(), T::mod());
+  if (not oc0.has_value()) return std::nullopt;
+  const auto c0 = oc0.value();
+  auto g = FPS(std::vector<T>(f.coeff_.begin() + z, f.coeff_.end()));
+  g = fps_internal::sqrt_fft(g / f0);
   const int zhalf = z / 2;
   const int sz = std::min<int>(g.size() + zhalf, FPS::dmax() + 1);
   std::vector<T> res(sz);
-  for (int i = zhalf; i < sz; ++i) res[i] = g[i - zhalf] * (*c0);
+  for (int i = zhalf; i < sz; ++i) res[i] = g[i - zhalf] * c0;
   return FPS(std::move(res));
 }
 
