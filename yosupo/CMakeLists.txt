@@ -7,3 +7,4 @@ add_executable(lca_fischer_heun lca/fischer_heun.cpp)
 
 add_executable(rectangle_sum rectangle_sum/main.cpp)
 add_executable(persistent_queue persistent_queue/main_persistent_queue.cpp)
+add_executable(sqrt_of_formal_power_series sqrt_of_formal_power_series/main_sqrt_of_formal_power_series.cpp)
