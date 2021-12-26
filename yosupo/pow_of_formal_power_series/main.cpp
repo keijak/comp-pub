@@ -1,223 +1,161 @@
 #include <bits/stdc++.h>
-
 #include <atcoder/convolution>
 #include <atcoder/modint>
 
-using i64 = long long;
-using u64 = unsigned long long;
-#define REP(i, n) for (int i = 0, REP_N_ = int(n); i < REP_N_; ++i)
+#define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
+#define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-
-template <class T>
-inline bool chmax(T &a, T b) {
-  return a < b and ((a = std::move(b)), true);
-}
-template <class T>
-inline bool chmin(T &a, T b) {
-  return a > b and ((a = std::move(b)), true);
-}
-
-template <typename T>
-using V = std::vector<T>;
-template <typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
-}
-template <typename Container>
-std::ostream &pprint(const Container &a, std::string_view sep = " ",
-                     std::string_view ends = "\n", std::ostream *os = nullptr) {
-  if (os == nullptr) os = &std::cout;
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) *os << sep;
-    *os << *it;
-  }
-  return *os << ends;
-}
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-template <typename T,
-          typename = std::enable_if_t<is_iterable<T>::value &&
-                                      !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return pprint(a, ", ", "", &(os << "{")) << "}";
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
+using Int = long long;
+using Uint = unsigned long long;
+using Real = long double;
+#include <atcoder/modint>
+using Mint = atcoder::modint998244353;
+std::ostream &operator<<(std::ostream &os, const Mint &m) {
+  return os << m.val();
 }
 
 #ifdef MY_DEBUG
-template <typename T>
-void pdebug(const T &value) {
-  std::cerr << value;
-}
-template <typename T, typename... Ts>
-void pdebug(const T &value, const Ts &... args) {
-  pdebug(value);
-  std::cerr << ", ";
-  pdebug(args...);
-}
-#define DEBUG(...)                                   \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    pdebug(__VA_ARGS__);                             \
-    std::cerr << std::endl;                          \
-  } while (0)
+#include "debug_dump.hpp"
+#include "backward.hpp"
+backward::SignalHandling kSignalHandling;
 #else
-#define pdebug(...)
-#define DEBUG(...)
+#define DUMP(...)
+#define cerr if(false)cerr
 #endif
 
-using namespace std;
-using mint = atcoder::modint998244353;
+template<typename T, int DMAX>
+struct NTTMult {
+  static_assert(atcoder::internal::is_modint<T>::value, "Requires ACL modint.");
+  static_assert(T::mod() == 998244353, "Requires an NTT-friendly mod.");
 
-// Formal Power Series (dense format).
-template <typename T, int DMAX>
+  using value_type = T;
+  static constexpr int dmax() { return DMAX; }
+
+  static std::vector<T> multiply(const std::vector<T> &x,
+                                 const std::vector<T> &y) {
+    std::vector<T> res = atcoder::convolution(x, y);
+    if (int(res.size()) > DMAX + 1) res.resize(DMAX + 1);  // shrink
+    return res;
+  }
+
+  static std::vector<T> invert(const std::vector<T> &x, int d = -1) {
+    int n = x.size();
+    assert(n != 0 && x[0].val() != 0);  // must be invertible
+    if (d == -1) d = n;
+    assert(d >= 0);
+    std::vector<T> res{x[0].inv()};
+    for (int m = 1, m2 = 2; m < d; m = m2, m2 *= 2) {
+      std::vector<T> f(x.begin(), x.begin() + std::min(n, m2));
+      std::vector<T> g(res);
+      f.resize(m2), atcoder::internal::butterfly(f);
+      g.resize(m2), atcoder::internal::butterfly(g);
+      for (int i = 0; i < m2; ++i) f[i] *= g[i];
+      atcoder::internal::butterfly_inv(f);
+      f.erase(f.begin(), f.begin() + m);
+      f.resize(m2), atcoder::internal::butterfly(f);
+      for (int i = 0; i < m2; ++i) f[i] *= g[i];
+      atcoder::internal::butterfly_inv(f);
+      T iz = T(m2).inv();
+      iz *= -iz;
+      for (int i = 0; i < m; ++i) f[i] *= iz;
+      res.insert(res.end(), f.begin(), f.begin() + m);
+    }
+    res.resize(d);
+    return res;
+  }
+};
+
+template<typename Mult>
 struct DenseFPS {
+  using T = typename Mult::value_type;
+  static constexpr int dmax() { return Mult::dmax(); }
+
   // Coefficients of terms from x^0 to x^DMAX.
   std::vector<T> coeff_;
 
-  DenseFPS() : coeff_(1) {}  // zero-initialized
+  DenseFPS() : coeff_(1, 0) {}  // zero
+
   explicit DenseFPS(std::vector<T> c) : coeff_(std::move(c)) {
-    assert((int)c.size() <= DMAX + 1);
+    while (size() > dmax() + 1) coeff_.pop_back();
+    assert(size() > 0);
+  }
+  DenseFPS(std::initializer_list<T> c) : coeff_(c.begin(), c.end()) {
+    while (size() > dmax() + 1) coeff_.pop_back();
+    assert(size() > 0);
   }
 
-  DenseFPS(const DenseFPS &other) : coeff_(other.coeff_) {}
-  DenseFPS(DenseFPS &&other) : coeff_(std::move(other.coeff_)) {}
-  DenseFPS &operator=(const DenseFPS &other) {
-    coeff_ = other.coeff_;
-    return *this;
-  }
-  DenseFPS &operator=(DenseFPS &&other) {
-    coeff_ = std::move(other.coeff_);
-    return *this;
-  }
+  // size <= dmax + 1
+  inline int size() const { return static_cast<int>(coeff_.size()); }
 
-  int size() const { return (int)coeff_.size(); }
+  // Returns the coefficient of x^k.
+  inline T operator[](int k) const { return (k >= size()) ? 0 : coeff_[k]; }
 
-  // Returns the coefficient of x^dy.
-  T operator[](int dy) const {
-    if (dy >= size()) return 0;
-    return coeff_[dy];
+  // Removes trailing zeros.
+  void shrink() {
+    while (coeff_.size() > 1 and coeff_.back() == T(0)) coeff_.pop_back();
   }
 
   DenseFPS &operator+=(const T &scalar) {
     coeff_[0] += scalar;
     return *this;
   }
-  friend DenseFPS operator+(const DenseFPS &x, const T &scalar) {
-    DenseFPS res = x;
-    res += scalar;
-    return res;
+  friend DenseFPS operator+(const DenseFPS &f, const T &scalar) {
+    return DenseFPS(f) += scalar;
   }
   DenseFPS &operator+=(const DenseFPS &other) {
-    if (size() < other.size()) {
-      coeff_.resize(other.size());
-    }
-    for (int dx = 0; dx < other.size(); ++dx) coeff_[dx] += other[dx];
+    if (size() < other.size()) coeff_.resize(other.size());
+    for (int i = 0; i < other.size(); ++i) coeff_[i] += other[i];
     return *this;
   }
-  friend DenseFPS operator+(const DenseFPS &x, const DenseFPS &y) {
-    DenseFPS res = x;
-    res += y;
-    return res;
+  friend DenseFPS operator+(const DenseFPS &f, const DenseFPS &g) {
+    return DenseFPS(f) += g;
   }
 
   DenseFPS &operator-=(const DenseFPS &other) {
-    if (size() < other.size()) {
-      coeff_.resize(other.size());
-    }
-    for (int dx = 0; dx < other.size(); ++dx) coeff_[dx] -= other[dx];
+    if (size() < other.size()) coeff_.resize(other.size());
+    for (int i = 0; i < other.size(); ++i) coeff_[i] -= other[i];
     return *this;
   }
-  friend DenseFPS operator-(const DenseFPS &x, const DenseFPS &y) {
-    DenseFPS res = x;
-    res -= y;
-    return res;
+  friend DenseFPS operator-(const DenseFPS &f, const DenseFPS &g) {
+    return DenseFPS(f) -= g;
   }
+
+  DenseFPS operator-() const { return *this * -1; }
 
   DenseFPS &operator*=(const T &scalar) {
-    for (auto &x : coeff_) x *= scalar;
+    for (auto &x: coeff_) x *= scalar;
     return *this;
   }
-  friend DenseFPS operator*(const DenseFPS &x, const T &scalar) {
-    DenseFPS res = x;
-    res *= scalar;
-    return res;
+  friend DenseFPS operator*(const DenseFPS &f, const T &scalar) {
+    return DenseFPS(f) *= scalar;
+  }
+  friend DenseFPS operator*(const T &scalar, const DenseFPS &g) {
+    return DenseFPS{scalar} *= g;
   }
   DenseFPS &operator*=(const DenseFPS &other) {
-    *this = this->mul_naive(other);
-    return *this;
+    return *this =
+               DenseFPS(Mult::multiply(std::move(this->coeff_), other.coeff_));
   }
-  friend DenseFPS operator*(const DenseFPS &x, const DenseFPS &y) {
-    return x.mul_naive(y);
-  }
-
-  // Naive multiplication. O(N^2)
-  DenseFPS inv() const {
-    std::vector<T> res(size());
-    res[0] = coeff_[0].inv();
-    for (int i = 1; i < size(); ++i) {
-      mint s = 0;
-      for (int j = 1; j <= i; ++j) {
-        s += coeff_[j] * res[i - j];
-      }
-      res[i] = -res[0] * s;
-    }
-    return DenseFPS(std::move(res));
-  }
-
- private:
-  // Naive multiplication. O(N^2)
-  DenseFPS mul_naive(const DenseFPS &other) const {
-    const int n = std::min(size() + other.size() - 1, DMAX + 1);
-    std::vector<T> res(n);
-    for (int dx = 0; dx < size(); ++dx) {
-      for (int j = 0; j < other.size(); ++j) {
-        if (dx + j >= n) break;
-        res[dx + j] += coeff_[dx] * other.coeff_[j];
-      }
-    }
-    return DenseFPS(std::move(res));
+  friend DenseFPS operator*(const DenseFPS &f, const DenseFPS &g) {
+    return DenseFPS(Mult::multiply(f.coeff_, g.coeff_));
   }
 };
 
-template <typename ModInt, int DMAX>
-DenseFPS<ModInt, DMAX> mul_ntt(const DenseFPS<ModInt, DMAX> &x,
-                               const DenseFPS<ModInt, DMAX> &y) {
-  static_assert(ModInt::mod() != 1'000'000'007);  // Must be a NTT-friendly MOD!
-  auto res = atcoder::convolution(x.coeff_, y.coeff_);
-  if (res.size() > DMAX + 1) res.resize(DMAX + 1);  // shrink
-  return DenseFPS<ModInt, DMAX>(std::move(res));
-}
-
-template <typename T, int DMAX>
-DenseFPS<T, DMAX> pow_generic(
-    const DenseFPS<T, DMAX> &x, u64 t,
-    DenseFPS<T, DMAX> (*mulfunc)(const DenseFPS<T, DMAX> &,
-                                 const DenseFPS<T, DMAX> &)) {
-  DenseFPS<T, DMAX> base = x, res;
-  res.coeff_[0] = 1;
+template<typename FPS>
+FPS pow(FPS base, long long t) {
+  assert(t >= 0);
+  FPS res = {1};
   while (t) {
-    if (t & 1) res = mulfunc(res, base);
-    base = mulfunc(base, base);
+    if (t & 1) res *= base;
+    base *= base;
     t >>= 1;
   }
   return res;
 }
 
-template <typename ModInt, int DMAX>
-DenseFPS<ModInt, DMAX> pow_ntt(const DenseFPS<ModInt, DMAX> &x, u64 t) {
-  return pow_generic(x, t, mul_ntt);
-}
+using namespace std;
+constexpr int D = 500000;
+using DF = DenseFPS<NTTMult<Mint, D>>;
 
 int main() {
   ios::sync_with_stdio(false);
@@ -225,18 +163,13 @@ int main() {
 
   int n, m;
   cin >> n >> m;
-  V<mint> a(n);
+  vector<Mint> a(n);
   REP(i, n) {
     int x;
     cin >> x;
     a[i] = x;
   }
 
-  DenseFPS<mint, 500000> f(std::move(a));
-  auto g = pow_ntt(f, m);
-  REP(i, n) {
-    if (i > 0) cout << ' ';
-    cout << g[i].val();
-  }
-  cout << endl;
+  auto g = pow(DF(std::move(a)), m);
+  REP(i, n) cout << g[i].val() << (i == n - 1 ? '\n' : ' ');
 }
