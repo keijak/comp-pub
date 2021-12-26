@@ -119,8 +119,8 @@ auto solve() {
   sort_unique(a);
   n = ssize(a);
   Int ans = kBig;
-  const int M = 10;
-  REP(i1, 6) REP(i2, 3) {
+  const int M = 6;
+  REP(i1, 2) REP(i2, 3) {
       auto dp = vector(M, Int(kBig));
       REP(j1, i1 + 1) REP(j2, i2 + 1) {
           int v = j1 + j2 * 2;
@@ -128,7 +128,6 @@ auto solve() {
             chmin(dp[v], j1 + j2);
           }
         }
-
       Int min3 = 0;
       REP(j, n) {
         Int r = a[j] % 3LL;
