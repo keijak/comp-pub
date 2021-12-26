@@ -159,8 +159,12 @@ struct DenseFPS {
   // Returns the coefficient of x^k.
   inline T operator[](int k) const { return (k >= size()) ? 0 : coeff_[k]; }
 
+  inline bool can_shrink() const {
+    return coeff_.size() > 1 and coeff_.back() == T(0);
+  }
+
   void shrink() {
-    while (coeff_.size() > 1 and coeff_.back() == T(0)) coeff_.pop_back();
+    while (can_shrink()) coeff_.pop_back();
   }
 
   DenseFPS &operator+=(const T &scalar) {
