@@ -200,17 +200,6 @@ struct DenseFPS {
     return f * DenseFPS(Mult::invert(g.coeff_));
   }
 
-  DenseFPS pow(long long t) const {
-    assert(t >= 0);
-    DenseFPS res = {1}, base = *this;
-    while (t) {
-      if (t & 1) res *= base;
-      base *= base;
-      t >>= 1;
-    }
-    return res;
-  }
-
   // Multiplies by (1 + c * x^k).
   void multiply2_inplace(int k, int c) {
     assert(k > 0);
@@ -231,20 +220,34 @@ auto solve() {
   DF g = {1};
   REP(i, n) g.multiply2_inplace(vs[i], 1);
 
-  auto dbl = [&](auto &f, int t) -> DF {
-    if (t == 0) {
-      return DF{1};
+  unordered_map<int, DF> memo;
+
+  auto powg = [&](auto &f, int t) -> DF {
+    if (t == 0) return DF{1};
+    if (t == 1) return g;
+    if (auto it = memo.find(t); it != memo.end()) {
+      return it->second;
     }
-    if (t == 1) {
-      return g;
-    }
-    int h = t / 2;
-    auto hf = f(f, h);
-    auto ret = hf + g.pow(h) * hf;
+    DF res;
     if (t & 1) {
-      ret += g.pow(t);
+      res = f(f, t - 1) * g;
+    } else {
+      res = f(f, t / 2);
+      res *= res;
     }
-    return ret;
+    memo[t] = res;
+    return res;
+  };
+
+  auto dbl = [&](auto &f, int t) -> DF {
+    if (t == 0) return DF{0};
+    if (t == 1) return g;
+    if (t & 1) {
+      return f(f, t - 1) + powg(powg, t);
+    } else {
+      auto hf = f(f, t / 2);
+      return hf + hf * powg(powg, t / 2);
+    }
   };
   return dbl(dbl, K)[V];
 }
