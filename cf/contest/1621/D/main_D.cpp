@@ -19,6 +19,9 @@ inline int ssize(const T &a) {
   return (int) a.size();
 }
 
+template<typename T>
+constexpr T BigVal = std::numeric_limits<T>::max() / 2;
+
 struct Void {};
 
 template<class T>
@@ -83,14 +86,29 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 auto solve() {
+  const int n = in;
+  const int n2 = n * 2;
+  vector C(n2, vector(n2, -BigVal<Int>));
+  REP(i, n2) {
+    REP(j, n2) cin >> C[i][j];
+  }
+  Int dest = 0;
+  for (int i = n; i < n2; ++i) {
+    for (int j = n; j < n2; ++j) {
+      dest += C[i][j];
+    }
+  }
 
-  return Void{};
+  Int cost = min<Int>({C[n - 1][n], C[n][n - 1], C[n - 1][n2 - 1], C[n2 - 1][n - 1],
+                       C[0][n], C[0][n2 - 1], C[n][0], C[n2 - 1][0],
+                      });
+  return dest + cost;
 }
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
   cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
+  const int T = in;
   REP(t, T) {
     auto ans = solve();
     print(ans);

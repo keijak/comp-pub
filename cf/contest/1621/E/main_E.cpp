@@ -106,8 +106,7 @@ auto solve() {
     Int k = in;
     b[i] = (vector<Int>) in(k);
     Int s = accumulate(ALL(b[i]), 0LL);
-    Int g = gcd(s, k);
-    avg[i] = Rat{s / g, k / g};
+    avg[i] = Rat{s, k};
   }
   DUMP(avg);
   vector<int> ix(m);
@@ -137,7 +136,7 @@ auto solve() {
     DUMP(j);
 
     int kj = ssize(b[j]) - 1;
-    Int sumj = accumulate(ALL(b[j]), 0LL);
+    Int sumj = avg[j].first;
     ans[j].resize(ssize(b[j]));
     REP(s, ssize(b[j])) {
       if (not impossibles.empty() or avail.empty()) {
@@ -145,8 +144,7 @@ auto solve() {
       } else {
         const Rat tmax = *avail.rbegin();
         Int sumr = sumj - b[j][s];
-        Int g = std::gcd(sumr, kj);
-        if (LessRat()(tmax, Rat{sumr / g, kj / g})) {
+        if (LessRat()(tmax, Rat{sumr, kj})) {
           ans[j][s] = '0';
         } else {
           ans[j][s] = '1';
