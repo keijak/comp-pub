@@ -86,24 +86,38 @@ void print_seq(const Container &a, const char *sep, const char *ends,
   os << ends;
 }
 
-}  // namespace aux
+int next_comma_(const std::string& s) {
+  int i = 0, stk = 0;;
+  for (; i < (int)s.size(); ++i) {
+    if (s[i] == ',') {
+      if (stk == 0) break;
+    } else if (s[i] == '(') {
+      ++stk;
+    } else if (s[i] == ')') {
+      --stk;
+    }
+  }
+  return i;
+}
 
 template<typename T>
-void dump_(const T &value) {
-  std::cerr << value;
+void dump_(std::string name, const T &value) {
+  std::cerr << "\033[32m" << name << "\033[33m=\033[0m" << value;
 }
 
 template<typename T, typename... Ts>
-void dump_(const T &value, const Ts &...args) {
-  dump_(value);
-  std::cerr << ", ";
-  dump_(args...);
+void dump_(std::string names, const T &value, const Ts &...args) {
+  const int p = next_comma_(names);
+  dump_(names.substr(0, p), value);
+  std::cerr << "\033[33m; \033[0m";
+  dump_(names.substr(p + 2), args...);
 }
+}  // namespace aux
 
 #define DUMP(...)                                    \
   do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ") "; \
-    std::cerr << #__VA_ARGS__ << ":\033[0m ";        \
-    dump_(__VA_ARGS__);                              \
+    std::cerr << " \033[33m (L" << __LINE__ << ":";  \
+    std::cerr << __FUNCTION__ << ")\033[0m ";        \
+    ::aux::dump_(#__VA_ARGS__, __VA_ARGS__);         \
     std::cerr << std::endl;                          \
   } while (0)
