@@ -101,16 +101,16 @@ int next_comma_(const std::string& s) {
 }
 
 template<typename T>
-void dump_(std::string name, const T &value) {
+void named_dump(std::string name, const T &value) {
   std::cerr << "\033[32m" << name << "\033[33m=\033[0m" << value;
 }
 
 template<typename T, typename... Ts>
-void dump_(std::string names, const T &value, const Ts &...args) {
+void named_dump(std::string names, const T &value, const Ts &...args) {
   const int p = next_comma_(names);
-  dump_(names.substr(0, p), value);
+  named_dump(names.substr(0, p), value);
   std::cerr << "\033[33m; \033[0m";
-  dump_(names.substr(p + 2), args...);
+  named_dump(names.substr(p + 2), args...);
 }
 }  // namespace aux
 
@@ -118,6 +118,6 @@ void dump_(std::string names, const T &value, const Ts &...args) {
   do {                                               \
     std::cerr << " \033[33m (L" << __LINE__ << ":";  \
     std::cerr << __FUNCTION__ << ")\033[0m ";        \
-    ::aux::dump_(#__VA_ARGS__, __VA_ARGS__);         \
+    ::aux::named_dump(#__VA_ARGS__, __VA_ARGS__);    \
     std::cerr << std::endl;                          \
   } while (0)
