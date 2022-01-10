@@ -1,63 +1,77 @@
 #include <bits/stdc++.h>
-using namespace std;
-using Int = long long;
 
-// https://kopricky.github.io/code/SegmentTrees/orthogonal_range_report.html
+template<typename T>
+struct Compressed {
+  std::vector<T> values;
 
-#define all(v) (v).begin(),(v).end()
-
-template<typename CandidateType>
-class OrthogonalRangeReport {
- private:
-  using CT = CandidateType;
-  using pcc = pair<CT, CT>;
-  using pci = pair<CT, int>;
-  int n, sz;
-  //座標, インデックス
-  vector<pair<pcc, int> > sorted;
-  //x座標
-  vector<CT> xs;
-  //y座標, インデックス
-  vector<vector<pci> > ys;
-  void query(int lxid, int rxid, CT ly, CT ry, vector<int> &report, int k, int l, int r) {
-    if (r <= lxid || rxid <= l) return;
-    if (lxid <= l && r <= rxid) {
-      auto st = lower_bound(all(ys[k]), pci(ly, -1)), ed = upper_bound(all(ys[k]), pci(ry, -1));
-      for (auto it = st; it != ed; ++it) {
-        report.push_back(it->second);
-      }
-    } else {
-      query(lxid, rxid, ly, ry, report, 2 * k + 1, l, (l + r) / 2);
-      query(lxid, rxid, ly, ry, report, 2 * k + 2, (l + r) / 2, r);
-    }
+  explicit Compressed(std::vector<T> v) : values(std::move(v)) {
+    std::sort(values.begin(), values.end());
+    values.erase(std::unique(values.begin(), values.end()), values.end());
   }
- public:
-  OrthogonalRangeReport(const vector<pcc> &cand) : n(1), sz((int) cand.size()), sorted(sz), xs(sz) {
-    while (n < sz) n *= 2;
-    for (int i = 0; i < sz; i++) {
-      sorted[i] = make_pair(cand[i], i);
-    }
-    sort(sorted.begin(), sorted.end());
-    ys.resize(2 * n - 1);
-    for (int i = 0; i < sz; i++) {
-      xs[i] = (sorted[i].first).first;
-      ys[i + n - 1] = {pci((sorted[i].first).second, sorted[i].second)};
-    }
-    for (int i = n - 2; i >= 0; i--) {
-      ys[i].resize((int) ys[2 * i + 1].size() + (int) ys[2 * i + 2].size());
-      merge(all(ys[2 * i + 1]), all(ys[2 * i + 2]), ys[i].begin(), [&](pci &a, pci &b) {
-        return a.first < b.first;
-      });
-    }
-  }
-  // [lx,rx)×[ly,ry)の長方形領域の範囲内の点のインデックスを報告する
-  void query(const CT lx, const CT rx, const CT ly, const CT ry, vector<int> &report) {
-    const int lxid = lower_bound(all(xs), lx) - xs.begin();
-    const int rxid = upper_bound(all(xs), rx - 1) - xs.begin();
-    if (lxid >= rxid) return;
-    query(lxid, rxid, ly, ry, report, 0, 0, n);
+
+  int size() const { return values.size(); }
+
+  const T &value(int i) const { return values[i]; }
+
+  int index(const T &x) const {
+    return std::lower_bound(values.begin(), values.end(), x) - values.begin();
   }
 };
+
+template<typename T>
+struct MergeSegmentTree {
+  int n_;
+  std::vector<std::vector<T>> data_;  // Rows sorted by T.
+
+  explicit MergeSegmentTree(std::vector<std::vector<T>> data)
+      : n_(data.size()), data_(2 * n_) {
+    for (int i = n_, n2 = n_ * 2; i < n2; ++i) {
+      data_[i] = std::move(data[i - n_]);
+      std::sort(data_[i].begin(), data_[i].end());
+    }
+    for (int i = n_ - 1; i >= 1; --i)
+      std::merge(data_[i << 1 | 0].begin(), data_[i << 1 | 0].end(),
+                 data_[i << 1 | 1].begin(), data_[i << 1 | 1].end(),
+                 std::back_inserter(data_[i]));
+  }
+
+  // Returns the nubmer of points in the range [x_lo, x_hi) x [y_lo, y_hi).
+  // O(N(logN)^2)
+  int count(int x_lo, int x_hi, T y_lo, T y_hi) const {
+    int res = 0;
+    for (x_lo += n_, x_hi += n_; x_lo < x_hi; x_lo >>= 1, x_hi >>= 1) {
+      if (x_lo & 1) res += count_(x_lo++, y_lo, y_hi);
+      if (x_hi & 1) res += count_(--x_hi, y_lo, y_hi);
+    }
+    return res;
+  }
+
+  // Returns all points in the range [x_lo, x_hi) x [y_lo, y_hi).
+  // O(N(logN)^2 + |output|)
+  std::vector<T> collect(int x_lo, int x_hi, T y_lo, T y_hi) const {
+    std::vector<T> res;
+    for (x_lo += n_, x_hi += n_; x_lo < x_hi; x_lo >>= 1, x_hi >>= 1) {
+      if (x_lo & 1) collect_(x_lo++, y_lo, y_hi, res);
+      if (x_hi & 1) collect_(--x_hi, y_lo, y_hi, res);
+    }
+    return res;
+  }
+
+ private:
+  int count_(int i, T y_lo, T y_hi) const {
+    auto lo_it = std::lower_bound(data_[i].begin(), data_[i].end(), y_lo);
+    auto hi_it = std::lower_bound(data_[i].begin(), data_[i].end(), y_hi);
+    return int(hi_it - lo_it);
+  }
+  void collect_(int i, T y_lo, T y_hi, std::vector<T> &out) const {
+    auto lo_it = std::lower_bound(data_[i].begin(), data_[i].end(), y_lo);
+    auto hi_it = std::lower_bound(data_[i].begin(), data_[i].end(), y_hi);
+    std::copy(lo_it, hi_it, std::back_inserter(out));
+  }
+};
+
+using namespace std;
+using Int = long long;
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
@@ -67,17 +81,25 @@ int main() {
   const Int K2 = Int(K) * K;
 
   vector<pair<Int, Int>> points(n);
+  vector<Int> xs;
   for (auto&[x, y]: points) {
     cin >> x >> y;
+    xs.push_back(x);
+  }
+  Compressed<Int> xc(xs);
+  vector<vector<pair<Int, int>>> data(xc.size());
+  for (int i = 0; i < n; ++i) {
+    auto[x, y] = points[i];
+    int xi = xc.index(x);
+    data[xi].push_back({y, i});
   }
 
-  OrthogonalRangeReport<Int> tree(points);
+  MergeSegmentTree<pair<Int, int>> tree(data);
   vector<pair<int, int>> ans;
   for (int i = 1; i < n; ++i) {
     auto[x, y] = points[i];
-    vector<int> res;
-    tree.query(x - K, x + K + 1, y - K, y + K + 1, res);
-    for (int j: res) {
+    vector<pair<Int, int>> res = tree.collect(xc.index(x - K), xc.index(x + K + 1), {y - K, -1}, {y + K + 1, -1});
+    for (auto[_, j]: res) {
       if (j < i) {
         Int dx = x - points[j].first, dy = y - points[j].second;
         if (dx * dx + dy * dy <= K2) {
