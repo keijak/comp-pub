@@ -88,23 +88,53 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
+struct custom_hash {
+  static Int splitmix64(uint64_t x) {
+    // http://xorshift.di.unimi.it/splitmix64.c
+    x += 0x9e3779b97f4a7c15;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+    return x ^ (x >> 31);
+  }
+
+  size_t operator()(Int x) const {
+    static const Int FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix64(x + FIXED_RANDOM);
+  }
+};
+
 auto solve() {
   int n = in;
   vector<Int> a = in(n);
-  Int s = 0;
-  map<Int, vector<int>> c;
-  Mint r = 0;
-  REP(i, n - 1) {
-    s += a[i];
-    for (auto j: c[s]) {
-      int q = n - 2 - i;
-      r += Mint(2).pow(j + q) - 1;
+
+  vector<vector<int>> blocker(n + 1);
+  {
+    unordered_map<Int, int, custom_hash> mp;
+    mp.reserve(1 << 20);
+    mp.max_load_factor(0.25);
+
+    Int rsum = 0;
+    for (int i = n - 1; i >= 0; --i) {
+      rsum += a[i];
+      if (i != 0) {
+        if (auto it = mp.find(rsum); it != mp.end()) {
+          blocker[it->second].push_back(i);
+        }
+      }
+      mp[rsum] = i;
     }
-    c[s].push_back(i);
   }
-  DUMP(r);
-  Mint total = Mint(2).pow(n - 1);
-  return total - r;
+  auto dp = vector(n + 1, Mint(0));
+  dp[0] = 1;
+  Mint dpsum = 1;
+  REP(r, 1, n + 1) {
+    dp[r] = dpsum;
+    dpsum += dp[r];
+    for (int i: blocker[r]) {
+      dpsum -= dp[i];
+    }
+  }
+  return dp[n];
 }
 
 int main() {
