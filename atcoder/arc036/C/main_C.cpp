@@ -94,23 +94,24 @@ auto solve() {
     const int offset = K + 5;
     dp[0][offset][lower == 0] = 1;
     REP(i, n) {
+      const int i0 = i & 1, i1 = i0 ^ 1;
+      fill(ALL(dp[i1]), vector(2, Mint(0)));
       for (int j = lower; j <= upper; ++j) {
         REP(reached, 2) {
-          if (dp[0][offset + j][reached].val() == 0) continue;
+          auto cur = dp[i0][offset + j][reached];
+          if (cur.val() == 0) continue;
           if (S[i] != '0' and j + 1 <= upper) {
-            dp[1][offset + j + 1][reached] += dp[0][offset + j][reached];
+            dp[i1][offset + j + 1][reached] += cur;
           }
           if (S[i] != '1' and j - 1 >= lower) {
             bool reached2 = reached or (j - 1 == lower);
-            dp[1][offset + j - 1][reached2] += dp[0][offset + j][reached];
+            dp[i1][offset + j - 1][reached2] += cur;
           }
         }
       }
-      swap(dp[0], dp[1]);
-      dp[1].assign(K * 2 + 10, vector(2, Mint(0)));
     }
     for (int j = lower; j <= upper; ++j) {
-      ans += dp[0][offset + j][1];
+      ans += dp[n & 1][offset + j][1];
     }
   }
   return ans;
