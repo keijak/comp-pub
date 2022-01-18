@@ -13,21 +13,17 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
 }
 
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
 struct Void {};
 
-template<class T>
+template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, Void>::value) {
     return std::cout;  // print nothing
@@ -37,7 +33,7 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
+template<typename T>
 inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
 template<typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
@@ -87,38 +83,91 @@ backward::SignalHandling kSignalHandling;
 #endif
 
 using namespace std;
-
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
+inline int popcount(unsigned x) { return __builtin_popcount(x); }
 
 auto solve() {
-  int n = in, D = in;
-  const int M = 2 * D + 1;
-  vector<int> a = in(n);
-  auto dp = vector(n + 1, vector(1 << M, Mint(0)));
-  dp[0][0] = 1;
-  REP(i, n) {
-    REP(j, 1 << M) {
-      if (a[i] != -1) {
-        int k = a[i] - i + D;
-        if (not has_bit(j, k)) {
-          int j2 = (j | (1 << k)) >> 1;
-          dp[i + 1][j2] += dp[i][j];
-        }
-        continue;
-      }
+  string N = in;
+  int n = ssize(N);
+  int m = in;
+  vector<int> C = in(m);
+  vector<int> rc(10, -1);
+  REP(j, m) rc[C[j]] = j;
+  const int kFull = (1 << m) - 1;
 
-      set<int> used;
-      REP(k, M) {
-        if (has_bit(j, k)) {
-          used.insert(i + k - D);
-        }
-      }
+  auto dp = vector(n + 1, vector(1 << m, vector(2, pair<Mint, int>())));
 
+  auto f = [&](auto &f, int i, int mask, bool down) -> optional<Mint> {
+    if (i == n) {
+      if (down or mask != 0) return nullopt;
+      return 0;
     }
-  }
+    if (dp[i][mask][down].second == 2) {
+      return dp[i][mask][down].first;
+    }
+    if (dp[i][mask][down].second == 1) {
+      return nullopt;
+    }
+    bool ret_ok = false;
+    Mint ret = 0;
+    int curd = N[n - 1 - i] - '0';
+    bool down2 = false;
+    if (down) {
+      curd--;
+      if (curd == -1) {
+        curd = 9;
+        down2 = true;
+      }
+    }
+    //if (i < n - 1) {
+    for (int d = 0; d <= 9; ++d) {
+      bool down3 = down2;
+      if (d > curd) {
+        down3 = true;
+      }
+      int mask2 = mask;
+      if (int j = rc[d]; j != -1) {
+        mask2 = mask & ~(1 << j);
+      }
+      auto sub = f(f, i + 1, mask2, down3);
+      if (sub.has_value()) {
+        ret += *sub * 10 + d;
+        ret_ok = true;
+      }
+    }
+    //}
 
-  return Void{};
+    // Head.
+    [&]() {
+      int headmax = 9;
+      if (i == n - 1) {
+        if (down2) return;
+        headmax = curd;
+      }
+      for (int d = 1; d <= headmax; ++d) {
+        int mask2 = mask;
+        if (int j = rc[d]; j != -1) {
+          mask2 = mask2 & ~(1 << j);
+        }
+        if (mask2 == 0) {
+          ret += d;
+          ret_ok = true;
+        }
+      }
+    }();
+    pair<Mint, int> result;
+    if (ret_ok) {
+      result.first = ret;
+      result.second = 2;
+      dp[i][mask][down] = result;
+      return ret;
+    }
+    result.second = 1;
+    dp[i][mask][down] = result;
+    return nullopt;
+  };
+
+  auto ans = f(f, 0, kFull, false);
+  return ans.value_or(0);
 }
 
 int main() {

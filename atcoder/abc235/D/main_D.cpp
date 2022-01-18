@@ -6,28 +6,18 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
-#include <atcoder/modint>
-using Mint = atcoder::modint998244353;
-std::ostream &operator<<(std::ostream &os, const Mint &m) {
-  return os << m.val();
-}
-
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
 struct Void {};
 
-template<class T>
+template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, Void>::value) {
     return std::cout;  // print nothing
@@ -37,7 +27,7 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
+template<typename T>
 inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
 template<typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
@@ -88,37 +78,42 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
+template<class T>
+using MinHeap = priority_queue<T, vector<T>, greater<T>>;
 
 auto solve() {
-  int n = in, D = in;
-  const int M = 2 * D + 1;
-  vector<int> a = in(n);
-  auto dp = vector(n + 1, vector(1 << M, Mint(0)));
-  dp[0][0] = 1;
-  REP(i, n) {
-    REP(j, 1 << M) {
-      if (a[i] != -1) {
-        int k = a[i] - i + D;
-        if (not has_bit(j, k)) {
-          int j2 = (j | (1 << k)) >> 1;
-          dp[i + 1][j2] += dp[i][j];
-        }
-        continue;
-      }
+  Int a = in, N = in;
+  MinHeap<pair<int, Int>> heap;
+  heap.push({0, N});
+  map<Int, int> minc;
 
-      set<int> used;
-      REP(k, M) {
-        if (has_bit(j, k)) {
-          used.insert(i + k - D);
-        }
+  auto push = [&](Int x, int c) -> bool {
+    if (x <= 0) return false;
+    auto it = minc.find(x);
+    if (it == minc.end() or it->second > c) {
+      minc[x] = c;
+      heap.push({c, x});
+      return true;
+    }
+    return false;
+  };
+  while (not heap.empty()) {
+    auto[c, x] = heap.top();
+    heap.pop();
+    if (x <= 0) continue;
+    if (x == 1) return c;
+    if (x % a == 0) {
+      push(x / a, c + 1);
+    }
+    string sx = to_string(x);
+    if (sx.size() >= 2) {
+      if (sx[1] != '0') {
+        string tx = sx.substr(1) + sx[0];
+        push(stoll(tx), c + 1);
       }
-
     }
   }
-
-  return Void{};
+  return -1;
 }
 
 int main() {

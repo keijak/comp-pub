@@ -6,28 +6,18 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
-#include <atcoder/modint>
-using Mint = atcoder::modint998244353;
-std::ostream &operator<<(std::ostream &os, const Mint &m) {
-  return os << m.val();
-}
-
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
 struct Void {};
 
-template<class T>
+template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, Void>::value) {
     return std::cout;  // print nothing
@@ -37,7 +27,7 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
+template<typename T>
 inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
 template<typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
@@ -88,37 +78,12 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
-
 auto solve() {
-  int n = in, D = in;
-  const int M = 2 * D + 1;
-  vector<int> a = in(n);
-  auto dp = vector(n + 1, vector(1 << M, Mint(0)));
-  dp[0][0] = 1;
-  REP(i, n) {
-    REP(j, 1 << M) {
-      if (a[i] != -1) {
-        int k = a[i] - i + D;
-        if (not has_bit(j, k)) {
-          int j2 = (j | (1 << k)) >> 1;
-          dp[i + 1][j2] += dp[i][j];
-        }
-        continue;
-      }
-
-      set<int> used;
-      REP(k, M) {
-        if (has_bit(j, k)) {
-          used.insert(i + k - D);
-        }
-      }
-
-    }
-  }
-
-  return Void{};
+  int x = in;
+  int a = x / 100;
+  int b = (x % 100) / 10;
+  int c = (x % 10);
+  return (x + 100 * b + 10 * c + a + 100 * c + 10 * a + b);
 }
 
 int main() {

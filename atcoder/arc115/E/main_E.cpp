@@ -13,21 +13,17 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
 }
 
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
 struct Void {};
 
-template<class T>
+template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, Void>::value) {
     return std::cout;  // print nothing
@@ -37,7 +33,7 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
+template<typename T>
 inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
 template<typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
@@ -88,37 +84,50 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
-
 auto solve() {
-  int n = in, D = in;
-  const int M = 2 * D + 1;
+  int n = in;
   vector<int> a = in(n);
-  auto dp = vector(n + 1, vector(1 << M, Mint(0)));
-  dp[0][0] = 1;
-  REP(i, n) {
-    REP(j, 1 << M) {
-      if (a[i] != -1) {
-        int k = a[i] - i + D;
-        if (not has_bit(j, k)) {
-          int j2 = (j | (1 << k)) >> 1;
-          dp[i + 1][j2] += dp[i][j];
-        }
-        continue;
-      }
+  vector<pair<int, Mint>> dp_stack;
+  dp_stack.emplace_back(0, 0);
+  dp_stack.emplace_back(a[0], 1);
+  Mint stack_sum = a[0];
+  Mint pending = 0;
+  int stack_sign = 1;
+  REP(i, 1, n) {
+    DUMP(i, dp_stack);
+    pending += stack_sum;
+    stack_sign *= -1;
+    int lost_height = 0;
+    Mint cnt = 0;
+    while (dp_stack.back().first >= a[i]) {
+      cnt += dp_stack.back().second;
+      lost_height += dp_stack.back().first - a[i];
+      dp_stack.pop_back();
+    }
 
-      set<int> used;
-      REP(k, M) {
-        if (has_bit(j, k)) {
-          used.insert(i + k - D);
-        }
+    bool pushed = false;
+    REP(j, dp[i - 1].size()) {
+      auto[x, v] = dp[i - 1][j];
+      if (x < a[i]) {
+        dp[i].emplace_back(x, s - v);
+      } else {
+        dp[i].emplace_back(a[i], s - v);
+        pushed = true;
+        break;
       }
-
+    }
+    if (not pushed) {
+      dp[i].emplace_back(a[i], s);
     }
   }
-
-  return Void{};
+  Mint ans = 0;
+  int px = 0;
+  REP(j, dp[n - 1].size()) {
+    auto[x, v] = dp[n - 1][j];
+    ans += (x - px) * v;
+    px = x;
+  }
+  return ans;
 }
 
 int main() {

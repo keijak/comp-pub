@@ -6,6 +6,8 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
+#include <atcoder/convolution>
+#include <atcoder/math>
 #include <atcoder/modint>
 using Mint = atcoder::modint998244353;
 std::ostream &operator<<(std::ostream &os, const Mint &m) {
@@ -13,21 +15,17 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
 }
 
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
 struct Void {};
 
-template<class T>
+template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, Void>::value) {
     return std::cout;  // print nothing
@@ -37,7 +35,7 @@ inline std::ostream &print_one(const T &x, char endc) {
     return std::cout << x << endc;
   }
 }
-template<class T>
+template<typename T>
 inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
 template<typename T, typename... Ts>
 std::ostream &print(const T &head, Ts... tail) {
@@ -86,39 +84,69 @@ backward::SignalHandling kSignalHandling;
 #define cerr if(false)cerr
 #endif
 
-using namespace std;
+template<class T = Mint>
+struct Factorials {
+  // factorials and inverse factorials.
+  std::vector<T> fact, ifact;
 
-template<typename T>
-inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
-
-auto solve() {
-  int n = in, D = in;
-  const int M = 2 * D + 1;
-  vector<int> a = in(n);
-  auto dp = vector(n + 1, vector(1 << M, Mint(0)));
-  dp[0][0] = 1;
-  REP(i, n) {
-    REP(j, 1 << M) {
-      if (a[i] != -1) {
-        int k = a[i] - i + D;
-        if (not has_bit(j, k)) {
-          int j2 = (j | (1 << k)) >> 1;
-          dp[i + 1][j2] += dp[i][j];
-        }
-        continue;
-      }
-
-      set<int> used;
-      REP(k, M) {
-        if (has_bit(j, k)) {
-          used.insert(i + k - D);
-        }
-      }
-
+  // n: max cached value.
+  Factorials(int n) : fact(n + 1), ifact(n + 1) {
+    assert(n >= 0);
+    assert(n < T::mod());
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+      fact[i] = fact[i - 1] * i;
+    }
+    ifact[n] = fact[n].inv();
+    for (int i = n; i >= 1; --i) {
+      ifact[i - 1] = ifact[i] * i;
     }
   }
 
-  return Void{};
+  // Combination (binomial coefficients)
+  T C(Int n, Int k) const {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * ifact[k] * ifact[n - k];
+  }
+};
+
+using namespace std;
+
+auto solve() {
+  int n = in, A = in, B = in, C = in;
+  Factorials fs(n + 10);
+  Mint pa = 1, pb = 1, pc = 1;
+
+  Mint ans = 0;
+  for (int k = n; k >= 0; --k) {
+    Mint now = fs.C(n, k);
+    now *= pa;
+    now *= pb;
+    now *= pc;
+    if (k & 1) {
+      ans -= now;
+    } else {
+      ans += now;
+    }
+
+    int m = n - k;
+    if (A < m + 1) {
+      pa = 2 * pa - fs.C(m, A);
+    } else {
+      pa *= 2;
+    }
+    if (B < m + 1) {
+      pb = 2 * pb - fs.C(m, B);
+    } else {
+      pb *= 2;
+    }
+    if (C < m + 1) {
+      pc = 2 * pc - fs.C(m, C);
+    } else {
+      pc *= 2;
+    }
+  }
+  return ans;
 }
 
 int main() {
