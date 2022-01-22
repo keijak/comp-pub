@@ -189,9 +189,9 @@ class Treap {
   }
 
   static NodePtr create_node(const value_type v, size_type pri) {
-    static Node pool[NODE_NUM];
-    static size_type ptr = 0;
-    return &(pool[ptr++] = Node(v, pri));
+    static std::unique_ptr<Node[]> pool(new Node[NODE_NUM]);
+    static size_t i = 0;
+    return &(pool[i++] = Node(v, pri));
   }
 
   void dump(NodePtr p, typename std::vector<value_type>::iterator itr) {
@@ -209,19 +209,71 @@ class Treap {
     return v;
   }
 };
+
+using u64 = std::uint64_t;
+using RHash = std::tuple<u64, u64, int>; // LtoR, RtoL, width
+
+
+struct RollingHash {
+  using u128 = __uint128_t;
+  static const u64 kMod = (1ULL << 61) - 1;
+
+  static u64 base() {
+    static const u64 kBase = []() {
+      std::mt19937_64 engine(std::random_device{}());
+      std::uniform_int_distribution<u64> rand(1000, kMod - 1);
+      return rand(engine);
+    }();
+    return kBase;
+  }
+
+  static inline u64 add(u64 a, u64 b) {
+    a += b;
+    return (a >= kMod) ? (a - kMod) : a;
+  }
+
+  static inline u64 sub(u64 a, u64 b) { return add(a, kMod - b); }
+
+  static inline u64 mul(u64 a, u64 b) {
+    u128 t = u128(a) * b;
+    u64 na = u64(t >> 61);
+    u64 nb = u64(t & kMod);
+    na += nb;
+    return (na >= kMod) ? (na - kMod) : na;
+  }
+
+  static u64 pow_base(int i) {
+    static std::vector<u64> kPowBase(1, 1);
+    while (int(kPowBase.size()) <= i) {
+      u64 val = mul(kPowBase.back(), base());
+      kPowBase.push_back(val);
+    }
+    return kPowBase[i];
+  }
+
+  // Calculates hash(a || b) from hash(a), hash(b) and length(b).
+  static u64 concat(u64 a_hash, u64 b_hash, int b_length) {
+    return add(mul(a_hash, pow_base(b_length)), b_hash);
+  }
+};
+
 class min_monoid {
  public:
-  using value_type = int;
-  static value_type identity() { return (1LL << 31) - 1; }
+  using value_type = RHash;
+  static value_type identity() { return {0, 0, 0}; }
   static value_type operation(const value_type a, const value_type b) {
-    return std::min(a, b);
+    const auto&[la, ra, wa] = a;
+    const auto&[lb, rb, wb] = b;
+    u64 lh = RollingHash::concat(la, lb, wb);
+    u64 rh = RollingHash::concat(rb, ra, wa);
+    return {lh, rh, wa + wb};
   }
 };
 
 class update_monoid {
  public:
-  using value_type = int;
-  static value_type identity() { return -1; }
+  using value_type = RHash;
+  static value_type identity() { return {0, 0, 0}; }
   static value_type operation(const value_type a, const value_type b) {
     if (b == identity())
       return a;
@@ -245,7 +297,10 @@ auto solve() {
   int n;
   cin >> n;
   Seq seq;
-  REP(i, n) seq.insert(i, i + 1);
+  REP(i, n) {
+    u64 h = i + 1;
+    seq.insert(i, {h, h, 1});
+  }
 
   auto shuf = [&](int a, int b) {
     if (a >= b) return;
@@ -275,8 +330,46 @@ auto solve() {
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  auto ans = solve();
-  for (int i = 0; i < int(ans.size()); ++i) {
-    cout << ans[i] << (i == int(ans.size()) - 1 ? '\n' : ' ');
+  int n, Q;
+  cin >> n >> Q;
+  string S;
+  cin >> S;
+  Seq seq;
+  REP(i, n) {
+    u64 h = S[i];
+    seq.insert(i, {h, h, 1});
+  }
+  REP(qi, Q) {
+    int qt;
+    cin >> qt;
+    if (qt == 1) {
+      int l, r;
+      cin >> l >> r;
+      --l;
+      auto[mt, rt] = seq.split(r);
+      auto[lt, _] = mt.split(l);
+      seq = Seq::merge(lt, rt);
+
+    } else if (qt == 2) {
+      char c;
+      int p;
+      cin >> c >> p;
+      --p;
+      seq.insert(p, {u64(c), u64(c), 1});
+    } else {
+      int l, r;
+      cin >> l >> r;
+      --l;
+      auto[lh, rh, w] = seq.query(l, r);
+      cout << (lh == rh ? "yes" : "no") << '\n';
+    }
+
+    // Debug
+//    auto deb = seq.dump();
+//    cerr << "Q[" << qi << "]: ";
+//    for (auto x: deb) {
+//      cerr << char(get<0>(x));
+//    }
+//    cerr << endl;
   }
 }
