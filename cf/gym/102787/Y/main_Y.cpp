@@ -81,6 +81,15 @@ std::mt19937_64 &PRNG() {
   return engine;
 }
 
+static size_t xorshift() {
+  static size_t x = 123456789, y = 362436069, z = 521288629, w = 88675123;
+  size_t t = (x ^ (x << 11));
+  x = y;
+  y = z;
+  z = w;
+  return (w = (w ^ (w >> 19)) ^ (t ^ (t >> 8)));
+}
+
 template<class Monoids, size_t NODE_NUM = 1000000>
 class GenericTreap {
  private:

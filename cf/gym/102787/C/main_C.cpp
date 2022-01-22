@@ -76,11 +76,6 @@ backward::SignalHandling kSignalHandling;
 #define cerr if(false)cerr
 #endif
 
-std::mt19937_64 &PRNG() {
-  static std::mt19937_64 engine(std::random_device{}());
-  return engine;
-}
-
 template<class Monoids, size_t NODE_NUM = 1000000>
 class GenericTreap {
  private:
@@ -91,12 +86,13 @@ class GenericTreap {
    public:
     T v, acc;
     F lazy;
+    bool rev;
     size_t pri;
     int size;
     Node *lch = nullptr, *rch = nullptr;
 
-    Node() : v(Monoids::id()), acc(v), lazy(Monoids::f_id()), pri(0), size(1) {}
-    Node(T v, size_t pri) : v(v), acc(v), lazy(Monoids::f_id()), pri(pri), size(1) {}
+    Node() : v(Monoids::id()), acc(v), lazy(Monoids::f_id()), rev(false), pri(0), size(1) {}
+    Node(T v, size_t pri) : v(v), acc(v), lazy(Monoids::f_id()), rev(false), pri(pri), size(1) {}
   };
   using NodePtr = struct Node *;
   NodePtr root;
@@ -115,15 +111,24 @@ class GenericTreap {
     return dist(engine);
   }
 
-  static int count_(NodePtr p) { return p == nullptr ? 0 : p->size; }
+  static inline int count_(NodePtr p) { return p == nullptr ? 0 : p->size; }
 
-  static T fold_(NodePtr p) { return p == nullptr ? Monoids::id() : p->acc; }
+  static inline T fold_(NodePtr p) { return p == nullptr ? Monoids::id() : p->acc; }
 
-  static void apply_(NodePtr p, const F &val) {
-    if (p == nullptr) return;
-    p->v = Monoids::f_apply(val, p->v);
-    p->acc = Monoids::f_apply(val, p->acc);
-    p->lazy = Monoids::f_compose(val, p->lazy);
+  static inline void apply_(NodePtr p, const F &val) {
+    if (p != nullptr) {
+      p->v = Monoids::f_apply(val, p->v);
+      p->acc = Monoids::f_apply(val, p->acc);
+      p->lazy = Monoids::f_compose(val, p->lazy);
+    }
+  }
+
+  static inline void reverse_(NodePtr p) {
+    if (p != nullptr) {
+      Monoids::reverse(p->v);
+      Monoids::reverse(p->acc);
+      p->rev ^= true;
+    }
   }
 
   static NodePtr push_down_(NodePtr p) {
@@ -132,10 +137,17 @@ class GenericTreap {
       if (p->rch != nullptr) apply_(p->rch, p->lazy);
       p->lazy = Monoids::f_id();
     }
+    if (p->rev) {
+      std::swap(p->lch, p->rch);
+      if (p->lch != nullptr) reverse_(p->lch);
+      if (p->rch != nullptr) reverse_(p->rch);
+      p->rev = false;
+    }
     return p;
   }
 
   static NodePtr pull_up_(NodePtr p) {
+    assert(not p->rev);
     p->size = count_(p->lch) + count_(p->rch) + 1;
     p->acc = p->lch ? Monoids::op(p->lch->acc, p->v) : p->v;
     if (p->rch) p->acc = Monoids::op(p->acc, p->rch->acc);
@@ -252,10 +264,17 @@ class GenericTreap {
     root = merge_(merge_(l.root, m.root), r.root);
   }
 
-  std::vector<T> to_vec(NodePtr p = nullptr) {
-    if (p == nullptr) p = root;
-    std::vector<T> v(count_(p));
-    to_vec_(p, v.begin());
+  void reverse(int first, int last) {
+    GenericTreap l, m, r;
+    std::tie(l, r) = split(last);
+    std::tie(l, m) = l.split(first);
+    reverse_(m.root);
+    root = merge_(merge_(l.root, m.root), r.root);
+  }
+
+  std::vector<T> to_vec() {
+    std::vector<T> v(size());
+    to_vec_(root, v.begin());
     return v;
   }
 };
@@ -320,6 +339,11 @@ struct XorSumOp {
     return {g.first, 1 ^ g.second};
   }
   static constexpr F f_id() { return {false, 0}; }
+
+  static void reverse(T &x) {
+    std::swap(x.l_ones, x.r_ones);
+    std::swap(x.l_zeros, x.r_zeros);
+  }
 };
 
 int main() {
@@ -345,14 +369,7 @@ int main() {
     if (qt == 1) {
       tree.apply(l, r, {false, 1});
     } else if (qt == 2) {
-      // TODO: Reverse.
-      Treap tl, tm, tr;
-      tie(tl, tr) = tree.split(r);
-      tie(tl, tm) = tl.split(l);
-      REP(j, r - l) {
-        tl.insert(l + j, tm[r - l - 1 - j]);
-      }
-      tree = Treap::merge(tl, tr);
+      tree.reverse(l, r);
     } else {
       auto agg = tree.fold(l, r);
       int zeros = (r - l) - agg.ones;
