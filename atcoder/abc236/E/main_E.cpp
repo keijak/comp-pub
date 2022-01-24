@@ -94,12 +94,9 @@ auto bisect(T truthy, T falsy, F pred) -> T {
   static_assert(std::is_integral_v<T>);
   static_assert(std::is_invocable_r_v<bool, F, T>);
   while (std::max(truthy, falsy) - std::min(truthy, falsy) > 1) {
-    T mid = midpoint(truthy, falsy);
-    if (pred(mid)) {
-      truthy = std::move(mid);
-    } else {
-      falsy = std::move(mid);
-    }
+    T mid = (truthy & falsy) + (truthy ^ falsy) / 2;
+    auto ok = pred(mid);
+    (ok ? truthy : falsy) = std::move(mid);
   }
   return truthy;
 }
@@ -111,11 +108,8 @@ Float bisect_float(Float truthy, Float falsy, F pred) {
   static_assert(std::is_invocable_r_v<bool, F, Float>);
   for (int iter = 0; iter < 80; ++iter) {
     auto mid = (truthy + falsy) * 0.5;
-    if (pred(mid)) {
-      truthy = std::move(mid);
-    } else {
-      falsy = std::move(mid);
-    }
+    auto ok = pred(mid);
+    (ok ? truthy : falsy) = std::move(mid);
   }
   return truthy;
 }
