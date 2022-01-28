@@ -79,55 +79,43 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 struct Record {
-  int index;
-  int x0, y0;
   int x, y;
-  int rankx;
+  int size_x;
   int odd_cycle_count;
 };
 
 struct UndoableUnionFind {
-  int n, sz;
+  int n_, sz_;
   std::vector<int> parent_, size_;
-  std::stack<Record> head_, tail_;
-  int odd_cycle_count;
+  std::stack<Record> history_;
+  int odd_cycle_count_;
 
-  explicit UndoableUnionFind(int n) : n(n), sz(n * 2), parent_(sz), size_(sz, 1) {
-    for (int i = 0; i < sz; ++i) parent_[i] = i;
-    odd_cycle_count = 0;
+  explicit UndoableUnionFind(int n) : n_(n), sz_(n * 2), parent_(sz_, -1), size_(sz_, 1) {
+    REP(v, sz_) parent_[v] = v;
+    odd_cycle_count_ = 0;
   }
 
   int other(int v) {
-    return (v >= n) ? v - n : v + n;
+    return (v < n_ ? v + n_ : v - n_);
   }
-
-  bool unite(int x, int y, int i, bool reverse) {
-    int x_ = x, y_ = y;
+  bool unite(int x, int y) {
     x = find(x), y = find(y);
+    if (x == y) return false;
     if (size_[x] < size_[y]) std::swap(x, y);
-    int ocdelta = 0, rankdelta = 0;
-    if (x != y) {
-      int oddx = same(x, other(x));
-      int oddy = same(y, other(y));
-      parent_[y] = x;
-      rankdelta = size_[y];
-      size_[x] += rankdelta;
-      int oddx2 = same(x, other(x));
-      ocdelta = oddx2 - oddx - oddy;
-      odd_cycle_count += ocdelta;
-    }
-    if (reverse) {
-      head_.push(Record{i, x_, y_, x, y, size_[x], odd_cycle_count});
-    } else {
-      tail_.push(Record{i, x_, y_, x, y, size_[x], odd_cycle_count});
-    }
+    history_.push(Record{x, y, size_[x], odd_cycle_count_});
+    int ox = same(x, other(x));
+    int oy = same(y, other(y));
+    size_[x] += size_[y];
+    parent_[y] = x;
+    int oxnew = same(x, other(x));
+    odd_cycle_count_ += oxnew - ox - oy;
     return true;
   }
 
-  void push(int u, int v, int i) {
-    int u2 = n + u, v2 = n + v;
-    unite(u, v2, i, false);
-    unite(v, u2, i, false);
+  void unite2(int u, int v) {
+    int u2 = u + n_, v2 = v + n_;
+    unite(u, v2);
+    unite(u2, v);
   }
 
   int find(int k) {
@@ -137,36 +125,74 @@ struct UndoableUnionFind {
 
   bool same(int x, int y) { return find(x) == find(y); }
 
-  // Undoes one unite() call.
-  void undo(int til) {
-    while (true) {
-      if (head_.empty() and not tail_.empty()) {
-        vector<Record> records;
-        while (not tail_.empty()) {
-          auto record = tail_.top();
-          tail_.pop();
-          records.push_back(record);
-          parent_[record.y] = record.y;
-          size_[record.x] -= size_[record.y];
-          odd_cycle_count = record.odd_cycle_count;
+  void undo() {
+    if (history_.empty()) return;
+    auto record = history_.top();
+    history_.pop();
+    size_[record.x] = record.size_x;
+    parent_[record.y] = record.y;
+    odd_cycle_count_ = record.odd_cycle_count;
+  }
+
+  void rollback(int checkpoint) {
+    while (int(history_.size()) > checkpoint) undo();
+  }
+};
+
+struct Query {
+  int idx;
+  int l;
+  int r;
+};
+
+struct Mo {
+  static constexpr int B = 450;
+  int n, m;
+  vector<pair<int, int>> edges;
+  vector<int> answer;
+  vector<Query> queries;
+
+  explicit Mo(int n, int m, int Q) : n(n), m(m), edges(m), answer(Q) {}
+
+  void add_query(Query query) { queries.push_back(query); }
+
+  void solve() {
+    int q = int(queries.size());
+    deque<int> ord(q);
+    iota(begin(ord), end(ord), 0);
+    sort(begin(ord), end(ord), [&](int a, int b) {
+      int ablock = queries[a].l / B;
+      int bblock = queries[b].l / B;
+      if (ablock != bblock) return ablock < bblock;
+      return queries[a].r > queries[b].r;
+    });
+    UndoableUnionFind uf(n);
+    for (int block = 0; block <= m / B; ++block) {
+      int save0 = uf.history_.size();
+      if (ord.empty()) break;
+      auto q0 = queries[ord.front()];
+      int bhead = q0.l / B * B;
+      int r = m - 1;
+      while (not ord.empty()) {
+        auto q = queries[ord.front()];
+        if (q.l / B != block) break;
+        ord.pop_front();
+        for (; r >= q.r; --r) {
+          auto[u, v] = edges[r];
+          uf.unite2(u, v);
         }
-        for (const auto &record: records) {
-          unite(record.x0, record.y0, record.index, true);
+        int save1 = uf.history_.size();
+        for (int i = bhead; i < q.l; ++i) {
+          auto[u, v] = edges[i];
+          uf.unite2(u, v);
         }
+        answer[q.idx] = uf.odd_cycle_count_;
+        uf.rollback(save1);
       }
-      if (head_.empty()) break;
-      const auto &record = head_.top();
-      if (record.index > til) break;
-      head_.pop();
-      int x = find(record.x0);
-      int y = find(record.y0);
-      int oddx = same(record.x0, other(record.x0));
-      parent_[y] = y;
-      size_[record.x] -= size_[record.y];
-      if (not same(record.x, record.y)) {
-        int oddx2 = same(record.x, other(record.x));
-        int oddy2 = same(record.y, other(record.y));
-        odd_cycle_count += oddx2 + oddy2 - oddx;
+      uf.rollback(save0);
+      for (int i = bhead; i < min(bhead + B, m); ++i) {
+        auto[u, v] = edges[i];
+        uf.unite2(u, v);
       }
     }
   }
@@ -175,41 +201,20 @@ struct UndoableUnionFind {
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
   const int n = in, m = in, Q = in;
-  vector<pair<int, int>> edges(m);
-  UndoableUnionFind uf(n);
-
-  auto push = [&](int i) {
-    auto[u, v] = edges[i % m];
-    uf.push(u, v, i);
-  };
-  REP(i, m) {
-    auto&[u, v] = edges[i];
+  Mo mo(n, m, Q);
+  for (auto &[u, v]: mo.edges) {
     cin >> u >> v;
     --u, --v;
-    push(i);
-    DUMP(i, uf.odd_cycle_count, uf.parent_);
   }
-
-  vector<int> llim(m + 1, -1);
-  if (uf.odd_cycle_count == 0) {
-    REP(i, m + 1) llim[i] = kBigVal<int>;
-  } else {
-    int l = 0;
-    for (int r = 1; r <= m; ++r) {
-      uf.undo(r - 1);
-      while (l < r and uf.odd_cycle_count == 0) {
-        push(m + l);
-        l++;
-      }
-      llim[r] = l;
-    }
-  }
-  DUMP(llim);
-
   REP(i, Q) {
-    int l, r;
-    cin >> l >> r;
-    --l;
-    print(l >= llim[r] ? "YES" : "NO");
+    Query q{};
+    q.idx = i;
+    cin >> q.l >> q.r;
+    --q.l;
+    mo.add_query(q);
+  }
+  mo.solve();
+  REP(i, Q) {
+    print(mo.answer[i] ? "YES" : "NO");
   }
 }
