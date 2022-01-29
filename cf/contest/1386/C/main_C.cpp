@@ -80,20 +80,19 @@ using namespace std;
 
 struct Record {
   int index;
-  int x0, y0;
-  int x, y;
-  int rankx;
+  int u0, v0, u, u2, v, v2;
+  int parent_u, parent_u2, parent_v, parent_v2;
   int odd_cycle_count;
+  bool reverse;
 };
 
 struct UndoableUnionFind {
   int n, sz;
-  std::vector<int> parent_, size_;
-  std::stack<Record> head_, tail_;
+  std::vector<int> parent_;
+  std::stack<Record> tail_;
   int odd_cycle_count;
 
-  explicit UndoableUnionFind(int n) : n(n), sz(n * 2), parent_(sz), size_(sz, 1) {
-    for (int i = 0; i < sz; ++i) parent_[i] = i;
+  explicit UndoableUnionFind(int n) : n(n), sz(n * 2), parent_(sz, -1) {
     odd_cycle_count = 0;
   }
 
@@ -101,37 +100,42 @@ struct UndoableUnionFind {
     return (v >= n) ? v - n : v + n;
   }
 
-  bool unite(int x, int y, int i, bool reverse) {
-    int x_ = x, y_ = y;
+  void unite(int x, int y) {
     x = find(x), y = find(y);
-    if (size_[x] < size_[y]) std::swap(x, y);
-    int ocdelta = 0, rankdelta = 0;
+    if (-parent_[x] < -parent_[y]) std::swap(x, y);
     if (x != y) {
-      int oddx = same(x, other(x));
-      int oddy = same(y, other(y));
+      parent_[x] += parent_[y];
       parent_[y] = x;
-      rankdelta = size_[y];
-      size_[x] += rankdelta;
-      int oddx2 = same(x, other(x));
-      ocdelta = oddx2 - oddx - oddy;
-      odd_cycle_count += ocdelta;
     }
-    if (reverse) {
-      head_.push(Record{i, x_, y_, x, y, size_[x], odd_cycle_count});
-    } else {
-      tail_.push(Record{i, x_, y_, x, y, size_[x], odd_cycle_count});
-    }
-    return true;
   }
 
-  void push(int u, int v, int i) {
+  void unite2(int u, int v, int i, bool reversed = false) {
+    int u0 = u, v0 = v;
     int u2 = n + u, v2 = n + v;
-    unite(u, v2, i, false);
-    unite(v, u2, i, false);
+    int saved_odd_cycle_count = odd_cycle_count;
+
+    u = find(u), v2 = find(v2);
+    v = find(v), u2 = find(u2);
+    int saved_size_u = parent_[u];
+    int saved_size_v2 = parent_[v2];
+    int saved_size_v = parent_[v];
+    int saved_size_u2 = parent_[u2];
+    bool uodd = u == u2;
+    bool vodd = v == v2;
+    bool connected = u == v2;
+    unite(u, v2);
+    unite(v, u2);
+    if (not connected) {
+      odd_cycle_count -= uodd;
+      odd_cycle_count -= vodd;
+      odd_cycle_count += find(u) == find(u2);
+    }
+    tail_.push(Record{i, u0, v0, u, u2, v, v2, saved_size_u, saved_size_u2, saved_size_v, saved_size_v2,
+                      saved_odd_cycle_count, reversed});
   }
 
   int find(int k) {
-    if (parent_[k] == k) return k;
+    if (parent_[k] < 0) return k;
     return find(parent_[k]);  // no path compression
   }
 
@@ -139,34 +143,37 @@ struct UndoableUnionFind {
 
   // Undoes one unite() call.
   void undo(int til) {
-    while (true) {
-      if (head_.empty() and not tail_.empty()) {
-        vector<Record> records;
-        while (not tail_.empty()) {
-          auto record = tail_.top();
-          tail_.pop();
-          records.push_back(record);
-          parent_[record.y] = record.y;
-          size_[record.x] -= size_[record.y];
-          odd_cycle_count = record.odd_cycle_count;
-        }
-        for (const auto &record: records) {
-          unite(record.x0, record.y0, record.index, true);
-        }
+    while (not tail_.empty()) {
+      auto record = tail_.top();
+      if (record.reverse and record.index > til) break;
+      tail_.pop();
+      parent_[record.u] = record.parent_u;
+      parent_[record.u2] = record.parent_u2;
+      parent_[record.v] = record.parent_v;
+      parent_[record.v2] = record.parent_v2;
+      odd_cycle_count = record.odd_cycle_count;
+      if (record.reverse) continue;
+      vector<Record> brecords = {record};
+      vector<Record> arecords = {};
+
+      while (not tail_.empty()) {
+        auto r = tail_.top();
+        tail_.pop();
+        parent_[r.u] = r.parent_u;
+        parent_[r.u2] = r.parent_u2;
+        parent_[r.v] = r.parent_v;
+        parent_[r.v2] = r.parent_v2;
+        odd_cycle_count = r.odd_cycle_count;
+        (r.reverse ? arecords : brecords).push_back(r);
+        if (brecords.size() == arecords.size()) break;
       }
-      if (head_.empty()) break;
-      const auto &record = head_.top();
-      if (record.index > til) break;
-      head_.pop();
-      int x = find(record.x0);
-      int y = find(record.y0);
-      int oddx = same(record.x0, other(record.x0));
-      parent_[y] = y;
-      size_[record.x] -= size_[record.y];
-      if (not same(record.x, record.y)) {
-        int oddx2 = same(record.x, other(record.x));
-        int oddy2 = same(record.y, other(record.y));
-        odd_cycle_count += oddx2 + oddy2 - oddx;
+      bool reversed = tail_.empty();
+      if (reversed) reverse(ALL(brecords));
+      for (auto it = brecords.rbegin(); it != brecords.rend(); ++it) {
+        unite2(it->u0, it->v0, it->index, reversed);
+      }
+      for (auto it = arecords.rbegin(); it != arecords.rend(); ++it) {
+        unite2(it->u0, it->v0, it->index, true);
       }
     }
   }
@@ -180,7 +187,7 @@ int main() {
 
   auto push = [&](int i) {
     auto[u, v] = edges[i % m];
-    uf.push(u, v, i);
+    uf.unite2(u, v, i);
   };
   REP(i, m) {
     auto&[u, v] = edges[i];
@@ -190,10 +197,9 @@ int main() {
     DUMP(i, uf.odd_cycle_count, uf.parent_);
   }
 
-  vector<int> llim(m + 1, -1);
-  if (uf.odd_cycle_count == 0) {
-    REP(i, m + 1) llim[i] = kBigVal<int>;
-  } else {
+  vector<int> llim(m + 1, kBigVal<int>);
+  if (uf.odd_cycle_count > 0) {
+    llim[0] = 0;
     int l = 0;
     for (int r = 1; r <= m; ++r) {
       uf.undo(r - 1);
@@ -201,6 +207,7 @@ int main() {
         push(m + l);
         l++;
       }
+      assert(l <= r);
       llim[r] = l;
     }
   }
