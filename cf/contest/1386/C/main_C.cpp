@@ -141,11 +141,10 @@ struct UndoableUnionFind {
 
   bool same(int x, int y) { return find(x) == find(y); }
 
-  // Undoes one unite() call.
-  void undo(int til) {
+  void undo(int until) {
     while (not tail_.empty()) {
       auto record = tail_.top();
-      if (record.reverse and record.index > til) break;
+      if (record.reverse and record.index > until) break;
       tail_.pop();
       parent_[record.u] = record.parent_u;
       parent_[record.u2] = record.parent_u2;
