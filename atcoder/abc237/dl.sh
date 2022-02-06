@@ -2,7 +2,7 @@
 
 set -e
 
-contest="abcXXX"
+contest="abc237"
 tasks=(A B C D E F G H)
 task_prefix=$contest
 
