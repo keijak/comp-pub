@@ -41,8 +41,8 @@ struct BinaryTrie {
     return {bt1, bt2};
   }
 
-  void merge(BinaryTrie other) {
-    root_ = merge_internal(root_, other.root_);
+  static BinaryTrie merge(BinaryTrie t1, BinaryTrie t2) {
+    return BinaryTrie(merge_internal(t1.root_, t2.root_));
   }
 
   void append_to(std::vector<T> &out) const {
@@ -157,7 +157,7 @@ auto solve() {
     }
     Trie merged;
     for (auto it = lit; it != rit; it = tries.erase(it)) {
-      merged.merge(it->second);
+      merged = Trie::merge(merged, it->second);
     }
     merged.rev = rev;
     if (not merged.empty()) {
