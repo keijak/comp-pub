@@ -78,54 +78,64 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-int query(int i, int j, int k) {
-  cout << "? " << i << " " << j << " " << k << endl;
+int query(vector<int> ix) {
+  assert(ssize(ix) == 3);
+  cout << "? " << ix[0] << " " << ix[1] << " " << ix[2] << endl;
   int res;
   cin >> res;
   return res;
 }
 
+void answer(vector<int> ix) {
+  assert(ssize(ix) == 2);
+  cout << "! " << ix[0] << " " << ix[1] << endl;
+}
+
 void solve() {
   int n = in;
-  vector<pair<int, int>> vals;
-  int a = 1, b = 2;
-  int maxval = -1;
-  int minval = 1e9;
-  int mx = -1, px = -1;
-  for (int x = 3; x <= n; ++x) {
-    auto val = query(a, b, x);
-    if (pair{maxval, mx} < pair{val, x}) {
-      maxval = val;
-      mx = x;
-    }
-    if (pair{minval, px} > pair{val, x}) {
-      minval = val;
-      px = x;
-    }
-  }
-  DUMP(mx, px);
-  assert(mx != px);
-  int mx1 = mx;
-  a = mx, b = px;
-  maxval = -1, minval = 1e9, mx = -1, px = -1;
-  for (int x = 1; x <= n; ++x) {
-    if (x == a or x == b) continue;
-    auto val = query(a, b, x);
-    if (pair{maxval, mx} < pair{val, x}) {
-      maxval = val;
-      mx = x;
-    }
-    if (pair{minval, px} > pair{val, x}) {
-      minval = val;
-      px = x;
-    }
-  }
-  DUMP(mx, px);
-  assert(mx != px);
-  int mx2 = mx;
-  if (mx1 == mx2) mx2 = px;
+  vector<int> ix = {1, 2, 3, 4};
+  array<int, 4> buf = {};
 
-  cout << "! " << mx1 << " " << mx2 << endl;
+  auto ask4 = [&]() {
+    REP(i, 4) {
+      int x = ix[i];
+      vector<int> q;
+      for (auto y: ix) {
+        if (y != x) q.push_back(y);
+      }
+      buf[i] = query(q);
+    }
+  };
+
+  auto drop_big = [&](int k) {
+    array<int, 4> si = {0, 1, 2, 3};
+    sort(ALL(si), [&](int i, int j) { return buf[i] < buf[j]; });
+    if (k == 1) {
+      ix.erase(ix.begin() + si[3]);
+    } else if (k == 2) {
+      int i1 = si[2];
+      int i2 = si[3];
+      if (i1 > i2) swap(i1, i2);
+      ix.erase(ix.begin() + i2);
+      ix.erase(ix.begin() + i1);
+    }
+  };
+
+  ask4();
+  int pos = 5;
+  while (pos <= n) {
+    if (pos == n) {
+      drop_big(1);
+      ix.push_back(pos++);
+    } else {
+      drop_big(2);
+      ix.push_back(pos++);
+      ix.push_back(pos++);
+    }
+    ask4();
+  }
+  drop_big(2);
+  answer(ix);
 }
 
 int main() {
