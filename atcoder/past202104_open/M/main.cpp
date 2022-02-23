@@ -3,67 +3,7 @@
   for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using i64 = long long;
-
-template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
-template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
-template<typename T>
-inline int ssize(const T &a) {
-  return (int) std::size(a);
-}
-
-template<typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x: a) is >> x;
-  return is;
-}
-template<typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
-}
-template<typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
-                        std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
-    os << *it;
-  }
-  return os << ends;
-}
-template<typename T, typename = void>
-struct is_iterable : std::false_type {};
-template<typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
-
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value &&
-        !std::is_same<T, std::string_view>::value &&
-        !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
-}
-
-void print() { std::cout << "\n"; }
-template<class T>
-void print(const T &x) {
-  std::cout << x << "\n";
-}
-template<typename Head, typename... Tail>
-void print(const Head &head, Tail... tail) {
-  std::cout << head << " ";
-  print(tail...);
-}
+using Int = long long;
 
 struct Input {
   template<typename T>
@@ -83,26 +23,43 @@ struct Input {
 using namespace std;
 
 struct Interval {
-  i64 r;
-  i64 val;
+  Int l, r;
+  int val;
 };
 ostream &operator<<(ostream &os, const Interval &iv) {
-  return os << "{r=" << iv.r << ", val=" << iv.val << "}";
+  return os << "{[" << iv.l << ", " << iv.r << ") => " << iv.val << "}";
 }
 
-// Disjoint half-open intervals [l, r) (mapping l to r).
-class IntervalMap : public std::map<i64, Interval> {
+struct EventHandler {
+  map<int, Int> val_counts;
+  Int total = 0;
+
+  EventHandler() = default;
+
+  void on_add(const Interval &iv) {
+    Int d = iv.r - iv.l;
+    Int c = val_counts[iv.val];
+    total += d * c + d * (d - 1) / 2;
+    val_counts[iv.val] += d;
+  }
+
+  void on_remove(const Interval &iv) {
+    Int d = iv.r - iv.l;
+    Int c = val_counts[iv.val];
+    total += -d * c + d * (d + 1) / 2;
+    val_counts[iv.val] -= d;
+  }
+};
+
+class IntervalMap : public std::map<Int, Interval> {
  public:
-  // If true, automatically merges [l, c) and [c, r).
-  bool merge_adjacent;
-  map<int, i64> val_counts;
-  i64 total;
+  EventHandler event_handler_;
 
-  IntervalMap(bool merge_adjacent = true) : merge_adjacent(merge_adjacent), total(0) {}
+  IntervalMap() = default;
 
-  // Returns the interval [l, r) which contains p if available.
+  // Returns the interval which contains p if available.
   // Otherwise returns this->end().
-  std::map<i64, Interval>::iterator find_interval(i64 p) {
+  std::map<Int, Interval>::iterator find_interval(Int p) {
     auto it = upper_bound(p);
     if (it != begin()) {
       --it;
@@ -112,74 +69,60 @@ class IntervalMap : public std::map<i64, Interval> {
   }
 
   // Inserts interval [l, r)
-  void add_interval(i64 l, i64 r, i64 val) {
-    auto itl = upper_bound(l), itr = lower_bound(r + merge_adjacent);
+  void add_interval(const Interval &interval) {
+    remove_interval(interval.l, interval.r);
+    event_handler_.on_add(interval);
+    (*this)[interval.l] = interval;
+  }
+
+  // Removes interval [l, r)
+  void remove_interval(Int l, Int r) {
+    auto itl = upper_bound(l), itr = lower_bound(r);
     if (itl != begin()) {
       --itl;
-      if (itl->second.r <= l - merge_adjacent) ++itl;
+      if (itl->second.r <= l) ++itl;
     }
-
-    if (itl != itr) {
-      vector<tuple<i64, i64, i64>> restore;
-      if (itl->first < l) {
-        restore.push_back({itl->first, l, itl->second.val});
-      }
-      Interval ivr = std::prev(itr)->second;
-      if (ivr.r > r) {
-        restore.push_back({r, ivr.r, ivr.val});
-      }
-      for (; itl != itr;) {
-        i64 width = itl->second.r - itl->first;
-
-        i64 p = val_counts[itl->second.val];
-        total -= p * (p - 1) / 2;
-        val_counts[itl->second.val] -= width;
-        p = val_counts[itl->second.val];
-        total += p * (p - 1) / 2;
-
-        itl = erase(itl);
-      }
-
-      for (const auto&[al, ar, aval]: restore) {
-        (*this)[al] = {ar, aval};
-
-        i64 p = val_counts[aval];
-        total -= p * (p - 1) / 2;
-        val_counts[aval] += ar - al;
-        p = val_counts[aval];
-        total += p * (p - 1) / 2;
-      }
+    if (itl == itr) return;
+    std::optional<Interval> ltip, rtip;
+    if (itl->first < l) {
+      ltip = itl->second;
+      assert(ltip->r >= l);
+      ltip->r = l;
     }
-    (*this)[l] = {r, val};
-
-    i64 p = val_counts[val];
-    total -= p * (p - 1) / 2;
-    val_counts[val] += r - l;
-    p = val_counts[val];
-    total += p * (p - 1) / 2;
+    if (auto riv = std::prev(itr)->second; riv.r > r) {
+      rtip = riv;
+      assert(rtip->l <= r);
+      rtip->l = r;
+    }
+    for (auto it = itl; it != itr; it = erase(it)) {
+      event_handler_.on_remove(it->second);
+    }
+    if (ltip) {
+      event_handler_.on_add(*ltip);
+      (*this)[ltip->l] = *ltip;
+    }
+    if (rtip) {
+      event_handler_.on_add(*rtip);
+      (*this)[rtip->l] = *rtip;
+    }
   }
 };
 
-auto main() -> int {
+int main() {
   ios_base::sync_with_stdio(false), cin.tie(nullptr);
   const int n = in;
   vector<int> a(n);
-  cin >> a;
-  IntervalMap im(false);
-  REP(i, n) {
-    im.add_interval(i, i + 1, a[i]);
-  }
-  DUMP(im.val_counts);
-  DUMP(im.total);
+  for (auto &x: a) cin >> x;
 
+  IntervalMap im;
+  REP(i, n) {
+    im.add_interval(Interval{i, i + 1, a[i]});
+  }
   const int Q = in;
   REP(qi, Q) {
     int l = in, r = in, x = in;
     --l;
-    im.add_interval(l, r, x);
-    DUMP(qi, im);
-    DUMP(im.val_counts);
-    DUMP(im.total);
-    print(im.total);
+    im.add_interval(Interval{l, r, x});
+    cout << im.event_handler_.total << '\n';
   }
 }
