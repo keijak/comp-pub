@@ -128,7 +128,7 @@ auto search_shortest_path(const Graph &g, int start, int goal) {
     }
     return false;
   };
-  assert(push(0LL, start));
+  push(0LL, start);
 
   while (not que.empty()) {
     State cur = que.front();
@@ -200,10 +200,10 @@ auto solve() -> Int {
       Int x, y;
       tie(x, y) = pos;
       if (move_y) swap(x, y);
+      const auto &xz = (move_y ? xo : yo)[y];
       {
-        const auto &xz = (move_y ? xo : yo)[y];
         auto it = lower_bound(ALL(xz), x + 1);
-        if (it != xz.end() and *it > x + 1) {
+        if (it != xz.end()) {
           Int nx = *it;
           if (nx > x + 1) {
             pair<Int, Int> key = move_y ? pair{y, nx - 1} : pair{nx - 1, y};
@@ -213,7 +213,6 @@ auto solve() -> Int {
         }
       }
       {
-        const auto &xz = (move_y ? xo : yo)[y];
         auto it = lower_bound(ALL(xz), x);
         if (it != xz.begin()) {
           --it;
