@@ -1,0 +1,8 @@
+project(LTIME105B)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DMY_DEBUG")
+add_executable(PLPROCESS PLPROCESS/main_PLPROCESS.cpp)
+add_executable(DISTCON DISTCON/main_DISTCON.cpp)
+add_executable(MAGNETSORT MAGNETSORT/main_MAGNETSORT.cpp)
+add_executable(MAGICMOD MAGICMOD/main_MAGICMOD.cpp)
+add_executable(VISEMALL VISEMALL/main_VISEMALL.cpp)
