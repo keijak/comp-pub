@@ -127,28 +127,27 @@ void solve() {
   auto dpo = max(dp[0][0], dp[0][1]);
   print(dpo.first, -dpo.second);
 
-  auto w = vector(2, vector(n, 0LL));
+  auto w = vector(n, 0LL);
 
-  auto dfs2 = Rec([&](auto &dfs2, int v, int p, int bad, int j) -> bool {
+  auto dfs2 = Rec([&](auto &dfs2, int v, int p, int bad) -> void {
     if (bad) {
-      w[j][v] = 1;
+      w[v] = 1;
     } else {
-      w[j][v] = ssize(g[v]);
+      w[v] = ssize(g[v]);
     }
     for (auto u: g[v]) {
       if (u == p) continue;
-      bool ubad = (not bad) or (dp[u][0] < dp[u][1]);
-      dfs2(u, v, ubad, j);
+      bool ubad = (not bad) or (dp[u][0] <= dp[u][1]);
+      dfs2(u, v, ubad);
     }
-    return true;
   });
 
-  dfs2(0, -1, 0, 0);
-  dfs2(0, -1, 1, 1);
   if (dp[0][0] >= dp[0][1]) {
-    print_seq(w[0]);
+    dfs2(0, -1, 0);
+    print_seq(w);
   } else {
-    print_seq(w[1]);
+    dfs2(0, -1, 1);
+    print_seq(w);
   }
 }
 
