@@ -91,7 +91,7 @@ struct Factorials {
   std::vector<T> fact, ifact;
 
   // n: max cached value.
-  Factorials(int n) : fact(n + 1), ifact(n + 1) {
+  explicit Factorials(int n) : fact(n + 1), ifact(n + 1) {
     assert(n >= 0);
     assert(n < T::mod());
     fact[0] = 1;
@@ -113,31 +113,43 @@ struct Factorials {
 
 auto solve() {
   int n = in, m = in, B = in, W = in;
-  int K = B + W;
-  if (B > W) swap(B, W);
-  Factorials fs(m);
-  auto dp = vector(n + 1, vector(m + 1, vector(m + 1, Mint(0))));
-  dp[0][0][0] = 1;
-  Mint ans = 0;
-  REP(i, n) {
-    REP(b, m + 1) {
-      REP(w, m + 1) {
-        if (dp[i][b][w].val() == 0) continue;
-        dp[i + 1][b][w] += dp[i][b][w];  // put nothing
-        REP(j, 2) {
-          REP(x, 1, m + 1) {
-            if (j == 0) {
-              if (b + x > B) break;
-              if (x > m - w) break;
-              dp[i + 1][b + x][w] += fs.C(m - w, x) * dp[i][b][w];
-            }
-            if (j == 1) {
-              if (w + x > W) break;
-              if (x > m - b) break;
-              dp[i+1][b][w+x]
-            }
+  Factorials fs(10000);
 
-          }
+  auto f = [&](int r, int c, int P) -> Mint {
+    Mint ret = 0;
+    for (int i = 0; i <= r; ++i) {
+      for (int j = 0; j <= c; ++j) {
+        int a = (r - i) * (c - j);
+        if (a < P) continue;
+        int sign = ((i + j) & 1) ? -1 : 1;
+        ret += fs.C(a, P) * fs.C(r, i) * fs.C(c, j) * sign;
+      }
+    }
+    return ret;
+  };
+
+  auto fb = vector(n + 1, vector(m + 1, Mint(0)));
+  auto fw = vector(n + 1, vector(m + 1, Mint(0)));
+  for (int r = 1; r <= n; ++r) {
+    for (int c = 1; c <= m; ++c) {
+      if (r <= B and c <= B) {
+        fb[r][c] = f(r, c, B);
+      }
+      if (r <= W and c <= W) {
+        fw[r][c] = f(r, c, W);
+      }
+    }
+  }
+
+  Mint ans = 0;
+  for (int br = 1; br <= min(n, B); ++br) {
+    for (int bc = 1; bc <= min(m, B); ++bc) {
+      auto ab = fb[br][bc] * fs.C(n, br) * fs.C(m, bc);
+      for (int wr = 1; wr <= min(n, W); ++wr) {
+        if (br + wr > n) break;
+        for (int wc = 1; wc <= min(m, W); ++wc) {
+          if (bc + wc > m) break;
+          ans += ab * fw[wr][wc] * fs.C(n - br, wr) * fs.C(m - bc, wc);
         }
       }
     }

@@ -128,7 +128,7 @@ struct Mo {
   }
 
   void build() {
-    static const int B = 100;
+    static constexpr int B = 123;
     const int Q = (int) queries_.size();
     ord_.resize(Q);
     iota(begin(ord_), end(ord_), 0);
