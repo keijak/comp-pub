@@ -5,3 +5,4 @@ set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBU
 add_executable(1066 1066/main.cpp)
 add_executable(1117 1117/review1.cpp)
 add_executable(1797 1797/main_1797.cpp)
+add_executable(0243 0243/main_0243.cpp)
