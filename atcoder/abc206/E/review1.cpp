@@ -92,33 +92,30 @@ T ceil_div(T x, T y) {
 
 struct PrimeSieve {
   std::vector<int> spf;  // smallest prime factors table.
+  std::vector<int> mu;
   std::vector<int> primes;
 
-  explicit PrimeSieve(int n) : spf(n + 1) {
+  explicit PrimeSieve(int n) : spf(n + 1), mu(n + 1) {
+    spf[1] = 1;
+    mu[1] = 1;
     // O(n)
     for (int i = 2; i <= n; ++i) {
       if (spf[i] == 0) {
         spf[i] = i;
+        mu[i] = -1;
         primes.push_back(i);
       }
       for (const auto &p: primes) {
-        if (i * p > n or p > spf[i]) break;
+        if (i * p > n) break;
         spf[i * p] = p;
+        if (i % p == 0) {
+          mu[i * p] = 0;
+          break;
+        } else {
+          mu[i * p] = -mu[i];
+        }
       }
     }
-  }
-
-  // Möbius function.
-  int moebius(int n) const {
-    assert(0 < n and n < int(spf.size()));
-    int res = 1;
-    while (n > 1) {
-      const int p = spf[n];
-      n /= p;
-      if (n % p == 0) return 0;
-      res *= -1;
-    }
-    return res;
   }
 };
 
@@ -129,7 +126,7 @@ auto solve() {
   Int ans = 0;
   for (Int g = R; g >= 2; --g) {
     for (Int d = 1; d <= R / g; ++d) {
-      int mu = sieve.moebius(d);
+      int mu = sieve.mu[d];
       if (mu == 0) continue;
       Int s = floor_div(R, g * d) - ceil_div(L, g * d) + 1;
       ans += mu * (s * (s - 1) / 2);
