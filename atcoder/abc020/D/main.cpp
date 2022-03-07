@@ -1,9 +1,10 @@
 #include <bits/stdc++.h>
-#define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), END_##i = (b); i < END_##i; ++i)
+#define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
-using i64 = long long;
+using Int = long long;
+using Uint = unsigned long long;
+using Real = long double;
 
 #include <atcoder/modint>
 using Mint = atcoder::modint1000000007;
@@ -12,122 +13,139 @@ std::ostream &operator<<(std::ostream &os, const Mint &m) {
 }
 
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) std::size(a);
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
+
+struct Void {};
 
 template<typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
+inline std::ostream &print_one(const T &x, char endc) {
+  if constexpr (std::is_same<T, Void>::value) {
+    return std::cout;  // print nothing
+  } else if constexpr (std::is_same<T, bool>::value) {
+    return std::cout << (x ? "Yes" : "No") << endc;
+  } else {
+    return std::cout << x << endc;
+  }
 }
-template<typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
+template<typename T>
+inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
+template<typename T, typename... Ts>
+std::ostream &print(const T &head, Ts... tail) {
+  return print_one(head, ' '), print(tail...);
 }
+inline std::ostream &print() { return std::cout << '\n'; }
+
 template<typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
+std::ostream &print_seq(const Container &seq,
+                        const char *sep = " ",
+                        const char *ends = "\n",
                         std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
+  const auto itl = std::begin(seq), itr = std::end(seq);
+  for (auto it = itl; it != itr; ++it) {
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
 }
-template<typename T, typename = void>
-struct is_iterable : std::false_type {};
-template<typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
 
-template<typename T, typename = std::enable_if_t<
-    is_iterable<T>::value &&
-        !std::is_same<T, std::string_view>::value &&
-        !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
-}
-
-void print() { std::cout << "\n"; }
-template<class T>
-void print(const T &x) {
-  std::cout << x << "\n";
-}
-template<typename Head, typename... Tail>
-void print(const Head &head, Tail... tail) {
-  std::cout << head << " ";
-  print(tail...);
-}
-
-void read_from_cin() {}
-template<typename T, typename... Ts>
-void read_from_cin(T &value, Ts &...args) {
-  std::cin >> value;
-  read_from_cin(args...);
-}
-#define INPUT(type, ...) \
-  type __VA_ARGS__;      \
-  read_from_cin(__VA_ARGS__)
+struct CastInput {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
+  }
+  struct Sized {
+    int n;
+    template<typename T>
+    operator T() const {
+      T xs(n);
+      for (auto &x: xs) std::cin >> x;
+      return xs;
+    }
+  };
+  Sized operator()(int n) const { return {n}; }
+} in;
 
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
+#include "backward.hpp"
+backward::SignalHandling kSignalHandling;
 #else
 #define DUMP(...)
+#define cerr if(false)cerr
 #endif
 
 using namespace std;
 
-// Returns all divisors of n. O(sqrt(n)) + sorting.
-std::vector<i64> divisors(i64 n) {
-  std::vector<i64> res;
-  for (i64 k = 1; k * k <= n; ++k) {
+std::vector<Int> divisors(Int n) {
+  std::vector<Int> res;
+  for (Int k = 1; k * k <= n; ++k) {
     if (n % k != 0) continue;
     res.push_back(k);
-    i64 q = n / k;
+    Int q = n / k;
     if (q != k) res.push_back(q);
   }
-  std::sort(res.begin(), res.end());
+//  std::sort(res.begin(), res.end());
   return res;
 }
 
+std::vector<std::pair<Int, int>> factorize(Int n) {
+  assert(n > 0);
+  std::vector<std::pair<Int, int>> res;
+  for (Int k = 2; k * k <= n; ++k) {
+    if (n % k != 0) continue;
+    int count = 0;
+    do {
+      n /= k;
+      ++count;
+    } while (n % k == 0);
+    res.emplace_back(k, count);
+  }
+  if (n > 1) {
+    res.emplace_back(n, 1);
+  }
+  return res;
+}
+
+template<typename T>
+inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
+
 auto solve() {
-  INPUT(i64, N, K);
-  auto dk = divisors(K);
-  int m = ssize(dk);
-  auto dp = vector(m, Mint(0));
-  for (int i = m - 1; i >= 0; --i) {
-    i64 g = dk[i];
-    i64 c = N / g;
-    dp[i] = Mint(c * (c + 1) / 2) * g;
-    for (int j = i + 1; j < m; ++j) {
-      if (dk[j] % g == 0) dp[i] -= dp[j];
+  Int N = in, K = in;
+  Mint ans = 0;
+  for (Int g: divisors(K)) {
+    auto fac = factorize(K / g);
+    int m = ssize(fac);
+    REP(bits, 1 << m) {
+      int sign = 1;
+      Int d = 1;
+      REP(i, m) {
+        if (has_bit(bits, i)) {
+          d *= fac[i].first;
+          sign *= -1;
+        }
+      }
+      Int p = N / g / d;
+      Int dsum = p * (p + 1) * d / 2;
+      ans += sign * dsum;
     }
   }
-  Mint ans = 0;
-  for (int i = 0; i < m; ++i) {
-    i64 g = dk[i];
-    ans += dp[i] * (K / g);
-  }
+  ans *= K;
   return ans;
 }
 
 int main() {
-  ios_base::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(15);
-  int t = 1;
-  REP(test_case, t) {
+  std::ios::sync_with_stdio(false), cin.tie(nullptr);
+  cout << std::fixed << std::setprecision(18);
+  const int T = 1;//in;
+  REP(t, T) {
     auto ans = solve();
     print(ans);
   }
