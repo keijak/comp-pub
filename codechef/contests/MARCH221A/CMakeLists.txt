@@ -1,0 +1,8 @@
+project(MARCH221A)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DMY_DEBUG")
+add_executable(GENIUS GENIUS/main_GENIUS.cpp)
+add_executable(SUBSTRING SUBSTRING/main_SUBSTRING.cpp)
+add_executable(SUB_XOR SUB_XOR/main_SUB_XOR.cpp)
+add_executable(MAXMEXPATH MAXMEXPATH/main_MAXMEXPATH.cpp)
+add_executable(COUNTONES COUNTONES/main_COUNTONES.cpp)
