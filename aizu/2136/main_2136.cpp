@@ -74,18 +74,153 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-int chromatic_number(const vector<uint32_t> &g) {
-  uint32_t n = (int) g.size();
-  const uint32_t nn = 1 << n;
-  int ret = 0;
-  for (uint32_t b = 0; b < nn; ++b) {
-    [&]() {
-      for (uint32_t i = 0; i < n; ++i) {
-        if ((b & (1 << i)) and (g[i] & b) != b) return;
-      }
-      ret = max(ret, __builtin_popcount(b));
-    }();
+template<unsigned M>
+struct ModInt {
+  constexpr ModInt() : _v(0) {}
+  constexpr ModInt(long long val) {
+    if (val < 0) {
+      long long k = (std::abs(val) + M - 1) / M;
+      val += k * M;
+    }
+    assert(val >= 0);
+    _v = val % M;
   }
+
+  static constexpr int mod() { return M; }
+  static constexpr unsigned umod() { return M; }
+  inline unsigned val() const { return _v; }
+
+  ModInt &operator++() {
+    _v++;
+    if (_v == umod()) _v = 0;
+    return *this;
+  }
+  ModInt &operator--() {
+    if (_v == 0) _v = umod();
+    _v--;
+    return *this;
+  }
+  ModInt operator++(int) {
+    auto result = *this;
+    ++*this;
+    return result;
+  }
+  ModInt operator--(int) {
+    auto result = *this;
+    --*this;
+    return result;
+  }
+
+  constexpr ModInt operator-() const { return ModInt(umod() - _v); }
+
+  constexpr ModInt &operator+=(const ModInt &a) {
+    if ((_v += a._v) >= M) _v -= M;
+    return *this;
+  }
+  constexpr ModInt &operator-=(const ModInt &a) {
+    if ((_v += M - a._v) >= M) _v -= M;
+    return *this;
+  }
+  constexpr ModInt &operator*=(const ModInt &a) {
+    _v = ((unsigned long long) (_v) * a._v) % M;
+    return *this;
+  }
+  constexpr ModInt pow(unsigned long long t) const {
+    if (_v == 0) {
+      return 0;  // corner case: 0^0 = ?
+    }
+    ModInt base = *this;
+    ModInt res = 1;
+    while (t) {
+      if (t & 1) res *= base;
+      base *= base;
+      t >>= 1;
+    }
+    return res;
+  }
+
+  // https://qiita.com/Mitarushi/items/8d7fb52e8a80e8008463
+  constexpr ModInt inv() const {
+    long long b = 1, a = _v;
+    while (a > 1) {
+      long long q = M / a;
+      a = M - a * q;
+      b = -b * q % M;
+    }
+    assert(a == 1);  // if a = 0, _v and M are not coprime.
+    if (b < 0) b += M;
+    ModInt ret;
+    ret._v = (unsigned) b;
+    return ret;
+  }
+  constexpr ModInt &operator/=(const ModInt &a) { return *this *= a.inv(); }
+
+  friend constexpr ModInt operator+(const ModInt &a, const ModInt &b) {
+    return ModInt(a) += b;
+  }
+  friend constexpr ModInt operator-(const ModInt &a, const ModInt &b) {
+    return ModInt(a) -= b;
+  }
+  friend constexpr ModInt operator*(const ModInt &a, const ModInt &b) {
+    return ModInt(a) *= b;
+  }
+  friend constexpr ModInt operator/(const ModInt &a, const ModInt &b) {
+    return ModInt(a) /= b;
+  }
+  friend constexpr bool operator==(const ModInt &a, const ModInt &b) {
+    return a._v == b._v;
+  }
+  friend constexpr bool operator!=(const ModInt &a, const ModInt &b) {
+    return a._v != b._v;
+  }
+  friend std::istream &operator>>(std::istream &is, ModInt &a) {
+    return is >> a._v;
+  }
+  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) {
+    return os << a._v;
+  }
+
+ private:
+  unsigned _v;  // raw value
+};
+const unsigned MOD = int(1e9) + 7;
+using Mint = ModInt<MOD>;
+
+template<uint32_t mod>
+int chromatic_number_internal(const vector<uint32_t> &es, const vector<uint32_t> &ind, int upper) {
+  const uint32_t N = es.size();
+  const uint32_t NN = 1u << N;
+  vector<uint32_t> aux(NN, 1);
+  for (int i = 1; i < upper; ++i) {
+    uint64_t all = 0;
+    for (uint32_t j = 0; j < NN; ++j) {
+      uint32_t S = j ^ (j >> 1);
+      aux[S] = ((uint64_t) aux[S] * ind[S]) % mod;
+      all += (j & 1) ? aux[S] : mod - aux[S];
+    }
+    if (all % mod) return i;
+  }
+  return upper;
+}
+
+int chromatic_number(const vector<vector<int>> &graph) {
+  int N = (int) graph.size();
+  vector<uint32_t> es(N);
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      es[i] |= graph[i][j] << j;
+    }
+  }
+  vector<uint32_t> ind(1 << N);
+  ind[0] = 1;
+  for (uint32_t S = 1; S < 1 << N; S++) {
+    const uint32_t u = __builtin_ctz(S);
+    ind[S] = ind[S ^ (1 << u)] + ind[(S ^ (1 << u)) & ~es[u]];
+  }
+  int ret = N;
+  ret = chromatic_number_internal<(int) 1e9 + 7>(es, ind, ret);
+  ret = chromatic_number_internal<(int) 1e9 + 11>(es, ind, ret);
+  ret = chromatic_number_internal<(int) 1e9 + 21>(es, ind, ret);
   return ret;
 }
 
@@ -135,13 +270,11 @@ auto solve(int n) {
     return false;
   };
 
-  vector<uint32_t> g(n);
-  REP(i, n) g[i] |= 1 << i;
+  vector<vector<int>> g(n, vector<int>(n, 0));
   REP(i, n) {
     REP(j, i + 1, n) {
       if (intersects(i, j)) {
-        g[i] |= 1 << j;
-        g[j] |= 1 << i;
+        g[i][j] = g[j][i] = true;
       }
     }
   }
