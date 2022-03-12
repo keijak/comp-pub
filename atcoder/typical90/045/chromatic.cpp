@@ -57,7 +57,7 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
-#ifdef MY_DEBUG
+#ifdef ENABLE_DEBUG
 #include "debug_dump.hpp"
 #else
 #define DUMP(...)
@@ -85,32 +85,29 @@ struct Compressed {
   const T &value(int i) const { return values[i]; }
 };
 
-int chromatic_number(const vector<vector<Int>> &g, Int thres) {
-  int N = (int)g.size();
-  vector<int> es(N);
-  for (int i = 0; i < (int)g.size(); i++) {
-    for (int j = 0; j < (int)g.size(); j++) {
-      es[i] |= (g[i][j] > thres ? 1 : 0) << j;
+int chromatic_number(const vector<vector<Int>> &base, Int thres) {
+  uint32_t n = (int)base.size();
+  vector<uint32_t> g(n);
+  REP(i, n) {
+    g[i] |= 1 << i;
+    REP(j, i + 1, n) {
+      if (base[i][j] > thres) {
+        g[i] |= 1 << j;
+        g[j] |= 1 << i;
+      }
     }
   }
-  int ret = N;
-  for (int d : {7, 11, 21}) {
-    int mod = 1e9 + d;
-    vector<int> ind(1 << N), aux(1 << N, 1);
-    ind[0] = 1;
-    for (int S = 1; S < 1 << N; S++) {
-      int u = __builtin_ctz(S);
-      ind[S] = ind[S ^ (1 << u)] + ind[(S ^ (1 << u)) & ~es[u]];
-    }
-    for (int i = 1; i < ret; i++) {
-      int64_t all = 0;
-      for (int j = 0; j < 1 << N; j++) {
-        int S = j ^ (j >> 1);
-        aux[S] = (1LL * aux[S] * ind[S]) % mod;
-        all += j & 1 ? aux[S] : mod - aux[S];
+  int ret = 0;
+  const uint32_t nn = 1 << n;
+  for (uint32_t b = 0; b < nn; ++b) {
+    bool ok = true;
+    for (uint32_t i = 0; i < n; ++i) {
+      if ((b & (1 << i)) and (g[i] & b) != b) {
+        ok = false;
+        break;
       }
-      if (all % mod) ret = i;
     }
+    if (ok) ret = max(ret, __builtin_popcount(b));
   }
   return ret;
 }
