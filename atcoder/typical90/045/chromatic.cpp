@@ -57,12 +57,6 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
   return print_seq(a, ", ", "", (os << "{")) << "}";
 }
 
-#ifdef ENABLE_DEBUG
-#include "debug_dump.hpp"
-#else
-#define DUMP(...)
-#endif
-
 using namespace std;
 
 using Int = unsigned long long;
@@ -85,31 +79,44 @@ struct Compressed {
   const T &value(int i) const { return values[i]; }
 };
 
-int chromatic_number(const vector<vector<Int>> &base, Int thres) {
-  uint32_t n = (int)base.size();
-  vector<uint32_t> g(n);
-  REP(i, n) {
-    g[i] |= 1 << i;
-    REP(j, i + 1, n) {
-      if (base[i][j] > thres) {
-        g[i] |= 1 << j;
-        g[j] |= 1 << i;
-      }
-    }
+int chromatic_number(const vector<vector<Int>> &G, Int thres) {
+  using Mint = atcoder::modint1000000007;
+  int n = (int)G.size();
+  vector<int> neighbor(n, 0);
+  for (int i = 0; i < n; ++i) {
+    int S = (1 << i);
+    for (int j = 0; j < n; ++j)
+      if (G[i][j] > thres) S |= (1 << j);
+    neighbor[i] = S;
   }
-  int ret = 0;
-  const uint32_t nn = 1 << n;
-  for (uint32_t b = 0; b < nn; ++b) {
-    bool ok = true;
-    for (uint32_t i = 0; i < n; ++i) {
-      if ((b & (1 << i)) and (g[i] & b) != b) {
-        ok = false;
-        break;
-      }
-    }
-    if (ok) ret = max(ret, __builtin_popcount(b));
+
+  // I[S] := #. of inndepndet subset of S
+  vector<int> I(1 << n);
+  I[0] = 1;
+  for (int S = 1; S < (1 << n); ++S) {
+    int v = __builtin_ctz(S);
+    I[S] = I[S & ~(1 << v)] + I[S & ~neighbor[v]];
   }
-  return ret;
+  int low = 0, high = n;
+  while (high - low > 1) {
+    int mid = (low + high) >> 1;
+
+    // g[S] := #. of "k independent sets" which cover S just
+    // f[S] := #. of "k independent sets" which consist of subseta of S
+    // then
+    //   f[S] = sum_{T in S} g(T)
+    //   g[S] = sum_{T in S} (-1)^(|S|-|T|)f[T]
+    Mint g = 0;
+    for (int S = 0; S < (1 << n); ++S) {
+      int sign = ((n - __builtin_popcount(S)) & 1) ? -1 : 1;
+      g += sign * Mint(I[S]).pow(mid);
+    }
+    if (g.val() != 0)
+      high = mid;
+    else
+      low = mid;
+  }
+  return high;
 }
 
 auto solve() {

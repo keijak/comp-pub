@@ -79,29 +79,29 @@ auto solve() {
   Uint X = in;
   string S = in;
 
-  deque<int> bstack;
+  deque<int> bs;
   {
     Uint t = X;
     while (t) {
-      bstack.push_front(t & 1);
+      bs.push_front(t & 1);
       t >>= 1;
     }
   }
   REP(i, n) {
     if (S[i] == 'U') {
-      bstack.pop_back();
+      bs.pop_back();
     } else if (S[i] == 'L') {
-      bstack.push_back(0);
+      bs.push_back(0);
     } else {
-      bstack.push_back(1);
+      bs.push_back(1);
     }
   }
   Uint ans = 0;
-  REP(i, bstack.size()) {
-    if (bstack.back()) {
+  REP(i, bs.size()) {
+    if (bs.back()) {
       ans |= 1ULL << i;
     }
-    bstack.pop_back();
+    bs.pop_back();
   }
   return ans;
 }

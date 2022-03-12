@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-template<typename T = uint32_t, int kBitWidth = std::numeric_limits<T>::digits>
+template <typename T = uint32_t, int kBitWidth = std::numeric_limits<T>::digits>
 struct BinaryTrie {
  public:
   struct Node;
@@ -11,7 +11,8 @@ struct BinaryTrie {
     int leaf_count;
     std::array<NodePtr, 2> child;
     Node() : leaf_count(0), child{nullptr, nullptr} {}
-    explicit Node(int n, NodePtr l = nullptr, NodePtr r = nullptr) : leaf_count(n), child{l, r} {}
+    explicit Node(int n, NodePtr l = nullptr, NodePtr r = nullptr)
+        : leaf_count(n), child{l, r} {}
   };
   NodePtr root_ = nullptr;
   bool rev = false;
@@ -19,7 +20,9 @@ struct BinaryTrie {
   BinaryTrie() = default;
   explicit BinaryTrie(NodePtr p) : root_(p) {}
   BinaryTrie(std::initializer_list<T> vals) {
-    for (auto val: vals) { this->insert(val); }
+    for (auto val : vals) {
+      this->insert(val);
+    }
   }
 
   int size() const { return root_ ? root_->leaf_count : 0; }
@@ -32,7 +35,7 @@ struct BinaryTrie {
     if (rev) {
       pos = size() - pos;
     }
-    auto[t1, t2] = split_internal(root_, pos);
+    auto [t1, t2] = split_internal(root_, pos);
     BinaryTrie bt1(t1), bt2(t2);
     if (rev) {
       bt1.rev = bt2.rev = true;
@@ -53,15 +56,14 @@ struct BinaryTrie {
   }
 
  private:
-  static NodePtr make_node(int leaf_count, NodePtr l = nullptr, NodePtr r = nullptr) {
+  static NodePtr make_node(int leaf_count, NodePtr l = nullptr,
+                           NodePtr r = nullptr) {
     static std::deque<Node> pool;
     pool.emplace_back(leaf_count, l, r);
     return &pool.back();
   }
 
-  static int size(NodePtr t) {
-    return (t == nullptr) ? 0 : t->leaf_count;
-  }
+  static int size(NodePtr t) { return (t == nullptr) ? 0 : t->leaf_count; }
 
   static NodePtr insert_internal(NodePtr t, T val, int b = kBitWidth - 1) {
     if (not t) t = make_node(0);
@@ -87,39 +89,33 @@ struct BinaryTrie {
     }
   }
 
-  static pair<NodePtr, NodePtr> split_internal(NodePtr t, int pos, int b = kBitWidth - 1) {
+  static pair<NodePtr, NodePtr> split_internal(NodePtr t, int pos,
+                                               int b = kBitWidth - 1) {
     if (not t) return {nullptr, nullptr};
     if (b < 0) {
-      if (pos <= 0) return {nullptr, t};
-      else return {t, nullptr};
+      if (pos <= 0)
+        return {nullptr, t};
+      else
+        return {t, nullptr};
     }
     const int lsize = size(t->child[0]);
     if (lsize <= pos) {
-      auto[lz, rz] = split_internal(t->child[1], pos - lsize, b - 1);
+      auto [lz, rz] = split_internal(t->child[1], pos - lsize, b - 1);
       return {make_node(size(t->child[0]) + size(lz), t->child[0], lz),
               make_node(size(rz), nullptr, rz)};
     } else {
-      auto[lz, rz] = split_internal(t->child[0], pos, b - 1);
+      auto [lz, rz] = split_internal(t->child[0], pos, b - 1);
       return {make_node(size(lz), lz, nullptr),
               make_node(size(rz) + size(t->child[1]), rz, t->child[1])};
     }
   }
 
-  static NodePtr merge_internal(NodePtr t1, NodePtr t2, int b = kBitWidth - 1) {
+  static NodePtr merge_internal(NodePtr t1, NodePtr t2) {
     if (not t2) return t1;
-    if (not t1) {
-      swap(t1, t2);
-      return t1;
-    }
-    const int msize = size(t1) + size(t2);
-    NodePtr lc = nullptr, rc = nullptr;
-    if (b >= 0) {
-      lc = merge_internal(t1->child[0], t2->child[0], b - 1);
-      rc = merge_internal(t1->child[1], t2->child[1], b - 1);
-    }
-    t1->child[0] = lc;
-    t1->child[1] = rc;
-    t1->leaf_count = msize;
+    if (not t1) return t2;
+    t1->leaf_count = size(t1) + size(t2);
+    t1->child[0] = merge_internal(t1->child[0], t2->child[0]);
+    t1->child[1] = merge_internal(t1->child[1], t2->child[1]);
     return t1;
   }
 };
@@ -131,17 +127,18 @@ auto solve() {
   --X;
 
   vector<uint32_t> P(n);
-  for (auto &x: P) cin >> x, --x;
+  for (auto &x : P) cin >> x, --x;
 
   map<int, Trie> tries;
   for (int i = 0; i < n; ++i) tries[i].insert(P[i]);
+  tries[n] = {};
 
   auto do_sort = [&](int L, int R, bool rev) {
     auto lit = tries.upper_bound(L);
     {
       int j = (--lit)->first;
       if (j != L) {
-        auto[t0, t1] = lit->second.split(L - j);
+        auto [t0, t1] = lit->second.split(L - j);
         tries[j] = t0;
         lit = tries.emplace(L, t1).first;
       }
@@ -150,7 +147,7 @@ auto solve() {
     {
       int j = (--rit)->first;
       if (j != R) {
-        auto[t0, t1] = rit->second.split(R - j);
+        auto [t0, t1] = rit->second.split(R - j);
         tries[j] = t0;
         rit = tries.emplace(R, t1).first;
       }
@@ -172,7 +169,7 @@ auto solve() {
   }
 
   vector<uint32_t> result;
-  for (const auto&[_, t]: tries) t.append_to(result);
+  for (const auto &[_, t] : tries) t.append_to(result);
   auto it = std::find(result.begin(), result.end(), X);
   return 1 + int(it - result.begin());
 }

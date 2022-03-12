@@ -80,40 +80,63 @@ void pdebug(const T &value, const Ts &...args) {
 
 using namespace std;
 
-int chromatic_number(const vector<vector<bool>> &g) {
-  int N = (int)g.size();
-  vector<int> es(N);
-  for (int i = 0; i < g.size(); i++) {
-    for (int j = 0; j < g.size(); j++) {
-      es[i] |= g[i][j] << j;
-    }
+const int MOD = 1000000007;
+long long power(long long a, long long n) {
+  long long res = 1;
+  while (n > 0) {
+    if (n & 1) res = res * a % MOD;
+    a = a * a % MOD;
+    n >>= 1;
   }
-  int ret = N;
-  for (int d : {7, 11, 21}) {
-    int mod = 1e9 + d;
-    vector<int> ind(1 << N), aux(1 << N, 1);
-    ind[0] = 1;
-    for (int S = 1; S < 1 << N; S++) {
-      int u = __builtin_ctz(S);
-      ind[S] = ind[S ^ (1 << u)] + ind[(S ^ (1 << u)) & ~es[u]];
-    }
-    for (int i = 1; i < ret; i++) {
-      int64_t all = 0;
-      for (int j = 0; j < 1 << N; j++) {
-        int S = j ^ (j >> 1);
-        aux[S] = (1LL * aux[S] * ind[S]) % mod;
-        all += j & 1 ? aux[S] : mod - aux[S];
-      }
-      if (all % mod) ret = i;
-    }
+  return res;
+}
+
+int chromatic_number(const vector<vector<int>> &G) {
+  int n = (int)G.size();
+  vector<int> neighbor(n, 0);
+  for (int i = 0; i < n; ++i) {
+    int S = (1 << i);
+    for (int j = 0; j < n; ++j)
+      if (G[i][j]) S |= (1 << j);
+    neighbor[i] = S;
   }
-  return ret;
+
+  // I[S] := #. of inndepndet subset of S
+  vector<int> I(1 << n);
+  I[0] = 1;
+  for (int S = 1; S < (1 << n); ++S) {
+    int v = __builtin_ctz(S);
+    I[S] = I[S & ~(1 << v)] + I[S & ~neighbor[v]];
+  }
+  int low = 0, high = n;
+  while (high - low > 1) {
+    int mid = (low + high) >> 1;
+
+    // g[S] := #. of "k independent sets" which cover S just
+    // f[S] := #. of "k independent sets" which consist of subseta of S
+    // then
+    //   f[S] = sum_{T in S} g(T)
+    //   g[S] = sum_{T in S} (-1)^(|S|-|T|)f[T]
+    long long g = 0;
+    for (int S = 0; S < (1 << n); ++S) {
+      if ((n - __builtin_popcount(S)) & 1)
+        g -= power(I[S], mid);
+      else
+        g += power(I[S], mid);
+      g = (g % MOD + MOD) % MOD;
+    }
+    if (g != 0)
+      high = mid;
+    else
+      low = mid;
+  }
+  return high;
 }
 
 i64 solve() {
   int n, m;
   cin >> n >> m;
-  vector g(n, vector(n, true));
+  vector g(n, vector(n, 1));
 
   REP(i, m) {
     int a, b;
