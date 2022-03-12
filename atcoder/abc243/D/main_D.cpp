@@ -74,54 +74,34 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-inline int msb_log(unsigned x) {
-  assert(x != 0);
-  return std::numeric_limits<unsigned>::digits - __builtin_clz(x) - 1;
-}
-inline int msb_log(Uint x) {
-  assert(x != 0);
-  return std::numeric_limits<Uint>::digits - __builtin_clzll(x) - 1;
-}
-template<typename T, typename U = std::make_unsigned_t<T>>
-inline U msb(T x) {
-  if (x == 0) return 0;
-  return U(1) << msb_log(U(x));
-}
-
 auto solve() {
   int n = in;
   Uint X = in;
   string S = in;
 
-  Uint hb = msb(X);
-  vector<int> bstack;
-  int w = 0;
-  for (Uint b = hb; b > 0; b >>= 1) {
-    if (X & b) {
-      bstack.push_back(w);
+  deque<int> bstack;
+  {
+    Uint t = X;
+    while (t) {
+      bstack.push_front(t & 1);
+      t >>= 1;
     }
-    ++w;
   }
-  DUMP(w);
-
   REP(i, n) {
     if (S[i] == 'U') {
-      --w;
-      while (not bstack.empty() and bstack.back() >= w) {
-        bstack.pop_back();
-      }
+      bstack.pop_back();
     } else if (S[i] == 'L') {
-      ++w;
+      bstack.push_back(0);
     } else {
-      bstack.push_back(w);
-      ++w;
+      bstack.push_back(1);
     }
   }
   Uint ans = 0;
-  for (auto i: bstack) {
-    if (w - 1 - i >= 0) {
-      ans |= 1ULL << (w - 1 - i);
+  REP(i, bstack.size()) {
+    if (bstack.back()) {
+      ans |= 1ULL << i;
     }
+    bstack.pop_back();
   }
   return ans;
 }
