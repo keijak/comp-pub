@@ -6,12 +6,6 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
-#include <atcoder/modint>
-using Mint = atcoder::modint1000000007;
-std::ostream &operator<<(std::ostream &os, const Mint &m) {
-  return os << m.val();
-}
-
 template<typename T, typename U>
 inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
@@ -78,66 +72,64 @@ backward::SignalHandling kSignalHandling;
 #define cerr if(false)cerr
 #endif
 
-// mod: prime
-template<class T = Mint>
-struct Factorials {
-  // factorials and inverse factorials.
-  std::vector<T> fact, ifact;
-
-  // n: max cached value.
-  explicit Factorials(int n) : fact(n + 1), ifact(n + 1) {
-    assert(n >= 0);
-    assert(n < T::mod());
-    fact[0] = 1;
-    for (int i = 1; i <= n; ++i) {
-      fact[i] = fact[i - 1] * i;
-    }
-    ifact[n] = fact[n].inv();
-    for (int i = n; i >= 1; --i) {
-      ifact[i - 1] = ifact[i] * i;
-    }
-  }
-
-  // Combination (binomial coefficients)
-  T C(Int n, Int k) const {
-    if (k < 0 || k > n) return 0;
-    return fact[n] * ifact[k] * ifact[n - k];
-  }
-};
-
 using namespace std;
+
+template<typename T>
+inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
+inline int popcount(unsigned x) { return __builtin_popcount(x); }
+inline int popcount(Uint x) { return __builtin_popcountll(x); }
+
+// Saturating multiplication
+template<typename T>
+T sat_mul(T x, T y) {
+  static_assert(std::is_integral<T>::value);
+  static constexpr T kMin = std::numeric_limits<T>::lowest();
+  static constexpr T kMax = std::numeric_limits<T>::max();
+  static_assert(kMax != 0);
+  if (T res; not __builtin_mul_overflow(x, y, &res)) {
+    return res;
+  } else if constexpr (not std::is_signed<T>::value) {
+    return kMax;
+  } else {
+    return ((x ^ y) < 0) ? kMin : kMax;
+  }
+}
+
+template<typename T>
+T sat_lcm(T x, T y) {
+  auto g = std::gcd(x, y);
+  return sat_mul(x, y / g);
+}
 
 auto solve() {
   int n = in;
-  vector<int> C = in(n);
-  int N = accumulate(ALL(C), 0);
-  Factorials<Mint> fs(N);
-  vector<optional<Mint>> memo(N + 1);
+  Int L = in, H = in;
+  vector<Int> C = in(n);
 
-  auto f = [&](Int d) -> Mint {
-    if (n > N / d) return 0;
-    if (memo[d]) return *memo[d];
-
-    Mint ret = 1;
-    int r = 0;
-    for (int c: C) {
-      if (c % d != 0) {
-        ret = 0;
-        break;
+  Int ret = 0;
+  REP(bits, 1, 1 << n) {
+    Int blcm = -1;
+    bool over = false;
+    REP(i, n) {
+      if (has_bit(bits, i)) {
+        if (blcm == -1) {
+          blcm = C[i];
+        } else {
+          blcm = sat_lcm(blcm, C[i]);
+          if (blcm > H) {
+            over = true;
+            break;
+          }
+        }
       }
-      ret *= fs.C(N / d - r, c / d);
-      r += c / d;
     }
-    memo[d] = ret;
-    return ret;
-  };
-
-  Mint ans = 0;
-  for (int d = 1; d <= N; ++d) {
-    ans += f(N / gcd(d, N));
+    if (over) continue;
+    Int bsize = popcount((unsigned) bits);
+    Int sign = (bsize & 1) ? 1 : -1;
+    Int co = sign * bsize * (H / blcm - ((L - 1) / blcm));
+    ret += co;
   }
-  ans /= N;
-  print(ans);
+  print(ret);
 }
 
 int main() {
