@@ -1,0 +1,5 @@
+project(challenges)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DMY_DEBUG")
+add_executable(bst_maintenance bst_maintenance/main_bst_maintenance.cpp)
+add_executable(hyperrectangle_gcd hyperrectangle_gcd/main_hyperrectangle_gcd.cpp)
