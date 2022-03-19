@@ -64,42 +64,54 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-uint32_t spf[4000005];  // smallest prime factors.
-uint32_t FC[4000005];
-uint64_t F[4000005];
-uint64_t PF[4000006];
+constexpr int L = 4000005;
+uint32_t spf[L];  // smallest prime factors.
+uint32_t mu[L];
+uint32_t F[L];
+uint32_t G[L];
+uint32_t PF[L + 1];
 
 struct LinearSieve {
   std::vector<uint32_t> primes;
 
   explicit LinearSieve(uint32_t n) {
-    F[1] = 1;
+    mu[1] = 1;
     for (uint32_t i = 2; i <= n; ++i) {
       if (spf[i] == 0) {
         spf[i] = i;
-        F[i] = i * (1 - i);
-        FC[i] = 1;
+        mu[i] = -1;
         primes.push_back(i);
       }
       for (const uint32_t &p: primes) {
         if (i * p > n) break;
         spf[i * p] = p;
         if (i % p == 0) {
-          if (FC[i] >= 2) {
-            F[i * p] = 0;
-          } else {
-            F[i * p] = -F[i / p] * p * p * p;
-          }
-          FC[i * p] = FC[i] + 1;
+          mu[i * p] = 0;
           break;
         } else {
-          F[i * p] = F[i] * F[p];
-          FC[i * p] = 1;
+          mu[i * p] = -mu[i];
         }
       }
     }
     for (uint32_t i = 0; i <= n; ++i) {
+      F[i] = i * i * mu[i];
+      G[i] = i * mu[i] * mu[i];
+    }
+    dirichlet_convolution(n);
+    for (uint32_t i = 0; i <= n; ++i) {
       PF[i + 1] = PF[i] + F[i];
+    }
+  }
+
+  void dirichlet_convolution(uint32_t n) {
+    for (int p: primes) {
+      for (int i = n / p; i > 0; --i) {
+        const int to = i * p;
+        for (int x = i, y = p;; x /= p, y *= p) {
+          F[to] += F[x] * G[y];
+          if (x % p != 0) break;
+        }
+      }
     }
   }
 };
