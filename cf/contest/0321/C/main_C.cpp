@@ -75,26 +75,27 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 struct CentroidTree {
-  int n_;
-  std::vector<int> cparent;  // parent of each node in the centroid tree
-  std::vector<std::vector<int>> cgraph;
-  int croot;
+  int n;  // number of nodes.
+  std::vector<int> parent;  // parent of each node in the centroid tree.
+  std::vector<std::vector<int>> graph;  // adjacent nodes in the centroid tree.
+  int root;  // root of the centroid tree.
 
-  explicit CentroidTree(std::vector<std::vector<int>> g, int root = 0)
-      : n_(g.size()), cparent(n_, -1), cgraph(n_), croot(-1) {
-    std::vector<std::set<int>> gd(n_);
-    std::vector<int> subsize(n_, 0);
-    for (int v = 0; v < n_; ++v) {
+  explicit CentroidTree(std::vector<std::vector<int>> g)
+      : n(g.size()), parent(n, -1), graph(n), root(-1) {
+    std::vector<std::set<int>> gd(n);
+    std::vector<int> subsize(n, 0);
+    for (int v = 0; v < n; ++v) {
       gd[v].insert(g[v].begin(), g[v].end());
     }
-    build(root, -1, gd, subsize);
-    for (int v = 0; v < n_; ++v) {
-      const int p = cparent[v];
+    const int start_node = 0;
+    build(start_node, -1, gd, subsize);
+    for (int v = 0; v < n; ++v) {
+      const int p = parent[v];
       if (p == -1) {
-        croot = v;
+        root = v;
       } else {
-        cgraph[p].push_back(v);
-        cgraph[v].push_back(p);
+        graph[p].push_back(v);
+        graph[v].push_back(p);
       }
     }
   }
@@ -102,9 +103,9 @@ struct CentroidTree {
  private:
   void build(int v, int p, std::vector<std::set<int>> &gd,
              std::vector<int> &subsize) {
-    const int n = dfs_subsize(v, p, gd, subsize);  // fill subsize
-    const int c = centroid(v, p, n, gd, subsize);  // find centroid
-    cparent[c] = p;
+    const int sz = dfs_subsize(v, p, gd, subsize);  // fill subsize
+    const int c = centroid(v, p, sz, gd, subsize);  // find centroid
+    parent[c] = p;
 
     std::vector<int> tmp(gd[c].begin(), gd[c].end());
     for (auto u: tmp) {
@@ -124,12 +125,12 @@ struct CentroidTree {
     return subsize[v];
   }
 
-  int centroid(int v, int p, int n, const std::vector<std::set<int>> &gd,
+  int centroid(int v, int p, int sz, const std::vector<std::set<int>> &gd,
                const std::vector<int> &subsize) {
     for (auto u: gd[v]) {
       if (u == p) continue;
-      if (subsize[u] > n / 2) {
-        return centroid(u, v, n, gd, subsize);
+      if (subsize[u] > sz / 2) {
+        return centroid(u, v, sz, gd, subsize);
       }
     }
     return v;
@@ -162,14 +163,14 @@ auto solve() {
   auto dfs = Rec([&](auto &self, int v, int p, int d) -> bool {
     if (d >= 26) return false;
     depth[v] = char('A' + d);
-    for (auto u: ct.cgraph[v]) {
+    for (auto u: ct.graph[v]) {
       if (u == p) continue;
       bool ok = self(u, v, d + 1);
       if (not ok) return false;
     }
     return true;
   });
-  bool ok = dfs(ct.croot, -1, 0);
+  bool ok = dfs(ct.root, -1, 0);
   if (not ok) {
     print("Impossible!");
     return;
