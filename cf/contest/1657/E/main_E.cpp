@@ -189,12 +189,51 @@ struct ModInt {
 const unsigned MOD = 998244353;
 using Mint = ModInt<MOD>;
 
+// mod: prime
+template<class T = Mint>
+struct Factorials {
+  // factorials and inverse factorials.
+  std::vector<T> fact, ifact;
+
+  // n: max cached value.
+  explicit Factorials(int n) : fact(n + 1), ifact(n + 1) {
+    assert(n >= 0);
+    assert(n < T::mod());
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+      fact[i] = fact[i - 1] * i;
+    }
+    ifact[n] = fact[n].inv();
+    for (int i = n; i >= 1; --i) {
+      ifact[i - 1] = ifact[i] * i;
+    }
+  }
+
+  // Combination (binomial coefficients)
+  T C(Int n, Int k) const {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * ifact[k] * ifact[n - k];
+  }
+};
+
 auto solve() {
   int n = in, K = in;
-  Mint ans = K;
-  for (int i = 3; i <= n; ++i) {
-
+  Factorials<Mint> fs(n);
+  auto dp = vector(K + 2, vector(n, Mint(0)));
+  dp[K + 1][0] = 1;
+  for (int i = K; i >= 1; --i) {
+    for (int j = 0; j <= n - 1; ++j) {
+      if (dp[i + 1][j].val() == 0) continue;
+      dp[i][j] += dp[i + 1][j];
+      for (int p = 1; j + p <= n - 1; ++p) {
+        Mint c = fs.C(n - 1 - j, p);
+        Mint e = n - 1 - (j + p);
+        Mint co = dp[i + 1][j] * c * Mint(K - i + 1).pow(Int(e.val()) * p + fs.C(p, 2).val());
+        dp[i][j + p] += co;
+      }
+    }
   }
+  print(dp[1][n - 1]);
 }
 
 int main() {
