@@ -18,7 +18,7 @@ constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, bool>::value) {
-    return std::cout << (x ? "First" : "Second") << endc;
+    return std::cout << (x ? "Alice" : "Brown") << endc;
   } else {
     return std::cout << x << endc;
   }
@@ -38,7 +38,7 @@ std::ostream &print_seq(const Container &seq,
                         std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
-    if (it != itl) os << sep;d
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
@@ -75,12 +75,8 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 auto solve() {
-  string S = in;
-  if (S.front() == S.back()) {
-    return S.size() % 2 == 0;
-  } else {
-    return S.size() % 2 == 1;
-  }
+  Int X = in, Y = in;
+  return abs(X - Y) > 1;
 }
 
 int main() {

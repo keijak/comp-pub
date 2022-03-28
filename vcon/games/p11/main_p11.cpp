@@ -38,7 +38,7 @@ std::ostream &print_seq(const Container &seq,
                         std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
-    if (it != itl) os << sep;d
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
@@ -74,19 +74,23 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() {
-  string S = in;
-  if (S.front() == S.back()) {
-    return S.size() % 2 == 0;
-  } else {
-    return S.size() % 2 == 1;
+bool solve() {
+  int n = in;
+  vector<uint32_t> a = in(n);
+  if (n & 1) {
+    return false;
   }
+  sort(ALL(a));
+  for (int i = 0; i < n; i += 2) {
+    if (a[i] != a[i + 1]) return true;
+  }
+  return false;
 }
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
   cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
+  const int T = in;
   REP(t, T) {
     print(solve());
   }

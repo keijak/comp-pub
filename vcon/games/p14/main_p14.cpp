@@ -18,7 +18,7 @@ constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, bool>::value) {
-    return std::cout << (x ? "First" : "Second") << endc;
+    return std::cout << (x ? "Angel" : "Devil") << endc;
   } else {
     return std::cout << x << endc;
   }
@@ -38,7 +38,7 @@ std::ostream &print_seq(const Container &seq,
                         std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
-    if (it != itl) os << sep;d
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
@@ -74,20 +74,15 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() {
-  string S = in;
-  if (S.front() == S.back()) {
-    return S.size() % 2 == 0;
-  } else {
-    return S.size() % 2 == 1;
-  }
+bool solve(Int a, Int b) {
+  Int m = b % 4;
+  if (m == 0) return false;
+  if (m <= 2) return true;
+  return a % 2 == 1;
 }
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
-  REP(t, T) {
-    print(solve());
-  }
+  Int a = in, b = in;
+  print(solve(a, b));
 }

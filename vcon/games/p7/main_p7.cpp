@@ -38,7 +38,7 @@ std::ostream &print_seq(const Container &seq,
                         std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
-    if (it != itl) os << sep;d
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
@@ -75,11 +75,48 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 auto solve() {
+  int n = in, m = in;
+  Int K = in;
   string S = in;
-  if (S.front() == S.back()) {
-    return S.size() % 2 == 0;
+  vector<vector<int>> to(n);
+  REP(i, m) {
+    int u = in, v = in;
+    --u, --v;
+    to[u].push_back(v);
+    to[v].push_back(u);
+  }
+
+  vector<int> good(n), winning(n);
+  if (K % 2 == 1) {
+    REP(v, n) good[v] = S[v] == 'B';
   } else {
-    return S.size() % 2 == 1;
+    REP(v, n) good[v] = S[v] == 'R';
+  }
+  REP(v, n) {
+    bool w = false;
+    for (int u: to[v]) {
+      if (good[u]) {
+        w = true;
+        break;
+      }
+    }
+    winning[v] = w;
+  }
+  if (K % 2 == 1) {
+    REP(v, n) {
+      print(bool(winning[v]));
+    }
+  } else {
+    REP(v, n) {
+      bool w = false;
+      for (int u: to[v]) {
+        if (not winning[u]) {
+          w = true;
+          break;
+        }
+      }
+      print(w);
+    }
   }
 }
 
@@ -88,6 +125,6 @@ int main() {
   cout << std::fixed << std::setprecision(18);
   const int T = 1;//in;
   REP(t, T) {
-    print(solve());
+    (solve());
   }
 }

@@ -18,7 +18,7 @@ constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 template<typename T>
 inline std::ostream &print_one(const T &x, char endc) {
   if constexpr (std::is_same<T, bool>::value) {
-    return std::cout << (x ? "First" : "Second") << endc;
+    return std::cout << (x ? "Angel" : "Devil") << endc;
   } else {
     return std::cout << x << endc;
   }
@@ -38,7 +38,7 @@ std::ostream &print_seq(const Container &seq,
                         std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
-    if (it != itl) os << sep;d
+    if (it != itl) os << sep;
     os << *it;
   }
   return os << ends;
@@ -74,20 +74,48 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() {
-  string S = in;
-  if (S.front() == S.back()) {
-    return S.size() % 2 == 0;
-  } else {
-    return S.size() % 2 == 1;
+map<tuple<Int, Int, int>, bool> memo;
+
+bool solve(Int a, Int b, int parity) {
+  if (b == 0) return parity;
+  if (a == 0) {
+    Int m = (parity ? b + 2 : b) % 4;
+    return m == 1 or m == 2;
   }
+
+  auto mkey = tuple(a, b, parity);
+  if (auto it = memo.find(mkey); it != memo.end()) {
+    return it->second;
+  }
+
+  bool ret = false;
+
+  // take 1
+  if ((b < 2 or solve(a, b - 2, parity ^ 1)) and solve(a - 1, b - 1, parity ^ 1)) {
+    ret = true;
+  }
+  // take 0
+  if (solve(a - 1, b - 1, parity) and (a < 2 or solve(a - 2, b, parity))) {
+    ret = true;
+  }
+
+  memo[mkey] = ret;
+  return ret;
 }
 
 int main() {
+#if 0
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
-  const int T = 1;//in;
-  REP(t, T) {
-    print(solve());
+  Int a = in, b = in;
+  print(solve(a, b, 0));
+#else
+  for (int b = 0; b <= 30; ++b) {
+    printf("b=%2d|", b);
+    for (int a = 0; a <= 80; ++a) {
+      int angel = solve(a, b, 0);
+      cout << " " << angel;
+    }
+    cout << endl;
   }
+#endif
 }
