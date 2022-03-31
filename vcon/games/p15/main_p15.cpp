@@ -109,7 +109,7 @@ bool labo(int n, int K) {
   });
 
   bool ok = false;
-  REP(i, n) {
+  REP(i, n / 2) {
     if (not win(full & ~(1ull << i), i)) {
       ok = true;
       break;
