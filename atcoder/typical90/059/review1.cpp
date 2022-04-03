@@ -79,63 +79,87 @@ using namespace std;
 template<typename T>
 inline bool has_bit(const T &x, int i) { return (x >> i) & 1; }
 
-// Strongly Connected Components
+// Strongly Connected Components.
+// A wrapper class of atcoder::scc_graph.
 struct SCC {
+  template<class T>
+  using Vec = std::vector<T>;
 
-  explicit SCC(vector<vector<int>> g) {
+  int n;                       // number of vertices in the original graph
+  const Vec<Vec<int>> &graph;  // original graph (directed)
 
+  // There may be an edge from components[i] to components[j] if i <= j.
+  int scc_n;                // number of SCCs.
+  Vec<Vec<int>> scc_graph;  // scc graph (directed)
+  Vec<Vec<int>> components;
+  Vec<int> component_id;
+
+  explicit SCC(const Vec<Vec<int>> &g) : n(int(g.size())), graph(g) {
+    // Compute SCCs.
+    atcoder::scc_graph acl_graph(n);
+    for (int v = 0; v < n; ++v) {
+      for (int u: graph[v]) {
+        acl_graph.add_edge(v, u);
+      }
+    }
+    components = acl_graph.scc();
+    scc_n = int(components.size());
+    component_id.assign(n, -1);
+    for (int i = 0; i < scc_n; ++i) {
+      for (int v: components[i]) {
+        component_id[v] = i;
+      }
+    }
+    // Construct the SCC grpah.
+    scc_graph.resize(scc_n);
+    for (int i = 0; i < scc_n; ++i) {
+      for (int v: components[i]) {
+        for (int u: graph[v]) {
+          int j = component_id[u];
+          if (i != j) scc_graph[i].push_back(j);
+        }
+      }
+    }
+    // Uniqify SCC edges.
+    for (auto &neighbors: scc_graph) {
+      std::sort(neighbors.begin(), neighbors.end());
+      neighbors.erase(std::unique(neighbors.begin(), neighbors.end()),
+                      neighbors.end());
+    }
   }
 };
 
 auto solve() {
   int n = in, m = in, Q = in;
-  atcoder::scc_graph g(n);
   vector<vector<int>> to(n);
   REP(i, m) {
     int u = in, v = in;
     --u, --v;
-    g.add_edge(u, v);
     to[u].push_back(v);
   }
-  auto scc = g.scc();
-  vector<int> scc_id(n);
-  vector<vector<int>> sccg(scc.size());
-  REP(i, scc.size()) {
-    for (auto u: scc[i]) {
-      scc_id[u] = i;
-    }
-  }
-  REP(i, scc.size()) {
-    for (auto u: scc[i]) {
-      for (auto w: to[u]) {
-        int j = scc_id[w];
-        sccg[j].push_back(i);
-      }
-    }
-  }
-
-  vector<vector<array<int, 2>>> queries(scc.size());
+  SCC scc(to);
+  vector<vector<array<int, 2>>> queries(scc.scc_n);
   vector<bool> answers(Q);
   REP(i, Q) {
     int a = in, b = in;
     --a, --b;
-    int x = scc_id[a], y = scc_id[b];
+    int x = scc.component_id[a], y = scc.component_id[b];
     queries[x].push_back({y, i});
   }
 
-  for (int iter = 0; iter < ssize(scc); iter += 64) {
-    vector<uint64_t> reachable_from(scc.size());
-    REP(i, scc.size()) {
-      for (auto j: sccg[i]) {
-        reachable_from[i] |= reachable_from[j];
-      }
+  for (int iter = 0; iter < scc.scc_n; iter += 64) {
+    vector<uint64_t> reachable_from(scc.scc_n);
+    REP(i, scc.scc_n) {
       if (iter <= i and i < iter + 64) {
         reachable_from[i] |= 1ull << (i - iter);
+      }
+      for (auto j: scc.scc_graph[i]) {
+        reachable_from[j] |= reachable_from[i];
       }
     }
     REP(j, 64) {
       int from_v = iter + j;
-      if (from_v >= ssize(scc)) break;
+      if (from_v >= scc.scc_n) break;
       for (auto[to_v, qi]: queries[from_v]) {
         answers[qi] = has_bit(reachable_from[to_v], j);
       }
