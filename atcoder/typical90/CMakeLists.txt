@@ -4,11 +4,4 @@ project(typical90)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -fno-sanitize-recover=address,undefined -DMY_DEBUG")
 
-add_executable(087 087/main.cpp)
-add_executable(088 088/main.cpp)
-add_executable(089 089/main.cpp)
-add_executable(090 090/main.cpp)
-
-add_executable(eulertour 035/eulertour.cpp)
-
-add_executable(review1 059/review1.cpp)
+add_executable(review1 005/review1.cpp)

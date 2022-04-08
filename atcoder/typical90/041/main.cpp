@@ -9,52 +9,17 @@
 #define ALL(x) std::begin(x), std::end(x)
 using i64 = long long;
 
-template <typename T, typename U>
+template<typename T, typename U>
 inline bool chmax(T &a, U b) {
   return a < b and ((a = std::move(b)), true);
 }
-template <typename T, typename U>
+template<typename T, typename U>
 inline bool chmin(T &a, U b) {
   return a > b and ((a = std::move(b)), true);
 }
-template <typename T>
+template<typename T>
 inline int ssize(const T &a) {
-  return (int)std::size(a);
-}
-
-template <typename T>
-std::istream &operator>>(std::istream &is, std::vector<T> &a) {
-  for (auto &x : a) is >> x;
-  return is;
-}
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &a) {
-  return os << "(" << a.first << ", " << a.second << ")";
-}
-template <typename Container>
-std::ostream &print_seq(const Container &a, std::string_view sep = " ",
-                        std::string_view ends = "\n",
-                        std::ostream &os = std::cout) {
-  auto b = std::begin(a), e = std::end(a);
-  for (auto it = std::begin(a); it != e; ++it) {
-    if (it != b) os << sep;
-    os << *it;
-  }
-  return os << ends;
-}
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-template <typename T, typename = std::enable_if_t<
-                          is_iterable<T>::value &&
-                          !std::is_same<T, std::string_view>::value &&
-                          !std::is_same<T, std::string>::value>>
-std::ostream &operator<<(std::ostream &os, const T &a) {
-  return print_seq(a, ", ", "", (os << "{")) << "}";
+  return (int) std::size(a);
 }
 
 #ifdef MY_DEBUG
@@ -67,7 +32,7 @@ using namespace std;
 using D = long double;      // Coordinate value
 using P = std::complex<D>;  // Point
 
-const D EPS = 1e-8;
+const D EPS = 1e-15;
 
 // outer product: cross(a,b) = |a||b|sinθ
 // for checking if two vectors are parallel.
@@ -76,7 +41,7 @@ D cross(const P &a, const P &b) { return (std::conj(a) * b).imag(); }
 // Convex Hull by Monotone Chain
 // Populates the upper hull and the lower hull separately.
 void scan_convex_hull(const vector<P> &ps, vector<P> &upper, vector<P> &lower) {
-  for (int i = 0; i < (int)ps.size(); ++i) {
+  for (int i = 0; i < (int) ps.size(); ++i) {
     auto ax = ps[i].real(), ay = ps[i].imag();
     P now{ax, ay};
     while (upper.size() >= 2) {
@@ -157,12 +122,12 @@ auto solve() {
   REP(i, n) {
     i64 x, y;
     cin >> x >> y;
-    points[i] = {(D)x, (D)y};
+    points[i] = {(D) x, (D) y};
     pset.insert(pair{x, y});
   }
   sort(ALL(points), [&](const P &p1, const P &p2) {
     return std::make_pair(p1.real(), p1.imag()) <
-           std::make_pair(p2.real(), p2.imag());
+        std::make_pair(p2.real(), p2.imag());
   });
   scan_convex_hull(points, lower, upper);
   // DUMP(upper);
