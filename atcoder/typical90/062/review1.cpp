@@ -76,12 +76,42 @@ backward::SignalHandling kSignalHandling;
 using namespace std;
 
 auto solve() {
-
+  int n = in;
+  vector<vector<int>> g(n);
+  vector<int> ok(n);
+  queue<int> q;
+  REP(i, n) {
+    int a = in, b = in;
+    --a, --b;
+    if (a == i or b == i) {
+      ok[i] = true;
+      q.push(i);
+    }
+    g[a].push_back(i);
+    if (a != b) g[b].push_back(i);
+  }
+  vector<int> ans;
+  while (not q.empty()) {
+    if (ssize(ans) == n) break;
+    int v = q.front();
+    q.pop();
+    ans.push_back(v);
+    for (auto u: g[v]) {
+      if (ok[u]) continue;
+      ok[u] = true;
+      q.push(u);
+    }
+  }
+  if (ssize(ans) != n) {
+    print(-1);
+    return;
+  }
+  reverse(ALL(ans));
+  for (auto &e: ans) print(e + 1);
 }
 
 int main() {
   std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
   const int T = 1;//in;
   REP(t, T) { (solve()); }
   exit_();
