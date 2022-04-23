@@ -350,105 +350,6 @@ struct Rec {
 };
 template<class F> Rec(F) -> Rec<F>;
 
-struct Edge {
-  int to;
-};
-using Graph = vector<vector<Edge>>;
-
-struct Task {
-  using NV = map<int, pair<Mint, Mint>>;  // Node Value
-  using EV = map<int, pair<Mint, Mint>>;  // Edge Value
-  vector<int> a;
-
-  Task() {}
-
-  EV id() const { return {}; }
-
-  NV add_node(const EV &ev, int v) const {
-    NV ret;
-    if (ev.empty()) {
-      ret[a[v]] = {1, 1};
-    }
-    return 0;
-  }
-
-  EV add_edge(const NV &nv, const Edge &e) const { return 0; }
-
-  EV merge(const EV &ev1, const EV &ev2) const { return 0; }
-  // void merge_inplace(EV &agg, const EV &ev) const {}
-  // void subtract_inplace(EV &agg, const EV &ev) const {}
-};
-
-template<typename Rerootable = Task>
-class InplaceRerooter {
- private:
-  using NV = typename Rerootable::NV;
-  using EV = typename Rerootable::EV;
-
-  Rerootable task_;
-  int n_;                             // number of nodes
-  std::vector<std::vector<Edge>> g_;  // graph (tree)
-  std::vector<NV> sub_result_;        // values for each subtree rooted at i
-  std::vector<NV> full_result_;       // values for each entire tree rooted at i
-  int base_root_;                     // base root node where we start DFS
-
- public:
-  explicit InplaceRerooter(Rerootable task, std::vector<std::vector<Edge>> g,
-                           int r = 0)
-      : task_(move(task)),
-        n_((int) g.size()),
-        g_(move(g)),
-        sub_result_(n_),
-        full_result_(n_),
-        base_root_(r) {}
-
-  const std::vector<NV> &run() {
-    pull_up(base_root_, -1);
-    push_down(base_root_, -1, std::nullopt);
-    return full_result_;
-  }
-
- private:
-  NV pull_up(int v, int par) {
-    EV res = task_.add_node(task_.id(), v);
-    for (auto &e: g_[v]) {
-      int u = e.to;
-      if (u == par) continue;
-      auto sub = task_.add_edge(pull_up(u, v), e);
-      task_.merge_inplace(res, std::move(sub));
-    }
-    return (sub_result_[v] = res);
-  }
-
-  void push_down(int v, int par, std::optional<NV> upper_sub) {
-    int m = g_[v].size();
-    EV agg = task_.add_node(task_.id(), v);
-
-    for (int i = 0; i < m; ++i) {
-      auto &e = g_[v][i];
-      int u = e.to;
-      if (u == par) {
-        assert(upper_sub.has_value());
-        task_.merge_inplace(agg, task_.add_edge(std::move(*upper_sub), e));
-      } else {
-        task_.merge_inplace(agg, task_.add_edge(sub_result_[u], e));
-      }
-    }
-    full_result_[v] = agg;
-
-    for (int i = 0; i < m; ++i) {
-      auto &e = g_[v][i];
-      int u = e.to;
-      if (u == par) continue;
-      EV edge_value = task_.add_edge(sub_result_[u], e);
-      task_.subtract_inplace(agg, edge_value);
-      std::optional<NV> next_upper_sub{task_.add_node(agg, v)};
-      push_down(u, v, std::move(next_upper_sub));
-      task_.merge_inplace(agg, std::move(edge_value));
-    }
-  }
-};
-
 auto solve() {
   int n = in;
   vector<int> a = in(n);
@@ -459,8 +360,6 @@ auto solve() {
     g[u].push_back(v);
     g[v].push_back(u);
   }
-  Task task;
-  task.a = a;
 
   CentroidTree ct(g);
   HLDecomp hld(g, ct.root);
@@ -475,13 +374,14 @@ auto solve() {
 
   auto dfs_collect = Rec([&](auto &f, int v, int p, int sr, map<int, pair<Mint, Mint>> &out) -> void {
     int g = GCDOp::id();
-    for (auto[l, r]: hld.node_ranges_on_path(v, sr)) {
+    for (auto [l, r]: hld.node_ranges_on_path(v, sr)) {
       g = GCDOp::op(g, st.fold(l, r));
     }
     if (g != GCDOp::id()) {
-      auto &res = out[g];
-      res.first += Mint(hld.distance(v, sr));
-      res.second += 1;
+      int d = hld.distance(v, sr);
+      auto &r = out[g];
+      r.first += d;
+      r.second += 1;
     }
     for (auto u: ct.graph[v]) {
       if (u == p) continue;
@@ -491,8 +391,7 @@ auto solve() {
 
   Rec([&](auto &f, int v, int p) -> void {
     map<int, pair<Mint, Mint>> buf;
-    buf[a[v]] = {1, 1};
-
+    buf[a[v]] = {Mint(0), Mint(1)};
     for (int u: ct.graph[v]) {
       if (u == p) continue;
       f(u, v);
@@ -501,20 +400,24 @@ auto solve() {
       if (u == p) continue;
       map<int, pair<Mint, Mint>> sub;
       dfs_collect(u, v, v, sub);
-      for (const auto&[gb, cntb]: buf) {
-        for (const auto&[gs, cnts]: sub) {
+      for (const auto &[gb, cntb]: buf) {
+        auto [sb, cb] = cntb;
+        for (const auto &[gs, cnts]: sub) {
+          auto [ss, cs] = cnts;
           int cg = gcd(gb, gs);
-          Mint co = Mint(cg) * (cntb.second * cnts.first + cntb.first * cnts.second);
+          Mint co = cb * cs;
+          co += sb * cs;
+          co += ss * cb;
+          co *= cg;
           ans += co;
-          DUMP(v, u, gb, gs, cg, cntb, cnts, co, ans);
         }
       }
       if (ssize(buf) < ssize(sub)) {
         buf.swap(sub);
       }
-      for (const auto&[gs, cnts]: sub) {
+      for (const auto &[gs, cnts]: sub) {
         auto &r = buf[gs];
-        r.first += cnts.first + cnts.second;
+        r.first += cnts.first;
         r.second += cnts.second;
       }
     }
