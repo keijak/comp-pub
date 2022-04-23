@@ -76,19 +76,6 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-// Binary search over integers
-template<class T, class F>
-auto bisect(T truthy, T falsy, F pred) -> T {
-  static_assert(std::is_integral_v<T>);
-  static_assert(std::is_invocable_r_v<bool, F, T>);
-  while (std::max(truthy, falsy) - std::min(truthy, falsy) > T(1)) {
-    auto mid = (truthy & falsy) + (truthy ^ falsy) / T(2);
-    auto ok = pred(mid);
-    (ok ? truthy : falsy) = std::move(mid);
-  }
-  return truthy;
-}
-
 int solve() {
   const string S = in;
   const int n = ssize(S);
@@ -124,22 +111,24 @@ int solve() {
 
   const Int K = in;
 
-  int ans = bisect(0, n + 1, [&](int x) -> bool {
-    REP(i, n) {
-      if (S[i] != 'Y') continue;
-      const int l = scount[i];
-      const int r = l + x;
-      if (r > total_y) break;
-      const int m = l + x / 2;
-      Int cost = 0;
-      cost += (lsums[m] - lsums[l]);
-      cost -= (lcounts[m] - lcounts[l]) * l;
-      cost += (rsums[m] - rsums[r - 1]);
-      cost -= (rcounts[m] - rcounts[r - 1]) * (total_y - r);
-      if (cost <= K) return true;
+  auto is_good = [&](int l, int r) -> bool {
+    const int m = l + (r - l) / 2;
+    Int cost = 0;
+    cost += (lsums[m] - lsums[l]);
+    cost -= (lcounts[m] - lcounts[l]) * l;
+    cost += (rsums[m] - rsums[r - 1]);
+    cost -= (rcounts[m] - rcounts[r - 1]) * (total_y - r);
+    return (cost <= K);
+  };
+
+  int ans = 0;
+  int l = 0;
+  for (int r = 1; r <= total_y; ++r) {
+    while (l < r and not is_good(l, r)) ++l;
+    if (l < r) {
+      chmax(ans, r - l);
     }
-    return false;
-  });
+  }
   return ans;
 }
 
