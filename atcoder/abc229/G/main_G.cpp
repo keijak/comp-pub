@@ -1,6 +1,6 @@
+#include <atcoder/fenwicktree>
 #include <bits/stdc++.h>
-#define REP_(i, a_, b_, a, b, ...) \
-  for (int i = (a), END_##i = (b); i < END_##i; ++i)
+#define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
 #define ALL(x) std::begin(x), std::end(x)
 using Int = long long;
@@ -8,43 +8,32 @@ using Uint = unsigned long long;
 using Real = long double;
 
 template<typename T, typename U>
-inline bool chmax(T &a, U b) {
-  return a < b and ((a = std::move(b)), true);
-}
+inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
-inline bool chmin(T &a, U b) {
-  return a > b and ((a = std::move(b)), true);
-}
+inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-inline int ssize(const T &a) {
-  return (int) a.size();
-}
-inline void check(bool cond, const char *message = "!ERROR!") {
-  if (not cond) {
-    std::cout.flush(), std::cerr.flush();
-    throw std::runtime_error(message);
-  }
-}
+inline int ssize(const T &a) { return (int) a.size(); }
+template<typename T>
+constexpr T kBigVal = std::numeric_limits<T>::max() / 2;
 
-struct Void {};
-
-template<class T>
-inline std::ostream &print_one(const T &x, char endc) {
-  if constexpr (std::is_same<T, Void>::value) {
-    return std::cout;  // print nothing
-  } else if constexpr (std::is_same<T, bool>::value) {
-    return std::cout << (x ? "Yes" : "No") << endc;
-  } else {
-    return std::cout << x << endc;
+struct CastInput {
+  template<typename T>
+  operator T() const {
+    T x;
+    std::cin >> x;
+    return x;
   }
-}
-template<class T>
-inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
-template<typename T, typename... Ts>
-std::ostream &print(const T &head, Ts... tail) {
-  return print_one(head, ' '), print(tail...);
-}
-inline std::ostream &print() { return std::cout << '\n'; }
+  struct Sized {
+    int n;
+    template<typename T>
+    operator T() const {
+      T xs(n);
+      for (auto &x: xs) std::cin >> x;
+      return xs;
+    }
+  };
+  Sized operator()(int n) const { return {n}; }
+} in;
 
 template<typename Container>
 std::ostream &print_seq(const Container &seq,
@@ -59,24 +48,22 @@ std::ostream &print_seq(const Container &seq,
   return os << ends;
 }
 
-struct CastInput {
-  template<typename T>
-  operator T() const {
-    T x;
-    std::cin >> x;
-    return x;
+template<typename T>
+inline std::ostream &print_one(const T &x, char endc) {
+  if constexpr (std::is_same<T, bool>::value) {
+    return std::cout << (x ? "Yes" : "No") << endc;
+  } else {
+    return std::cout << x << endc;
   }
-  struct Sized {
-    std::size_t n;
-    template<typename T>
-    operator T() const {
-      T x(n);
-      for (auto &e: x) std::cin >> e;
-      return x;
-    }
-  };
-  Sized operator()(std::size_t n) const { return {n}; }
-} in;
+}
+template<typename T>
+inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
+template<typename T, typename... Ts>
+std::ostream &print(const T &head, Ts... tail) {
+  return print_one(head, ' '), print(tail...);
+}
+inline std::ostream &print() { return std::cout << '\n'; }
+void exit_() { std::cout.flush(), std::cerr.flush(), std::_Exit(0); }
 
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
@@ -89,17 +76,77 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() {
+// Binary search over integers
+template<class T, class F>
+auto bisect(T truthy, T falsy, F pred) -> T {
+  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_invocable_r_v<bool, F, T>);
+  while (std::max(truthy, falsy) - std::min(truthy, falsy) > T(1)) {
+    auto mid = (truthy & falsy) + (truthy ^ falsy) / T(2);
+    auto ok = pred(mid);
+    (ok ? truthy : falsy) = std::move(mid);
+  }
+  return truthy;
+}
 
-  return Void{};
+int solve() {
+  const string S = in;
+  const int n = ssize(S);
+  vector<int> scount(n), sindex;
+  REP(i, n) {
+    scount[i] = ssize(sindex);
+    if (S[i] == 'Y') {
+      sindex.push_back(i);
+    }
+  }
+  const int total_y = ssize(sindex);
+  DUMP(total_y, sindex);
+  if (total_y == 0) {
+    return 0;
+  }
+
+  vector<Int> lcounts(total_y), lsums(total_y);
+  REP(i, 1, total_y) {
+    Int gap = sindex[i] - sindex[i - 1] - 1;
+    lcounts[i] = gap;
+    lcounts[i] += lcounts[i - 1];
+    lsums[i] = gap * i;
+    lsums[i] += lsums[i - 1];
+  }
+  vector<Int> rcounts(total_y), rsums(total_y);
+  for (int i = total_y - 2; i >= 0; --i) {
+    Int gap = sindex[i + 1] - sindex[i] - 1;
+    rcounts[i] = gap;
+    rcounts[i] += rcounts[i + 1];
+    rsums[i] = gap * (total_y - 1 - i);
+    rsums[i] += rsums[i + 1];
+  }
+
+  const Int K = in;
+
+  int ans = bisect(0, n + 1, [&](int x) -> bool {
+    REP(i, n) {
+      if (S[i] != 'Y') continue;
+      const int l = scount[i];
+      const int r = l + x;
+      if (r > total_y) break;
+      const int m = l + x / 2;
+      Int cost = 0;
+      cost += (lsums[m] - lsums[l]);
+      cost -= (lcounts[m] - lcounts[l]) * l;
+      cost += (rsums[m] - rsums[r - 1]);
+      cost -= (rcounts[m] - rcounts[r - 1]) * (total_y - r);
+      if (cost <= K) return true;
+    }
+    return false;
+  });
+  return ans;
 }
 
 int main() {
-  ios_base::sync_with_stdio(false), cin.tie(nullptr);
+  std::ios::sync_with_stdio(false), cin.tie(nullptr);
   cout << std::fixed << std::setprecision(18);
   const int T = 1;//in;
-  REP(t, T) {
-    auto ans = solve();
-    print(ans);
-  }
+  REP(t, T) { print(solve()); }
+  exit_();
 }
