@@ -9,5 +9,3 @@ add_executable(E E/main.cpp)
 add_executable(F F/main.cpp)
 add_executable(G G/main.cpp)
 add_executable(H H/main.cpp)
-
-add_executable(ftle F/tle.cpp)

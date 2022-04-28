@@ -123,19 +123,11 @@ struct DenseFPS {
   inline int size() const { return static_cast<int>(coeff_.size()); }
 
   // Returns the coefficient of x^k.
-  inline const T operator[](int k) const { return (k >= size()) ? 0 : coeff_[k]; }
+  inline T operator[](int k) const { return (k >= size()) ? 0 : coeff_[k]; }
 
   // Removes trailing zeros.
   void shrink() {
     while (coeff_.size() > 1 and coeff_.back() == T(0)) coeff_.pop_back();
-  }
-
-  // Convenience method for debug dump.
-  std::vector<T> head(int n = 10) const {
-    n = min(n, size());
-    std::vector<T> res(n);
-    for (int i = 0; i < n; ++i) res[i] = coeff_[i];
-    return res;
   }
 
   DenseFPS &operator+=(const T &scalar) {
@@ -184,7 +176,115 @@ struct DenseFPS {
   }
 };
 
-constexpr int kMaxT = 40000;
+template<class T>
+struct Matrix {
+  using Row = std::vector<T>;
+  std::vector<Row> data;
+
+  Matrix() {}
+  Matrix(int n, int m) : data(n, Row(m, T{})) {}
+  explicit Matrix(int n) : data(n, Row(n, T{})) {};
+  explicit Matrix(std::vector<Row> a) : data(std::move(a)) {}
+  Matrix(std::initializer_list<Row> a) : data(std::move(a)) {}
+
+  inline int height() const { return (int) (data.size()); }
+
+  inline int width() const { return (int) (data[0].size()); }
+
+  inline const Row &operator[](int k) const { return data[k]; }
+
+  inline Row &operator[](int k) { return data[k]; }
+
+  static Matrix I(int n) {
+    Matrix mat(n);
+    for (int i = 0; i < n; i++) mat[i][i] = T{1};
+    return mat;
+  }
+
+  static Matrix row(std::vector<T> v) {
+    Matrix mat(1, v.size());
+    mat[0] = std::move(v);
+    return mat;
+  }
+
+  static Matrix column(const std::vector<T> &v) {
+    const int n = v.size();
+    Matrix mat(n, 1);
+    for (int i = 0; i < n; ++i) mat[i][0] = v[i];
+    return mat;
+  }
+
+  Matrix transpose() const {
+    int n = height(), m = width();
+    Matrix mat(m, n);
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < m; ++j) {
+        mat[j][i] = (*this)[i][j];
+      }
+    }
+    return mat;
+  }
+
+  Matrix &operator+=(const Matrix &B) {
+    int n = height(), m = width();
+    assert(n == B.height() and m == B.width());
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < m; ++j) {
+        (*this)[i][j] += B[i][j];
+      }
+    }
+    return *this;
+  }
+
+  Matrix &operator-=(const Matrix &B) {
+    int n = height(), m = width();
+    assert(n == B.height() and m == B.width());
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < m; ++j) {
+        (*this)[i][j] -= B[i][j];
+      }
+    }
+    return *this;
+  }
+
+  Matrix &operator*=(const Matrix &B) {
+    int n = height(), m = B.width(), p = width();
+    assert(p == B.height());
+    std::vector<Row> C(n, Row(m, T{}));
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < m; j++) {
+        for (int k = 0; k < p; k++) {
+          C[i][j] = (C[i][j] + (*this)[i][k] * B[k][j]);
+        }
+      }
+    }
+    std::swap(data, C);
+    return *this;
+  }
+
+  Matrix &operator^=(long long k) {
+    Matrix B = Matrix::I(height());
+    while (k > 0) {
+      if (k & 1) B *= *this;
+      *this *= *this;
+      k >>= 1LL;
+    }
+    data.swap(B.data);
+    return *this;
+  }
+
+  Matrix operator+(const Matrix &B) const { return (Matrix(*this) += B); }
+
+  Matrix operator-(const Matrix &B) const { return (Matrix(*this) -= B); }
+
+  Matrix operator*(const Matrix &B) const { return (Matrix(*this) *= B); }
+
+  Matrix operator^(const long long k) const { return (Matrix(*this) ^= k); }
+
+  Matrix pow(const long long k) const { return (*this) ^ k; }
+};
+
+const int kMaxT = 40005;
 using Poly = DenseFPS<NTTMult<Mint, kMaxT>>;
 
 template<class F>
@@ -200,8 +300,7 @@ template<class F> Rec(F) -> Rec<F>;
 
 auto solve() {
   int n = in, m = in, T = in;
-  vector<tuple<int, int, Poly>> edges;
-  edges.reserve(2 * m);
+  Matrix<Poly> X(n);
   REP(i, m) {
     int a = in, b = in;
     --a, --b;
@@ -210,41 +309,26 @@ auto solve() {
       int p = in;
       v[d] = p;
     }
-    Poly f(v);
-    f.shrink();
-    edges.emplace_back(a, b, f);
-    edges.emplace_back(b, a, f);
+    X[b][a] = X[a][b] = Poly(move(v));
   }
 
-  auto dp = vector(n, Poly(vector<Mint>(T + 1, 0)));
-  dp[0].coeff_[0] = 1;
-
-  Rec([&](auto &f, int l, int r) -> void {
-    const int B = r - l;
-    if (B <= 1) return;
-    const int m = l + B / 2;
-    f(l, m);
-    for (const auto &[from, to, x]: edges) {
-      vector<Mint> vec_from(m - l);
-      for (int i = l; i < m; ++i) {
-        if (i > dp[from].size()) break;
-        vec_from[i - l] = dp[from][i];
-      }
-      vector<Mint> vec_trans(r - l);
-      REP(i, r - l) {
-        vec_trans[i] = x[i];
-      }
-      Poly g = Poly(move(vec_from)) * Poly(move(vec_trans));
-      DUMP(from, to, g.head());
-      for (int i = m; i < r; ++i) {
-        if (i - l > g.size()) break;
-        dp[to].coeff_[i] += g[i - l];
-      }
+  auto Z = Rec([&](auto &f, int k) -> Matrix<Poly> {
+    if (k == 1) {
+      return X;
     }
-    f(m, r);
-  })(0, T + 1);
+    if (k & 1) {
+      return X + f(k - 1) * X;
+    }
+    int h = k / 2;
+    auto Xh = f(h);
+    return Xh + Xh * X.pow(h);
+  })(T);
 
-  print(dp[0][T]);
+  vector<Poly> v0(n);
+  v0[0] = Poly{1};
+  auto c0 = Matrix<Poly>::column(v0);
+  Mint ans = (Z * c0)[0][0][T];
+  print(ans);
 }
 
 int main() {
