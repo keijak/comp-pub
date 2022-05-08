@@ -93,9 +93,6 @@ auto solve() {
     Int l = r - (ones - count1);
     B[r - 1] += 1;
     if (l - 1 >= 0) B[l - 1] -= 1;
-//    for (Int j = l; j < r; ++j) {
-//      B[j] += 1;
-//    }
     if (C[i] - B[i] > 0) {
       assert(C[i] - B[i] == i);
       A[i] = 1;
