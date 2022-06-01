@@ -64,12 +64,27 @@ std::ostream &print(const T &head, Ts... tail) {
 }
 inline std::ostream &print() { return std::cout << '\n'; }
 
+void init_(bool interactive = false) {
+  std::ios::sync_with_stdio(false);
+  if (not interactive) std::cin.tie(nullptr);
+  std::cout << std::fixed << std::setprecision(18);
+}
+
 void exit_() {
 #ifdef MY_DEBUG
   std::string unused;
   assert(not(std::cin >> unused));
 #endif
   std::cout.flush(), std::cerr.flush(), std::_Exit(0);
+}
+
+inline void init_test_case(int t, int T) {
+#ifdef MY_DEBUG
+  if (T > 1) {
+    std::cerr << "\033[35m=== case " << t << "/" << T << " ===\033[0m"
+              << std::endl;
+  }
+#endif
 }
 
 #ifdef MY_DEBUG
@@ -127,91 +142,58 @@ auto solve() {
     events.emplace_back(r, true, i);
   }
   sort(ALL(events));
-  set<int> rs, bs;
-  optional<int> rt, bt;
+  array<set<int>, 2> rs;
+  array<optional<int>, 2> rt;
 
   for (auto [x, ending, i]: events) {
     const auto &si = segs[i];
+    const int me = si.c;
+    const int other = me ^ 1;
     if (ending) {
-      if (si.c == 1) {
-        if (bt.has_value() and bt.value() == i) {
-          rs.insert(rt.value());
-          bt = nullopt;
-          rt = nullopt;
-        } else {
-          bs.erase(i);
-        }
+      if (rt[me].has_value() and *rt[me] == i) {
+        rs[other].insert(rt[other].value());
+        rt[me] = nullopt;
+        rt[other] = nullopt;
       } else {
-        if (rt.has_value() and rt.value() == i) {
-          bs.insert(bt.value());
-          bt = nullopt;
-          rt = nullopt;
-        } else {
-          rs.erase(i);
-        }
+        rs[me].erase(i);
       }
-
     } else {
-      if (si.c == 1) {
-        if (bt.has_value() and rt.has_value()) {
-          uf.unite(i, *rt);
-          if (segs[*bt].r < si.r) {
-            bt = i;
-          }
-        } else if (not rs.empty()) {
-          int v = -1;
-          Int rmax = -1;
-          for (auto j: rs) {
-            auto [cj, lj, rj] = segs[j];
-            uf.unite(i, j);
-            if (chmax(rmax, rj)) {
-              v = j;
-            }
-          }
-          rs.clear();
-          rt = v;
-          bt = i;
-        } else {
-          bs.insert(i);
+      if (rt[me].has_value() and rt[other].has_value()) {
+        uf.unite(i, *rt[other]);
+        if (segs[*rt[me]].r < si.r) {
+          rt[me] = i;
         }
+      } else if (not rs[other].empty()) {
+        int v = -1;
+        Int rmax = -1;
+        for (auto j: rs[other]) {
+          auto [cj, lj, rj] = segs[j];
+          uf.unite(i, j);
+          if (chmax(rmax, rj)) {
+            v = j;
+          }
+        }
+        rs[other].clear();
+        rt[other] = v;
+        rt[me] = i;
       } else {
-        if (bt.has_value() and rt.has_value()) {
-          uf.unite(i, *bt);
-          if (segs[*rt].r < si.r) {
-            rt = i;
-          }
-        } else if (not bs.empty()) {
-          int v = -1;
-          Int rmax = -1;
-          for (auto j: bs) {
-            auto [cj, lj, rj] = segs[j];
-            uf.unite(i, j);
-            if (chmax(rmax, rj)) {
-              v = j;
-            }
-          }
-          bs.clear();
-          bt = v;
-          rt = i;
-        } else {
-          rs.insert(i);
-        }
+        rs[me].insert(i);
       }
     }
   }
   int cnt = 0;
   REP(i, n) {
-    if (uf.find(i) == i) {
-      cnt++;
-    }
+    if (uf.find(i) == i) ++cnt;
   }
   print(cnt);
 }
 
 int main() {
-  std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
+  init_();
   const int T = in;
-  REP(t, T) { (solve()); }
+  REP(t, T) {
+    init_test_case(t, T);
+    (solve());
+  }
   exit_();
 }

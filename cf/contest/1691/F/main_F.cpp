@@ -64,12 +64,27 @@ std::ostream &print(const T &head, Ts... tail) {
 }
 inline std::ostream &print() { return std::cout << '\n'; }
 
+void init_(bool interactive = false) {
+  std::ios::sync_with_stdio(false);
+  if (not interactive) std::cin.tie(nullptr);
+  std::cout << std::fixed << std::setprecision(18);
+}
+
 void exit_() {
 #ifdef MY_DEBUG
   std::string unused;
   assert(not(std::cin >> unused));
 #endif
   std::cout.flush(), std::cerr.flush(), std::_Exit(0);
+}
+
+inline void init_test_case(int t, int T) {
+#ifdef MY_DEBUG
+  if (T > 1) {
+    std::cerr << "\033[35m=== case " << t << "/" << T << " ===\033[0m"
+              << std::endl;
+  }
+#endif
 }
 
 #ifdef MY_DEBUG
@@ -357,9 +372,11 @@ auto solve() {
 }
 
 int main() {
-  std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
+  init_();
   const int T = 1;//in;
-  REP(t, T) { (solve()); }
+  REP(t, T) {
+    init_test_case(t, T);
+    (solve());
+  }
   exit_();
 }
