@@ -64,6 +64,12 @@ std::ostream &print(const T &head, Ts... tail) {
 }
 inline std::ostream &print() { return std::cout << '\n'; }
 
+void init_(bool interactive = false) {
+  std::ios::sync_with_stdio(false);
+  if (not interactive) std::cin.tie(nullptr);
+  std::cout << std::fixed << std::setprecision(18);
+}
+
 void exit_() {
 #ifdef MY_DEBUG
   std::string unused;
@@ -95,13 +101,16 @@ auto solve() {
     }
   }
   print(min(e, o));
-
 }
 
 int main() {
-  std::ios::sync_with_stdio(false), cin.tie(nullptr);
-  cout << std::fixed << std::setprecision(18);
+  init_();
   const int T = in;
-  REP(t, T) { (solve()); }
+  REP(t, T) {
+#ifdef MY_DEBUG
+    if (T > 1) std::cerr << "\033[35m=== case " << t << " ===\033[0m\n";
+#endif
+    (solve());
+  }
   exit_();
 }
