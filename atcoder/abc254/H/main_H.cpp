@@ -1,3 +1,4 @@
+// #define NDEBUG
 #include <bits/stdc++.h>
 
 #define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
@@ -22,7 +23,8 @@ struct CastInput {
   template<typename T>
   operator T() const {
     T x;
-    assert(std::cin >> x);
+    std::cin >> x;
+    assert(bool(std::cin));
     return x;
   }
   struct Sized {
@@ -30,7 +32,10 @@ struct CastInput {
     template<typename T>
     operator T() const {
       T xs(n);
-      for (auto &x: xs) assert(std::cin >> x);
+      for (auto &x: xs) {
+        std::cin >> x;
+        assert(bool(std::cin));
+      }
       return xs;
     }
   };
@@ -80,59 +85,57 @@ void exit_() {
   std::cout.flush(), std::cerr.flush(), std::_Exit(0);
 }
 
-inline void init_test_case(int t, int T) {
-#ifdef MY_DEBUG
-  if (T > 1) {
-    std::cerr << "\033[35m=== case " << t << " of " << T << " ===\033[0m"
-              << std::endl;
-  }
-#endif
-}
-
 #ifdef MY_DEBUG
 #include "debug_dump.hpp"
 #include "backward.hpp"
 backward::SignalHandling kSignalHandling;
+void dump_test_case(int t, int T) {
+  if (T <= 1) return;
+  std::cerr << "\033[35m=== case " << t << " of " << T << " ===\033[0m"
+            << std::endl;
+}
 #else
 #define DUMP(...)
+#define dump_test_case(...)
 #define cerr if(false)cerr
 #endif
 
 using namespace std;
 
-bool solve() {
-  int n = in, K = in;
-  vector<Int> a = in(n);
-  DUMP(a);
-  auto sa = a;
-  sort(ALL(sa));
-  vector<deque<Int>> b(K);
-  REP(i, n) {
-    int r = i % K;
-    b[r].push_back(a[i]);
-  }
-  REP(i, K) {
-    sort(ALL(b[i]));
-  }
-  vector<Int> c;
-  while (true) {
-    bool has = false;
-    REP(i, K) {
-      if (b[i].empty()) continue;
-      has = true;
-      c.push_back(b[i].front());
-      b[i].pop_front();
+int solve() {
+  const int n = in;
+  const vector<int> a = in(n), b = in(n);
+  priority_queue<int> aq, bq;
+  for (auto x: a) aq.push(x);
+  for (auto x: b) bq.push(x);
+  int cnt = 0;
+  while (not aq.empty() and not bq.empty()) {
+    const int aa = aq.top(), bb = bq.top();
+    if (aa == bb) {
+      aq.pop(), bq.pop();
+      continue;
     }
-    if (not has) break;
+    ++cnt;
+    assert(max(aa, bb) > 0);
+    if (aa > bb) {
+      aq.pop();
+      aq.push(aa >> 1);
+    } else {
+      assert(bb > aa);
+      if (bb & 1) return -1;
+      bq.pop();
+      bq.push(bb >> 1);
+    }
   }
-  return c == sa;
+  assert(aq.empty() and bq.empty());
+  return cnt;
 }
 
 int main() {
   init_();
   const int T = 1;//in;
   REP(t, T) {
-    init_test_case(t, T);
+    dump_test_case(t, T);
     print(solve());
   }
   exit_();
