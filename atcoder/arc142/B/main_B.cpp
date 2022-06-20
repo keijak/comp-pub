@@ -8,12 +8,6 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
-#include <atcoder/modint>
-using Mint = atcoder::modint;
-std::ostream &operator<<(std::ostream &os, const Mint &m) {
-  return os << m.val();
-}
-
 template<typename T, typename U>
 inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
@@ -49,10 +43,9 @@ struct CastInput {
 } in;
 
 template<typename Container>
-std::ostream &print_seq(const Container &seq,
-                        const char *sep = " ",
-                        const char *ends = "\n",
-                        std::ostream &os = std::cout) {
+std::ostream &output_seq(
+    const Container &seq, const char *sep = " ", const char *ends = "\n",
+    std::ostream &os = std::cout) {
   const auto itl = std::begin(seq), itr = std::end(seq);
   for (auto it = itl; it != itr; ++it) {
     if (it != itl) os << sep;
@@ -62,7 +55,7 @@ std::ostream &print_seq(const Container &seq,
 }
 
 template<typename T>
-inline std::ostream &print_one(const T &x, char endc) {
+std::ostream &output_one(const T &x, char endc) {
   if constexpr (std::is_same<T, bool>::value) {
     return std::cout << (x ? "Yes" : "No") << endc;
   } else {
@@ -70,12 +63,13 @@ inline std::ostream &print_one(const T &x, char endc) {
   }
 }
 template<typename T>
-inline std::ostream &print(const T &x) { return print_one(x, '\n'); }
-template<typename T, typename... Ts>
-std::ostream &print(const T &head, Ts... tail) {
-  return print_one(head, ' '), print(tail...);
+std::ostream &output(const T &x) {
+  return output_one(x, '\n');
 }
-inline std::ostream &print() { return std::cout << '\n'; }
+template<typename T, typename... Ts>
+std::ostream &output(const T &head, Ts... tail) {
+  return output_one(head, ' '), output(tail...);
+}
 
 void init_(bool interactive = false) {
   std::ios::sync_with_stdio(false);
@@ -103,34 +97,20 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() -> Int {
-  int H = in, W = in, K = in;
-  Mint::set_mod(K);
-  vector<Int> A = in(H), B = in(W);
-  Mint row_sum = Mint(K - 1) * W;
-  Mint col_sum = Mint(K - 1) * H;
-  Int row_delta = 0, col_delta = 0;
-  REP(i, H) {
-    if (row_sum.val() >= A[i]) {
-      row_delta += row_sum.val() - A[i];
-    } else {
-      row_delta += (row_sum.val() + K) - A[i];
+auto solve() {
+  const int n = in;
+  auto g = vector(n, vector(n, -1));
+  int x = 1;
+  REP(start, 2) {
+    for (int i = start; i < n; i += 2) {
+      REP(j, n) {
+        g[i][j] = x++;
+      }
     }
   }
-  REP(j, W) {
-    if (col_sum.val() >= B[j]) {
-      col_delta += col_sum.val() - B[j];
-    } else {
-      col_delta += (col_sum.val() + K) - B[j];
-    }
+  REP(i, n) {
+    output_seq(g[i]);
   }
-  DUMP(row_sum, col_sum);
-  DUMP(row_delta, col_delta);
-  if (row_delta % K != col_delta % K) {
-    return -1;
-  }
-
-  return Int(K - 1) * H * W - max(row_delta, col_delta);
 }
 
 int main() {
@@ -138,7 +118,7 @@ int main() {
   const int T = 1;//in;
   REP(t, T) {
     test_case(t, T);
-    print(solve());
+    (solve());
   }
   exit_();
 }
