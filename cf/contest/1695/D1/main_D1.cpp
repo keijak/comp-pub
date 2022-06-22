@@ -97,17 +97,48 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
+template<class F>
+struct Rec {
+  F f_;
+  explicit Rec(F f) : f_(std::move(f)) {}
+  template<class... Args>
+  decltype(auto) operator()(Args &&... args) {
+    return f_(*this, std::forward<Args>(args)...);
+  }
+};
+template<class F> Rec(F) -> Rec<F>;
+
 auto solve() {
   int n = in;
+  vector<vector<int>> g(n);
   REP(i, n - 1) {
     int x = in, y = in;
     --x, --y;
-
+    g[x].push_back(y);
+    g[y].push_back(x);
   }
   if (n == 1) return 0;
   if (n == 2) return 1;
   if (n == 3) return 1;
-  return 45;
+
+  auto dfs = Rec([&](auto &rec, int v, int p) -> int {
+    int res = 0;
+    int zeros = 0;
+    for (auto u: g[v]) {
+      if (u == p) continue;
+      int r = rec(u, v);
+      if (r == 0) ++zeros;
+      res += r;
+    }
+    res += max(zeros - 1, 0);
+    return res;
+  });
+  int ans = n;
+  REP(v, n) {
+    int r = dfs(v, -1) + 1;
+    chmin(ans, r);
+  }
+  return ans;
 }
 
 int main() {
