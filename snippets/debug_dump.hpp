@@ -7,27 +7,26 @@
 #include <utility>
 
 namespace aux {
-template<std::size_t...>
+template <std::size_t...>
 struct indices {};
 
-template<std::size_t N, std::size_t... Ix>
+template <std::size_t N, std::size_t... Ix>
 struct gen_indices : gen_indices<N - 1, N - 1, Ix...> {};
 
-template<std::size_t... Ix>
+template <std::size_t... Ix>
 struct gen_indices<0, Ix...> : indices<Ix...> {};
 
-template<class Tuple, std::size_t... Ix>
+template <class Tuple, std::size_t... Ix>
 void print_tuple(std::ostream &os, Tuple const &t, indices<Ix...>);
 
-template<typename T, typename = void>
+template <typename T, typename = void>
 struct is_iterable : std::false_type {};
-template<typename T>
+template <typename T>
 struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
                                   decltype(std::end(std::declval<T>()))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
-template<typename Container>
+template <typename Container>
 void print_seq(const Container &a, const char *sep, const char *ends,
                std::ostream &os);
 }  // namespace aux
@@ -46,21 +45,21 @@ std::ostream &operator<<(std::ostream &os, const __int128_t &x) {
   return os << y;
 }
 
-template<typename T, typename U>
+template <typename T, typename U>
 std::ostream &operator<<(std::ostream &os, const std::pair<T, U> &p) {
   return os << '(' << p.first << ", " << p.second << ')';
 }
 
-template<class... Args>
+template <class... Args>
 std::ostream &operator<<(std::ostream &os, const std::tuple<Args...> &t) {
   os << '(';
   ::aux::print_tuple(os, t, aux::gen_indices<sizeof...(Args)>());
   return os << ')';
 }
 
-template<typename T,
-    typename = std::enable_if_t<::aux::is_iterable<T>::value &&
-        !std::is_same<T, std::string>::value>>
+template <typename T,
+          typename = std::enable_if_t<::aux::is_iterable<T>::value &&
+                                      !std::is_same<T, std::string>::value>>
 std::ostream &operator<<(std::ostream &os, const T &a) {
   os << '{';
   ::aux::print_seq(a, ", ", "", os);
@@ -69,13 +68,13 @@ std::ostream &operator<<(std::ostream &os, const T &a) {
 
 namespace aux {
 
-template<class Tuple, std::size_t... Ix>
+template <class Tuple, std::size_t... Ix>
 void print_tuple(std::ostream &os, Tuple const &t, indices<Ix...>) {
   using swallow = int[];
   swallow{0, (void(os << (Ix == 0 ? "" : ", ") << std::get<Ix>(t)), 0)...};
 }
 
-template<typename Container>
+template <typename Container>
 void print_seq(const Container &a, const char *sep, const char *ends,
                std::ostream &os) {
   auto itl = std::begin(a), itr = std::end(a);
@@ -86,8 +85,9 @@ void print_seq(const Container &a, const char *sep, const char *ends,
   os << ends;
 }
 
-int next_comma_(const std::string& s) {
-  int i = 0, stk = 0;;
+int next_comma_(const std::string &s) {
+  int i = 0, stk = 0;
+  ;
   for (; i < (int)s.size(); ++i) {
     if (s[i] == ',') {
       if (stk == 0) break;
@@ -100,24 +100,45 @@ int next_comma_(const std::string& s) {
   return i;
 }
 
-template<typename T>
-void named_dump(std::string name, const T &value) {
-  std::cerr << "\033[32m" << name << "\033[33m=\033[0m" << value;
+// TTY escape sequence to control coloring.
+// https://en.wikipedia.org/wiki/ANSI_escape_code
+std::string ttycolor(int code) {
+  // Auto-detect: isatty(fileno(stderr))
+  static constexpr bool kColorEnabled = true;
+  if constexpr (kColorEnabled) {
+    std::stringstream ss;
+    ss << "\033[" << code << "m";
+    return ss.str();
+  } else {
+    return "";
+  }
 }
 
-template<typename T, typename... Ts>
+template <typename T>
+void named_dump(std::string name, const T &value) {
+  std::cerr << ttycolor(32) << name << ttycolor(33) << "=" << ttycolor(0)
+            << value;
+}
+
+template <typename T, typename... Ts>
 void named_dump(std::string names, const T &value, const Ts &...args) {
   const int p = next_comma_(names);
   named_dump(names.substr(0, p), value);
-  std::cerr << "\033[33m; \033[0m";
+  std::cerr << ttycolor(33) << "; " << ttycolor(0);
   named_dump(names.substr(p + 2), args...);
 }
 }  // namespace aux
 
-#define DUMP(...)                                    \
-  do {                                               \
-    std::cerr << " \033[33m (L" << __LINE__ << ":";  \
-    std::cerr << __FUNCTION__ << ")\033[0m ";        \
-    ::aux::named_dump(#__VA_ARGS__, __VA_ARGS__);    \
-    std::cerr << std::endl;                          \
+#define DUMP(...)                                                        \
+  do {                                                                   \
+    std::cerr << " " << ::aux::ttycolor(33) << " (L" << __LINE__ << ":"; \
+    std::cerr << __FUNCTION__ << ")" << ::aux::ttycolor(0) << " ";       \
+    ::aux::named_dump(#__VA_ARGS__, __VA_ARGS__);                        \
+    std::cerr << std::endl;                                              \
   } while (0)
+
+void test_case(int t, int T) {
+  if (T <= 1) return;
+  std::cerr << ::aux::ttycolor(35) << "=== case " << t << " of " << T
+            << " ===" << ::aux::ttycolor(0) << std::endl;
+}
