@@ -8,6 +8,14 @@ using Int = long long;
 using Uint = unsigned long long;
 using Real = long double;
 
+#include <atcoder/modint>
+//using Mint = atcoder::modint998244353;
+using Mint = atcoder::modint1000000007;
+//using Mint = atcoder::modint;
+std::ostream &operator<<(std::ostream &os, const Mint &m) {
+  return os << m.val();
+}
+
 template<typename T, typename U>
 inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
@@ -94,28 +102,93 @@ backward::SignalHandling kSignalHandling;
 #define cerr if(false)cerr
 #endif
 
-using namespace std;
+// N-dimensional array.
+template<typename T, int dim>
+struct NdArray {
+  std::vector<T> data_;
+  std::array<int, dim> shape_;
+  std::array<int, dim> base_;
 
-const int B = 3003;
+  NdArray(const std::array<int, dim> &shape, T init = T{})
+      : data_(std::accumulate(shape.begin(), shape.end(), size_t(1),
+                              [](size_t x, size_t y) { return x * y; }),
+              std::move(init)),
+        shape_(shape) {
+    size_t b = 1;
+    for (int j = dim - 1; j >= 0; --j) {
+      base_[j] = b;
+      b *= shape_[j];
+    }
+  }
+
+  T &operator[](const std::array<int, dim> &index) {
+    size_t pos = 0;
+    for (int j = dim - 1; j >= 0; --j) {
+      pos += index[j] * base_[j];
+    }
+    return data_[pos];
+  }
+
+  // Fills one row with the specified value.
+  inline void fill(int i0, T val) {
+    std::fill(data_.begin() + i0 * base_[0],
+              data_.begin() + (i0 + 1) * base_[0], val);
+  }
+};
+
+using namespace std;
 
 auto solve() {
   int n = in;
-  vector<bitset<B>> neighbor(n);
-  string line;
-  REP(i, n) {
-    cin >> line;
-    REP(j, i + 1, n) {
-      neighbor[i].set(j, line[j] == '1');
+  vector<int> a = in(n);
+  auto dp = NdArray<Int, 6>({10, 10, 10, 10, 10, 10});
+  for (auto x: a) {
+    array<int, 6> ix{};
+    REP(i, 6) {
+      ix[i] = x % 10;
+      x /= 10;
+    }
+    dp[ix] += 1;
+  }
+
+  array<int, 6> from{}, to{};
+  REP(d, 6) {
+    REP(i, 9) {
+      from[d] = i;
+      to[d] = i + 1;
+      REP(i0, 10) {
+        from[0 + (d <= 0)] = to[0 + (d <= 0)] = i0;
+        REP(i1, 10) {
+          from[1 + (d <= 1)] = to[1 + (d <= 1)] = i1;
+          REP(i2, 10) {
+            from[2 + (d <= 2)] = to[2 + (d <= 2)] = i2;
+            REP(i3, 10) {
+              from[3 + (d <= 3)] = to[3 + (d <= 3)] = i3;
+              REP(i4, 10) {
+                from[4 + (d <= 4)] = to[4 + (d <= 4)] = i4;
+                dp[to] += dp[from];
+              }
+            }
+          }
+        }
+      }
     }
   }
+
   Int ans = 0;
-  REP(j, n) {
-    const bitset<B> &bj = neighbor[j];
-    REP(i, j) {
-      ans += neighbor[i][j] * (neighbor[i] & bj).count();
+  for (auto x: a) {
+    array<int, 6> ix{};
+    bool self = true;
+    REP(i, 6) {
+      int d = x % 10;
+      if (d >= 5) self = false;
+      ix[i] = 9 - d;
+      x /= 10;
     }
+    ans += dp[ix];
+    if (self) ans -= 1;
   }
-  out(ans);
+  out(ans / 2);
 }
 
 int main() {
