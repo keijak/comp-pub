@@ -13,7 +13,8 @@ inline bool chmax(T &a, U b) { return a < b and ((a = b), true); }
 template<typename T, typename U>
 inline bool chmin(T &a, U b) { return a > b and ((a = b), true); }
 template<typename T>
-constexpr T kBig = std::numeric_limits<T>::max() / 2;
+constexpr T
+kBig = std::numeric_limits<T>::max() / 2;
 #if __cplusplus < 202002L
 template<typename T>
 inline int ssize(const T &a) { return (int) a.size(); }
@@ -55,7 +56,8 @@ std::ostream &out_seq(const Container &seq, const char *sep = " ",
 
 template<typename T>
 std::ostream &out_one(const T &x, char endc) {
-  if constexpr (std::is_same<T, bool>::value) {
+  if constexpr(std::is_same<T, bool>::value)
+  {
     return std::cout << (x ? "Yes" : "No") << endc;
   } else {
     return std::cout << x << endc;
@@ -99,7 +101,8 @@ struct Rec {
   F f_;
   explicit Rec(F f) : f_(std::move(f)) {}
   template<class... Args>
-  decltype(auto) operator()(Args &&... args) {
+  decltype(auto)
+  operator()(Args &&... args) {
     return f_(*this, std::forward<Args>(args)...);
   }
 };
@@ -114,10 +117,13 @@ struct LazyRational {
   mutable i64 deno_;
   mutable bool reduced_;
 
-  static constexpr i64 kReduceThreshold = i64(1) << 62;
+  static constexpr i64
+  kReduceThreshold = i64(1) << 62;
 
   LazyRational() : nume_(0), deno_(1), reduced_(true) {}
   LazyRational(i64 n) : nume_(n), deno_(1), reduced_(true) {}
+  LazyRational(i64 n, i64 d, bool reduced)
+      : nume_(n), deno_(d), reduced_(reduced) {}
 
   template<typename T>
   LazyRational(T n, T d) : reduced_(false) {
@@ -126,25 +132,25 @@ struct LazyRational {
       d = 1;
       reduced_ = true;
     } else {
-      const int sign = ((n < 0) xor (d < 0)) ? -1 : 1;
-      if (n < 0) n = -n;
-      if (d < 0) d = -n;
-      if (std::max<T>(n, d) > kReduceThreshold) {
-        reduce_(n, d);
-      }
-      n *= sign;
+      reduced_ = light_reduce_(n, d);
     }
-    nume_ = (i64) n;
-    deno_ = (i64) d;
+    nume_ = static_cast<i64>(n);
+    deno_ = static_cast<i64>(d);
   }
 
   i64 numerator() const {
-    if (not reduced_) reduce_me_();
+    if (not reduced_) {
+      reduce_(nume_, deno_);
+      reduced_ = true;
+    }
     return nume_;
   }
 
   i64 denominator() const {
-    if (not reduced_) reduce_me_();
+    if (not reduced_) {
+      reduce_(nume_, deno_);
+      reduced_ = true;
+    }
     return deno_;
   }
 
@@ -158,36 +164,20 @@ struct LazyRational {
   const LazyRational &operator+() const { return *this; }
 
   LazyRational operator-() const {
-    LazyRational ret;
-    ret.nume_ = -this->nume_;
-    ret.deno_ = this->deno_;
-    ret.reduced_ = this->reduced_;
-    return ret;
-  }
-
-  friend bool operator==(const LazyRational &x, const LazyRational &y) {
-    return i128(x.nume_) * y.deno_ == i128(x.deno_) * y.nume_;
-  }
-  friend bool operator!=(const LazyRational &x, const LazyRational &y) {
-    return not(x == y);
-  }
-  friend bool operator<(const LazyRational &x, const LazyRational &y) {
-    return i128(x.nume_) * y.deno_ < i128(x.deno_) * y.nume_;
-  }
-  friend bool operator>(const LazyRational &x, const LazyRational &y) { return y < x; }
-  friend bool operator<=(const LazyRational &x, const LazyRational &y) {
-    return not(x > y);
-  }
-  friend bool operator>=(const LazyRational &x, const LazyRational &y) {
-    return not(x < y);
+    return LazyRational(-nume_, deno_, reduced_);
   }
 
   LazyRational &operator+=(const LazyRational &y) {
+    if (y.nume_ == 0) return *this;
+    if (this->nume_ == 0) {
+      *this = y;
+      return *this;
+    }
     i128 zn = i128(this->nume_) * y.deno_ + i128(y.nume_) * this->deno_;
     i128 zd = i128(this->deno_) * y.deno_;
     this->reduced_ = light_reduce_(zn, zd);
-    this->nume_ = zn;
-    this->deno_ = zd;
+    this->nume_ = static_cast<i64>(zn);
+    this->deno_ = static_cast<i64>(zd);
     return *this;
   }
   friend LazyRational operator+(LazyRational x, const LazyRational &y) {
@@ -209,13 +199,13 @@ struct LazyRational {
       this->nume_ = 0;
       this->deno_ = 1;
       this->reduced_ = true;
-      return *this;
+    } else {
+      i128 zn = i128(this->nume_) * y.nume_;
+      i128 zd = i128(this->deno_) * y.deno_;
+      this->reduced_ = light_reduce_(zn, zd);
+      this->nume_ = static_cast<i64>(zn);
+      this->deno_ = static_cast<i64>(zd);
     }
-    i128 zn = i128(this->nume_) * y.nume_;
-    i128 zd = i128(this->deno_) * y.deno_;
-    this->reduced_ = light_reduce_(zn, zd);
-    this->nume_ = zn;
-    this->deno_ = zd;
     return *this;
   }
   friend LazyRational operator*(LazyRational x, const LazyRational &y) {
@@ -224,12 +214,8 @@ struct LazyRational {
   }
 
   LazyRational inv() const {
-    LazyRational ret;
     int sign = this->nume_ >= 0 ? 1 : -1;
-    ret.nume_ = this->deno_ * sign;
-    ret.deno_ = this->nume_ * sign;
-    ret.reduced_ = this->reduced_;
-    return ret;
+    return LazyRational(this->deno_ * sign, this->nume_ * sign, this->reduced_);
   }
   friend LazyRational operator/(const LazyRational &x, const LazyRational &y) {
     return x * y.inv();
@@ -237,6 +223,25 @@ struct LazyRational {
   LazyRational &operator/=(const LazyRational &y) {
     *this *= y.inv();
     return *this;
+  }
+
+  friend bool operator==(const LazyRational &x, const LazyRational &y) {
+    return i128(x.nume_) * y.deno_ == i128(x.deno_) * y.nume_;
+  }
+  friend bool operator!=(const LazyRational &x, const LazyRational &y) {
+    return not(x == y);
+  }
+  friend bool operator<(const LazyRational &x, const LazyRational &y) {
+    return i128(x.nume_) * y.deno_ < i128(x.deno_) * y.nume_;
+  }
+  friend bool operator>(const LazyRational &x, const LazyRational &y) {
+    return y < x;
+  }
+  friend bool operator<=(const LazyRational &x, const LazyRational &y) {
+    return not(x > y);
+  }
+  friend bool operator>=(const LazyRational &x, const LazyRational &y) {
+    return not(x < y);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const LazyRational &x) {
@@ -250,33 +255,41 @@ struct LazyRational {
       d = 1;
       return;
     }
-    i128 a = (n < 0 ? -n : n), b = d;
+    i128 a = abs_(n), b = d;
     while (b) {
       a %= b;
       std::swap(a, b);
     }
-    n /= a;
-    d /= a;
+    if (a > 1) {
+      n /= static_cast<T>(a);
+      d /= static_cast<T>(a);
+    }
   }
 
   // Returns whether the args are reduced.
   template<typename T>
   static bool light_reduce_(T &n, T &d) {
-    if (std::max<T>((n < 0 ? -n : n), d) <= kReduceThreshold) {
+    if (std::max<T>(abs_(n), d) <= kReduceThreshold) {
       return false;
     }
     reduce_(n, d);
-    if constexpr (std::is_same_v<T, i128>) {
-      if (std::max<T>((n < 0 ? -n : n), d) > std::numeric_limits<i64>::max()) {
+    if constexpr(std::is_same_v < T, i128 > )
+    {
+      if (std::max<T>(abs_(n), d) > std::numeric_limits<i64>::max()) {
         throw std::overflow_error("cannot fit in 64 bits");
       }
     }
     return true;
   }
 
-  void reduce_me_() const {
-    reduce_<i64>(nume_, deno_);
-    reduced_ = true;
+  template<typename T>
+  static T abs_(const T &x) {
+    if constexpr(std::is_same_v < T, i128 > )
+    {
+      return x < 0 ? -x : x;
+    } else {
+      return std::abs(x);
+    }
   }
 };
 using Rat = LazyRational;
