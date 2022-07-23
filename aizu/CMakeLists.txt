@@ -5,3 +5,4 @@ set(CMAKE_CXX_FLAGS "-O0 -g -Wall -Wextra -fsanitize=address,undefined -DMY_DEBU
 add_executable(DSL_2_C DSL_2_C/main_segtree.cpp)
 add_executable(2446 2446/main_2446.cpp)
 add_executable(2136 2136/main_2136.cpp)
+add_executable(1131 1131/main_1131.cpp)
