@@ -163,9 +163,8 @@ auto solve() {
     if (delta == 0) continue;
     auto cur = dp;
     int mod = abs(delta);
-    vector<SWAGQueue<MinOp>> minq(mod);
     REP(jx, mod) {
-      auto &q = minq[jx];
+      SWAGQueue<MinOp> q;
       for (int jy = 0;; ++jy) {
         int j = jy * mod + jx;
         if (j > m) break;
