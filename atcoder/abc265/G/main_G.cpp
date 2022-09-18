@@ -239,14 +239,6 @@ struct Inv012 {
     constexpr T(int j) : c{0}, p{0} {
       c[j] = 1;
     }
-
-    friend ostream &operator<<(ostream &os, const T &t) {
-      os << "c{" << t.c[0] << ' ' << t.c[1] << ' ' << t.c[2] << "}";
-      os << " p{";
-      REP(i, 9) os << t.p[i] << ' ';
-      os << "}\n";
-      return os;
-    }
   };
   using F = array<int, 3>;
 
