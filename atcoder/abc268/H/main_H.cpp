@@ -165,24 +165,31 @@ struct AhoCorasick {
     }
   }
 
-  const Node *search(std::string_view entry) const {
+  // Returns all entry_ids found in the text and their end positions.
+  std::vector<std::pair<int, int>> scan(std::string_view text) {
+    std::vector<std::pair<int, int>> found;
     int node_id = ROOT_ID;
-    for (char ch: entry) {
-      auto it = nodes[node_id].next.find(ch);
-      if (it == nodes[node_id].next.end()) return nullptr;
-      node_id = it->second;
+    for (int i = 0; i < (int) text.size(); ++i) {
+      char ch = text[i];
+      for (;;) {
+        auto &node = nodes[node_id];
+        auto it = node.next.find(ch);
+        if (it != node.next.end()) {
+          node_id = it->second;
+          break;
+        }
+        if (node_id == 0) break;
+        node_id = node.failure_id;
+      }
+      for (int it = node_id; it != ROOT_ID; it = nodes[it].failure_id) {
+        auto &node = nodes[it];
+        if (node.suffix_count == 0) break;
+        for (int entry_id: node.entries) {
+          found.emplace_back(entry_id, i + 1);
+        }
+      }
     }
-    return &nodes[node_id];
-  }
-
-  bool contains(std::string_view entry) const {
-    auto res = search(entry);
-    if (res == nullptr) return false;
-    return not res->entries.empty();
-  }
-
-  bool contains_prefix(std::string_view entry) const {
-    return search(entry) != nullptr;
+    return found;
   }
 };
 
