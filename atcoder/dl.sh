@@ -1,7 +1,5 @@
 #!/bin/zsh
-
 set -e
-
 contest="abcXXX"
 tasks=(A B C D E F G H)
 task_prefix=$contest
