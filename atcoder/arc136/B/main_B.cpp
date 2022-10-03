@@ -96,16 +96,58 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-auto solve() {
+auto solve() -> bool {
   const int n = in;
-  const vector<int> A = in(n);
-  const int amax = *max_element(ALL(A));
-  Int dsum = 0;
-  REP(i, n) {
-    int d = A[(i + 1) % n] - A[i];
-    if (d > 0) dsum += d;
+  vector<int> A = in(n), B = in(n);
+  multiset<int> ma(ALL(A)), mb(ALL(B));
+  if (ma != mb) {
+    return false;
   }
-  out(max<Int>(dsum, amax));
+  map<int, int> fa;
+  for (int x: A) fa[x] += 1;
+  for (auto [k, v]: fa) if (v >= 2) return true;
+  auto modify = [&](vector<int> &X) {
+    for (int i = 0; i < n - 2; ++i) {
+      DUMP(i, X);
+      int minval = X[i];
+      int mi = i;
+      for (int j = i + 1; j < n; ++j) {
+        if (chmin(minval, X[j])) {
+          mi = j;
+        }
+      }
+      if (mi == i) continue;
+      if ((mi - i) & 1) {
+        rotate(X.begin() + (i + 1), X.begin() + mi, X.begin() + (mi + 1));
+        rotate(X.begin() + i, X.begin() + (i + 1), X.begin() + (i + 3));
+      } else {
+        rotate(X.begin() + i, X.begin() + mi, X.begin() + (mi + 1));
+      }
+    }
+
+  };
+  modify(A);
+  modify(B);
+  {
+    array<int, 3> Z = {A[n - 3], A[n - 2], A[n - 1]};
+    array<int, 3> Zmin = Z;
+    REP(i, 3) {
+      rotate(Z.begin(), Z.begin() + 2, Z.begin() + 3);
+      chmin(Zmin, Z);
+    }
+    REP(i, 3) A[n - 3 + i] = Zmin[i];
+  }
+  {
+    array<int, 3> Z = {B[n - 3], B[n - 2], B[n - 1]};
+    array<int, 3> Zmin = Z;
+    REP(i, 3) {
+      rotate(Z.begin(), Z.begin() + 1, Z.begin() + 3);
+      chmin(Zmin, Z);
+    }
+    REP(i, 3) B[n - 3 + i] = Zmin[i];
+  }
+  DUMP(B);
+  return A == B;
 }
 
 int main() {
@@ -113,7 +155,7 @@ int main() {
   const int T = 1;//in;
   REP(t, T) {
     test_case(t, T);
-    (solve());
+    out(solve());
   }
   exit_();
 }

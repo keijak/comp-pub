@@ -4,3 +4,4 @@ set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra -fsanitize=address,undefined -fno-omit
 add_executable(D D/main_D.cpp)
 add_executable(C C/main_C.cpp)
 add_executable(A A/main_A.cpp)
+add_executable(B B/main_B.cpp)
