@@ -99,40 +99,44 @@ using namespace std;
 template<typename T>
 bool has_bit(const T &x, int i) { return (x >> i) & 1; }
 
+inline int msb_log(unsigned x) {
+  //assert(x != 0);
+  return std::numeric_limits<unsigned>::digits - __builtin_clz(x) - 1;
+}
+inline int msb_log(Uint x) {
+  //assert(x != 0);
+  return std::numeric_limits<Uint>::digits - __builtin_clzll(x) - 1;
+}
+template<typename T, typename U = std::make_unsigned_t<T>>
+inline U msb(T x) {
+  if (x == 0) return 0;
+  return U(1) << msb_log(U(x));
+}
+
 auto solve() {
-  int n = in, m = in, K = in;
+  int n = in, M = in, K = in;
   vector<uint32_t> A = in(n);
   uint32_t ans = 0;
-  for (int i = 30; i >= 0; --i) {
-    sort(A.rbegin(), A.rend());
-    DUMP(A);
-    int cnt = 0;
-    REP(j, n) {
-      if (has_bit(A[j], i)) ++cnt;
-    }
-    if (cnt >= K) {
-      ans |= (1 << i);
-    } else {
-      Int co_sum = 0;
-      vector<int> ix;
-      REP(j, n) {
-        if (has_bit(A[j], i)) continue;
-        assert(A[j] < (1 << i));
-        int co = (1 << i) - A[j];
-        co_sum += co;
-        ix.push_back(j);
-        if (ssize(ix) >= K - cnt) break;
-      }
-      if (co_sum <= m) {
-        ans |= (1 << i);
-        m -= co_sum;
-        for (int j: ix) {
-          A[j] = 1 << i;
+  for (int b = 30; b >= 0; --b) {
+    uint32_t target = ans | (1 << b);
+    vector<Int> costs(n, 0);
+    REP(i, n) {
+      uint32_t x = A[i];
+      uint32_t t = target;
+      while (t) {
+        uint32_t j = msb(t);
+        if ((target & j) and not(x & j)) {
+          uint32_t c = j - (x & (j - 1));
+          costs[i] += c;
+          x += c;
         }
+        t &= j - 1;
       }
     }
-    REP(j, n) {
-      A[j] = A[j] & ~(1 << i);
+    nth_element(costs.begin(), costs.begin() + K, costs.end());
+    Int psum = accumulate(costs.begin(), costs.begin() + K, 0LL);
+    if (psum <= M) {
+      ans = target;
     }
   }
   out(ans);
