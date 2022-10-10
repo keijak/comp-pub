@@ -1,5 +1,7 @@
 // #define NDEBUG
 #include <bits/stdc++.h>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/miller_rabin.hpp>
 
 #define REP_(i, a_, b_, a, b, ...) for (int i = (a), END_##i = (b); i < END_##i; ++i)
 #define REP(i, ...) REP_(i, __VA_ARGS__, __VA_ARGS__, 0, __VA_ARGS__)
@@ -101,73 +103,95 @@ std::mt19937_64 &PRNG() {
   return engine;
 }
 
-// Generates values in [lo, hi].
-int rand_int(int lo, int hi) {
-  std::uniform_int_distribution<int> rand(lo, hi);
-  return rand(PRNG());
+template<class T>
+T majority_vote(const std::vector<T> a) {
+  T m = a.at(0);
+  int c = 0;
+  for (const T &x: a) {
+    if (c == 0) {
+      m = x;
+      ++c;
+    } else if (x == m) {
+      ++c;
+    } else {
+      --c;
+    }
+  }
+  return m;
 }
 
-constexpr int MX = 1'000'000'000;
+// O(n) sieve
+struct PrimeSieve {
+  std::vector<int> spf;  // smallest prime factors table.
+  std::vector<int> primes;
 
-// Returns all divisors of n. O(sqrt(n)) + sorting.
-std::vector<Int> divisors(Int n) {
+  explicit PrimeSieve(int n) : spf(n + 1) {
+    for (int i = 2; i <= n; ++i) {
+      if (spf[i] == 0) {
+        spf[i] = i;
+        primes.push_back(i);
+      }
+      for (const auto &p: primes) {
+        if (i * p > n) break;
+        spf[i * p] = p;
+        if (i % p == 0) break;
+      }
+    }
+  }
+
+  inline bool is_prime(int n) const { return spf[n] == n; }
+} sieve(1000000);
+
+std::vector<Int> divisor(Int n) {
   std::vector<Int> res;
-  for (Int k = 1; k * k <= n; ++k) {
+
+  if (n <= 1000000 and sieve.is_prime(n)) {
+    res.push_back(n);
+    return res;
+  }
+  if ((n & 3) == 0) {
+    res.push_back(4);
+    Int q = n / 4;
+    if (q != 4) res.push_back(q);
+  }
+  for (Int k = 1; k * k <= n; k += 2) {
     if (n % k != 0) continue;
     res.push_back(k);
     Int q = n / k;
     if (q != k) res.push_back(q);
+    if (ssize(res) >= 5) break;
   }
-  //std::sort(res.begin(), res.end());
   return res;
 }
 
 auto solve() -> optional<int> {
-  int n = in;
+  const int n = in;
   vector<int> a = in(n);
-  map<int, int> freq;
-  for (int x: a) freq[x] += 1;
-  int half = n / 2;
-  for (auto [x, c]: freq) {
-    if (c > half) {
-      return MX;
-    }
-  }
+  sort(ALL(a));
 
   unordered_set < Int > checked;
   auto check = [&](Int z) -> bool {
     if (checked.count(z)) return false;
     checked.insert(z);
-    map<int, int> fq;
-    for (int x: a) {
-      fq[x % z] += 1;
-    }
-    for (auto [x, c]: fq) {
-      if (c > half) {
-        return true;
-      }
-    }
-    return false;
+
+    vector<int> b = a;
+    REP(i, n) b[i] %= z;
+    const int m = majority_vote(b);
+    const int cnt = std::count(ALL(b), m);
+    return cnt > n / 2;
   };
 
-  REP(trial, 50) {
-    Int x, y;
-    bool ok = false;
-    REP(trial2, 100) {
-      x = a[rand_int(0, n - 1)];
-      y = a[rand_int(0, n - 1)];
-      if (abs(x - y) <= 2) continue;
-      ok = true;
-      break;
-    }
-    if (not ok) continue;
-    Int d = abs(x - y);
-    auto divs = divisors(d);
-    for (Int z: divs) {
+  REP(i, n) {
+    int j = (i + 1) % n;
+    Int d = abs(a[i] - a[j]);
+    if (d <= 2) continue;
+    auto divs = divisor(d);
+    for (auto z: divs) {
       if (z <= 2) continue;
       if (check(z)) return z;
     }
   }
+
   return nullopt;
 }
 
