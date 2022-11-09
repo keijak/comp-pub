@@ -102,19 +102,31 @@ backward::SignalHandling kSignalHandling;
 
 using namespace std;
 
-template<typename T>
-struct Array5d {
-  std::vector<T> data_;
-  size_t b0_ = 0, b1_ = 0, b2_ = 0, b3_ = 0;
+template<typename T = Mint>
+T binom(Int n, Int k) {
+  if (k < 0 or k > n) return 0;
+  if (k > n - k) k = n - k;
+  T nume = 1, deno = 1;
+  for (int i = 0; i < k; ++i) {
+    nume *= T(n - i);
+    deno *= T(i + 1);
+  }
+  return nume / deno;
+}
 
-  Array5d(size_t d0, size_t d1, size_t d2, size_t d3, size_t d4)
-      : data_(d0 * d1 * d2 * d3 * d4, T{}),
-        b0_(d1 * d2 * d3 * d4),
-        b1_(d2 * d3 * d4),
-        b2_(d3 * d4),
-        b3_(d4) {}
-  inline T &get(size_t i0, size_t i1, size_t i2, size_t i3, size_t i4) {
-    return data_[i0 * b0_ + i1 * b1_ + i2 * b2_ + i3 * b3_ + i4];
+template<typename T>
+struct Array4d {
+  std::vector<T> data_;
+  size_t b0_ = 0, b1_ = 0, b2_ = 0;
+
+  Array4d(size_t d0, size_t d1, size_t d2, size_t d3)
+      : data_(d0 * d1 * d2 * d3, T{}),
+        b0_(d1 * d2 * d3),
+        b1_(d2 * d3),
+        b2_(d3) {}
+
+  inline T &get(size_t i0, size_t i1, size_t i2, size_t i3) {
+    return data_[i0 * b0_ + i1 * b1_ + i2 * b2_ + i3];
   }
   // Fills one row with the specified value.
   inline void fill(size_t i0, T val) {
@@ -125,85 +137,27 @@ struct Array5d {
 auto solve() {
   int n = in;
   vector<int> A = in(n);
-  Array5d<Mint> dp(n + 1, 2, 2, 2, 2);
-  dp.get(0, 0, 0, 0, 0) = A[0];
-  dp.get(0, 0, 0, 1, 1) = A[0];
-  dp.get(0, 1, 1, 0, 0) = A[n - 1];
-  dp.get(0, 1, 1, 1, 1) = A[n - 1];
-
-  auto debug = [&](int i) {
-    REP(prev, 2) REP(prev0, 2) REP(stop, 2) REP(someone_stop, 2) {
-            auto val = dp.get(i, prev, prev0, stop, someone_stop);
-            DUMP(i, prev, prev0, stop, someone_stop, val);
-          }
-  };
-  REP(i, n - 2) {
-    REP(j0, 2) REP(ke, 2) {
-        if (A[i + 1] > 1) {
-          auto &cur = dp.get(i + 1, 0, j0, 0, ke);
-          cur += dp.get(i, 0, j0, 0, ke) * A[i + 1];
-          cur += dp.get(i, 0, j0, 1, ke) * A[i + 1];
-          cur += dp.get(i, 1, j0, 0, ke) * A[i + 1];
-          cur += dp.get(i, 1, j0, 1, ke) * A[i + 1];
-        }
-        if (A[i + 1] > 0) {
-          auto &cur = dp.get(i + 1, 0, j0, 1, 1);
-          cur += dp.get(i, 0, j0, 0, ke) * A[i + 1];
-          cur += dp.get(i, 0, j0, 1, ke) * A[i + 1];
-          cur += dp.get(i, 1, j0, 0, ke) * A[i + 1];
-          cur += dp.get(i, 1, j0, 1, ke) * A[i + 1];
-        }
-        if (A[i] > 0) {
-          auto &cur = dp.get(i + 1, 1, j0, 0, ke);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i] - 1);
-          cur += dp.get(i, 1, j0, 0, ke) * A[i];
-        }
-        if (A[i] > 0) {
-          auto &cur = dp.get(i + 1, 1, j0, 1, 1);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i] - 1);
-          cur += dp.get(i, 1, j0, 0, ke) * A[i];
-        }
+  Array4d<Mint> dp(n + 1, 2, 2, 2);
+  REP(j0, 2) REP(ji, 2) REP(zero, 2) {
+        if (zero and ji) continue;
+        int from = A[0] + (not zero and ji);
+        int val = ji + (1 - j0) + (1 - zero);
+        dp.get(0, j0, ji, zero) += binom(from, val);
       }
-  }
-  {
-    const int i = n - 2;
-    REP(j0, 2) REP(ke, 2) {
-        if (ke and A[i + 1] - j0 > 1) {
-          auto &cur = dp.get(i + 1, 0, j0, 0, ke);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 0, j0, 1, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 1, j0, 0, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 1, j0, 1, ke) * (A[i + 1] - j0);
-        }
-        if (not j0 and A[i + 1] - j0 > 0) {
-          auto &cur = dp.get(i + 1, 0, j0, 1, 1);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 0, j0, 1, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 1, j0, 0, ke) * (A[i + 1] - j0);
-          cur += dp.get(i, 1, j0, 1, ke) * (A[i + 1] - j0);
-        }
-        if (ke and A[i] > 0) {
-          auto &cur = dp.get(i + 1, 1, j0, 0, ke);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i] - 1);
-          cur += dp.get(i, 1, j0, 0, ke) * A[i];
-        }
-        if (not j0 and A[i] > 0) {
-          auto &cur = dp.get(i + 1, 1, j0, 1, 1);
-          cur += dp.get(i, 0, j0, 0, ke) * (A[i] - 1);
-          cur += dp.get(i, 1, j0, 0, ke) * A[i];
-        }
-      }
+  for (int i = 1; i < n; ++i) {
+    REP(j0, 2) REP(jp, 2) REP(ji, 2) REP(zero, 2) REP(zerop, 2) {
+              if (zero and ji) continue;
+              if (i == n - 1 and ji != j0) continue;
+              int from = A[i] + (not zero and ji);
+              int val = ji + (1 - jp) + (1 - zero);
+              dp.get(i, j0, ji, max(zero, zerop)) += dp.get(i - 1, j0, jp, zerop) * binom(from, val);
+            }
   }
   Mint ans = 0;
-  REP(j, 2) REP(j0, 2) REP(k, 2) {
-        ans += dp.get(n - 1, j, j0, k, 1);
-      }
+  REP(j0, 2) {
+    ans += dp.get(n - 1, j0, j0, 1);
+  }
   out(ans);
-
-//  REP(t, 3) {
-//    test_case(t, 3);
-//    debug(t);
-//  }
 }
 
 int main() {
