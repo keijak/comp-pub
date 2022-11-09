@@ -57,15 +57,23 @@ Mint binom(int n, int k) {
 using mints::binom;
 
 Mint solve(int N, int M) {
-  if (M < N - 1) return 0;
-  Mint ans = 0;
-  REP(a0, 3) {
-    for (int i = 0; i <= N - 1; ++i) {
-      const int s = a0 + 2 * i + (N - 1 - i);
-      if (s > M) break;
-      int r = (M - s) / 3;
-      ans += binom(N - 1, i) * binom(r + N, r);
+  if (M - N + 1 < 0) return 0;
+  vector<Mint> f(M + 1);
+  for (int i = 0; i < N; ++i) {
+    int k = i + 2 * (N - 1 - i);
+    if (k <= M) {
+      f[k] += binom(N - 1, i);
     }
+  }
+  vector<Mint> g(M + 1);
+  for (int i = 0; 3 * i <= M; ++i) {
+    int k = 3 * i;
+    g[k] += binom(N - 2 + i, i);
+  }
+  REP(d, 2) REP(i, M) g[i + 1] += g[i];
+  Mint ans = 0;
+  REP(i, M + 1) {
+    ans += f[i] * g[M - i];
   }
   return ans;
 }
